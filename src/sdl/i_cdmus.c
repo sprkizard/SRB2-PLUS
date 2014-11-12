@@ -1,4 +1,3 @@
-#ifdef HAVE_SDL
 #include "../command.h"
 #include "../s_sound.h"
 #include "../i_sound.h"
@@ -37,4 +36,3 @@ boolean I_SetVolumeCD(int volume)
 	return false;
 }
 
-#endif
