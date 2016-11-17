@@ -712,7 +712,7 @@ void R_RenderThickSideRange(drawseg_t *ds, INT32 x1, INT32 x2, ffloor_t *pfloor)
 	sector_t        tempsec;
 	INT32             templight;
 	INT32             i, p;
-	fixed_t         bottombounds = viewheight << FRACBITS;
+	fixed_t         bottombounds = (viewheight+30/*@todo*/) << FRACBITS;
 	fixed_t         topbounds = (con_clipviewtop - 1) << FRACBITS;
 	fixed_t         offsetvalue = 0;
 	lightlist_t     *light;
@@ -1456,7 +1456,7 @@ static void R_RenderSegLoop (void)
 		if (midtexture)
 		{
 			// single sided line
-			if (yl <= yh && yh >= 0 && yl < viewheight)
+			if (yl <= yh && yh >= 0 && yl < viewheight+30/*@todo*/)
 			{
 				dc_yl = yl;
 				dc_yh = yh;
@@ -1481,16 +1481,16 @@ static void R_RenderSegLoop (void)
 
 				// dont draw anything more for this column, since
 				// a midtexture blocks the view
-				ceilingclip[rw_x] = (INT16)viewheight;
+				ceilingclip[rw_x] = (INT16)viewheight+30/*@todo*/;
 				floorclip[rw_x] = -1;
 			}
 			else
 			{
 				// note: don't use min/max macros, since casting from INT32 to INT16 is involved here
 				if (markceiling)
-					ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight) ? (INT16)viewheight : (INT16)((INT16)yl - 1)) : -1;
+					ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight+30/*@todo*/) ? (INT16)(viewheight+30/*@todo*/) : (INT16)((INT16)yl - 1)) : -1;
 				if (markfloor)
-					floorclip[rw_x] = (yh < viewheight) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)viewheight;
+					floorclip[rw_x] = (yh < viewheight+30/*@todo*/) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)(viewheight+30/*@todo*/);
 			}
 		}
 		else
@@ -1507,8 +1507,8 @@ static void R_RenderSegLoop (void)
 
 				if (mid >= yl) // back ceiling lower than front ceiling ?
 				{
-					if (yl >= viewheight) // entirely off bottom of screen
-						ceilingclip[rw_x] = (INT16)viewheight;
+					if (yl >= viewheight+30/*@todo*/) // entirely off bottom of screen
+						ceilingclip[rw_x] = (INT16)(viewheight+30/*@todo*/);
 					else if (mid >= 0) // safe to draw top texture
 					{
 						dc_yl = yl;
@@ -1523,10 +1523,10 @@ static void R_RenderSegLoop (void)
 						ceilingclip[rw_x] = -1;
 				}
 				else
-					ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight) ? (INT16)viewheight : (INT16)((INT16)yl - 1)) : -1;
+					ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight+30/*@todo*/) ? (INT16)(viewheight+30/*@todo*/) : (INT16)((INT16)yl - 1)) : -1;
 			}
 			else if (markceiling) // no top wall
-				ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight) ? (INT16)viewheight : (INT16)((INT16)yl - 1)) : -1;
+				ceilingclip[rw_x] = (yl >= 0) ? ((yl > viewheight+30/*@todo*/) ? (INT16)(viewheight+30/*@todo*/) : (INT16)((INT16)yl - 1)) : -1;
 
 			if (bottomtexture)
 			{
@@ -1542,7 +1542,7 @@ static void R_RenderSegLoop (void)
 				{
 					if (yh < 0) // entirely off top of screen
 						floorclip[rw_x] = -1;
-					else if (mid < viewheight) // safe to draw bottom texture
+					else if (mid < viewheight+30/*@todo*/) // safe to draw bottom texture
 					{
 						dc_yl = mid;
 						dc_yh = yh;
@@ -1554,13 +1554,13 @@ static void R_RenderSegLoop (void)
 						floorclip[rw_x] = (INT16)mid;
 					}
 					else  // entirely off bottom of screen
-						floorclip[rw_x] = (INT16)viewheight;
+						floorclip[rw_x] = (INT16)(viewheight+30/*@todo*/);
 				}
 				else
-					floorclip[rw_x] = (yh < viewheight) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)viewheight;
+					floorclip[rw_x] = (yh < viewheight+30/*@todo*/) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)(viewheight+30/*@todo*/);
 			}
 			else if (markfloor) // no bottom wall
-				floorclip[rw_x] = (yh < viewheight) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)viewheight;
+				floorclip[rw_x] = (yh < viewheight+30/*@todo*/) ? ((yh < -1) ? -1 : (INT16)((INT16)yh + 1)) : (INT16)(viewheight+30/*@todo*/);
 		}
 
 		if (maskedtexture || numthicksides)

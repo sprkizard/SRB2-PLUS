@@ -624,10 +624,10 @@ void R_DrawMaskedColumn(column_t *column)
 			dc_yl = mceilingclip[dc_x]+1;
 		if (dc_yl < 0)
 			dc_yl = 0;
-		if (dc_yh >= vid.height)
-			dc_yh = vid.height - 1;
+		if (dc_yh >= vid.height+30/*@todo*/)
+			dc_yh = vid.height+30/*@todo*/ - 1;
 
-		if (dc_yl <= dc_yh && dc_yl < vid.height && dc_yh > 0)
+		if (dc_yl <= dc_yh && dc_yl < vid.height+30/*@todo*/ && dc_yh > 0)
 		{
 			dc_source = (UINT8 *)column + 3;
 			dc_texturemid = basetexturemid - (topdelta<<FRACBITS);
@@ -696,10 +696,10 @@ static void R_DrawFlippedMaskedColumn(column_t *column, INT32 texheight)
 			dc_yl = mceilingclip[dc_x]+1;
 		if (dc_yl < 0)
 			dc_yl = 0;
-		if (dc_yh >= vid.height)
-			dc_yh = vid.height - 1;
+		if (dc_yh >= vid.height+30/*@todo*/)
+			dc_yh = vid.height+30/*@todo*/ - 1;
 
-		if (dc_yl <= dc_yh && dc_yl < vid.height && dc_yh > 0)
+		if (dc_yl <= dc_yh && dc_yl < vid.height+30/*@todo*/ && dc_yh > 0)
 		{
 			dc_source = ZZ_Alloc(column->length);
 			for (s = (UINT8 *)column+2+column->length, d = dc_source; d < dc_source+column->length; --s)
@@ -1730,7 +1730,7 @@ static void R_CreateDrawNodes(void)
 					plane = ds->ffloorplanes[p];
 					R_PlaneBounds(plane);
 
-					if (plane->low < con_clipviewtop || plane->high > vid.height || plane->high > plane->low || plane->polyobj)
+					if (plane->low < con_clipviewtop || plane->high > vid.height+30/*@todo*/ || plane->high > plane->low || plane->polyobj)
 					{
 						ds->ffloorplanes[p] = NULL;
 						continue;
@@ -1762,7 +1762,7 @@ static void R_CreateDrawNodes(void)
 	R_SortVisSprites();
 	for (rover = vsprsortedhead.prev; rover != &vsprsortedhead; rover = rover->prev)
 	{
-		if (rover->szt > vid.height || rover->sz < 0)
+		if (rover->szt > vid.height+30/*@todo*/ || rover->sz < 0)
 			continue;
 
 		sintersect = (rover->x1 + rover->x2) / 2;

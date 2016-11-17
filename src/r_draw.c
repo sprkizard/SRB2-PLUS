@@ -607,14 +607,17 @@ void R_InitViewBuffer(INT32 width, INT32 height)
 		I_Error("R_InitViewBuffer: wrong bytesperpixel value %d\n", bytesperpixel);
 
 	// Handle resize, e.g. smaller view windows with border and/or status bar.
-	viewwindowx = (vid.width - width) >> 1;
+	if (width >= vid.width)
+		viewwindowx = 0;
+	else
+        viewwindowx = (vid.width - width) >> 1;
 
 	// Column offset for those columns of the view window, but relative to the entire screen
 	for (i = 0; i < width; i++)
 		columnofs[i] = (viewwindowx + i) * bytesperpixel;
 
 	// Same with base row offset.
-	if (width == vid.width)
+	if (width >= vid.width)
 		viewwindowy = 0;
 	else
 		viewwindowy = (vid.height - height) >> 1;

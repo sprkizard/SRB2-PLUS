@@ -635,6 +635,7 @@ void R_ExecuteSetViewSize(void)
 	INT32 level;
 	INT32 startmapl;
 	INT32 aspectx;  //added : 02-02-98 : for aspect ratio calc. below...
+	INT32 totalsize;
 
 	setsizeneeded = false;
 
@@ -661,7 +662,9 @@ void R_ExecuteSetViewSize(void)
 	//projectiony = (((vid.height*centerx*BASEVIDWIDTH)/BASEVIDHEIGHT)/vid.width)<<FRACBITS;
 	projectiony = centerxfrac;
 
-	R_InitViewBuffer(scaledviewwidth, viewheight);
+	totalsize = sqrt(scaledviewwidth*scaledviewwidth + viewheight*viewheight);
+
+	R_InitViewBuffer(totalsize, totalsize);
 
 	R_InitTextureMapping();
 

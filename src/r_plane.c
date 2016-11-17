@@ -143,12 +143,12 @@ void R_PortalRestoreClipValues(INT32 start, INT32 end, INT16 *ceil, INT16 *floor
 	for (i = 0; i < start; i++)
 	{
 		floorclip[i] = -1;
-		ceilingclip[i] = (INT16)viewheight;
+		ceilingclip[i] = (INT16)viewheight+30/*@todo*/;
 	}
 	for (i = end; i < vid.width; i++)
 	{
 		floorclip[i] = -1;
-		ceilingclip[i] = (INT16)viewheight;
+		ceilingclip[i] = (INT16)viewheight+30/*@todo*/;
 	}
 }
 
@@ -277,7 +277,7 @@ void R_MapPlane(INT32 y, INT32 x1, INT32 x2)
 	size_t pindex;
 
 #ifdef RANGECHECK
-	if (x2 < x1 || x1 < 0 || x2 >= viewwidth || y > viewheight)
+	if (x2 < x1 || x1 < 0 || x2 >= viewwidth || y > viewheight+30/*@todo*/)
 		I_Error("R_MapPlane: %d, %d at %d", x1, x2, y);
 #endif
 
@@ -317,8 +317,8 @@ void R_MapPlane(INT32 y, INT32 x1, INT32 x2)
 		ds_xfrac += FixedMul(FINECOSINE(angle), (bgofs<<FRACBITS));
 		ds_yfrac += FixedMul(FINESINE(angle), (bgofs<<FRACBITS));
 
-		if (y+bgofs>=viewheight)
-			bgofs = viewheight-y-1;
+		if (y+bgofs>=viewheight+30/*@todo*/)
+			bgofs = viewheight+30/*@todo*/-y-1;
 		if (y+bgofs<0)
 			bgofs = -y;
 	}
@@ -372,12 +372,12 @@ void R_ClearPlanes(void)
 	// opening / clipping determination
 	for (i = 0; i < viewwidth; i++)
 	{
-		floorclip[i] = (INT16)viewheight;
+		floorclip[i] = (INT16)viewheight+30/*@todo*/;
 		ceilingclip[i] = (INT16)con_clipviewtop;
 		frontscale[i] = INT32_MAX;
 		for (p = 0; p < MAXFFLOORS; p++)
 		{
-			ffloor[p].f_clip[i] = (INT16)viewheight;
+			ffloor[p].f_clip[i] = (INT16)viewheight+30/*@todo*/;
 			ffloor[p].c_clip[i] = (INT16)con_clipviewtop;
 		}
 	}
@@ -644,10 +644,10 @@ void R_ExpandPlane(visplane_t *pl, INT32 start, INT32 stop)
 void R_MakeSpans(INT32 x, INT32 t1, INT32 b1, INT32 t2, INT32 b2)
 {
 	//    Alam: from r_splats's R_RenderFloorSplat
-	if (t1 >= vid.height) t1 = vid.height-1;
-	if (b1 >= vid.height) b1 = vid.height-1;
-	if (t2 >= vid.height) t2 = vid.height-1;
-	if (b2 >= vid.height) b2 = vid.height-1;
+	if (t1 >= vid.height+30/*@todo*/) t1 = vid.height+30/*@todo*/-1;
+	if (b1 >= vid.height+30/*@todo*/) b1 = vid.height+30/*@todo*/-1;
+	if (t2 >= vid.height+30/*@todo*/) t2 = vid.height+30/*@todo*/-1;
+	if (b2 >= vid.height+30/*@todo*/) b2 = vid.height+30/*@todo*/-1;
 	if (x-1 >= vid.width) x = vid.width;
 
 	while (t1 < t2 && t1 <= b1)
@@ -845,8 +845,8 @@ void R_DrawSinglePlane(visplane_t *pl)
 
 				if (top < 0)
 					top = 0;
-				if (bottom > vid.height)
-					bottom = vid.height;
+				if (bottom > vid.height+30/*@todo*/)
+					bottom = vid.height+30/*@todo*/;
 
 				// Only copy the part of the screen we need
 				VID_BlitLinearScreen((splitscreen && viewplayer == &players[secondarydisplayplayer]) ? screens[0] + (top+(vid.height>>1))*vid.width : screens[0]+((top)*vid.width), screens[1]+((top)*vid.width),

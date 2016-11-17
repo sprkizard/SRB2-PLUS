@@ -2030,20 +2030,21 @@ Unoptimized version
         //CONS_Printf("%f\n", f_angle);
 
         INT32 hwidth = vid.width / 2;
-        INT32 hheight = height / 2;
+        INT32 realhheight = height / 2;
+        INT32 hheight = (height+30/*@todo*/) / 2;
 
         float sinma = sin(f_angle);
 
         float cosma = cos(f_angle);
 
-        float xst = (INT32)round((cosma * -hwidth - sinma * -hheight) + hwidth);
-        float yst = (INT32)round((sinma * -hwidth + cosma * -hheight) + hheight);
+        float xst = (INT32)round((cosma * -hwidth - sinma * -realhheight) + hwidth);
+        float yst = (INT32)round((sinma * -hwidth + cosma * -realhheight) + hheight);
 
         // Fills the empty space with a solid color from palette index
         //memset(screens[4], (UINT8)(31), vid.width*vid.height*vid.bpp);
 
-#define OUT_OF_RANGE (xs < 0 || xs >= vid.width || ys < 0 || ys >= height)
-        for (y = 0; y < hheight; y++) {
+#define OUT_OF_RANGE (xs < 0 || xs >= vid.width || ys < 0 || ys >= height+30/*@todo*/)
+        for (y = 0; y < realhheight; y++) {
             float xs = xst;
             float ys = yst;
 
@@ -2062,7 +2063,7 @@ Unoptimized version
                 tmpscr[x + (y + yoffset) * vid.width] = srcscr[xn + (yn + yoffset) * vid.width];
 
                 xn = vid.width - 1 - xn;
-                yn = height - 1 - yn;
+                yn = height+30/*@todo*/ - 1 - yn;
 
                 tmpscr[(vid.width - 1 - x) + (height - 1 - y + yoffset) * vid.width] = srcscr[xn + (yn + yoffset) * vid.width];
 
