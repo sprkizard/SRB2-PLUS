@@ -18,6 +18,8 @@
 #include "r_things.h"
 #include "b_bot.h"
 #include "z_zone.h"
+#include "p_local.h"
+#include "f_finale.h"
 
 #include "lua_script.h"
 #include "lua_libs.h"
@@ -92,6 +94,160 @@ static hook_p linedefexecutorhooks;
 
 // For other hooks, a unique linked list
 hook_p roothook;
+
+enum cameraf {
+	camera_chase = 0,
+	camera_aiming,
+	camera_x,
+	camera_y,
+	camera_z,
+	camera_angle,
+	camera_subsector,
+	camera_floorz,
+	camera_ceilingz,
+	camera_radius,
+	camera_height,
+	camera_momx,
+	camera_momy,
+	camera_momz
+};
+
+
+const char *const camera_opt[] = {
+	"chase",
+	"aiming",
+	"x",
+	"y",
+	"z",
+	"angle",
+	"subsector",
+	"floorz",
+	"ceilingz",
+	"radius",
+	"height",
+	"momx",
+	"momy",
+	"momz",
+	NULL};
+
+static int camera_get(lua_State *L)
+{
+	camera_t *cam = *((camera_t **)luaL_checkudata(L, 1, META_CAMERA));
+	enum cameraf field = luaL_checkoption(L, 2, NULL, camera_opt);
+
+	// cameras should always be valid unless I'm a nutter
+	I_Assert(cam != NULL);
+
+	if (!(hud_running || titlemapinaction))
+		return luaL_error(L, "This field can only be read in HUD rendering code or on the titlemap!");
+
+	switch (field)
+	{
+	case camera_chase:
+		lua_pushboolean(L, cam->chase);
+		break;
+	case camera_aiming:
+		lua_pushinteger(L, cam->aiming);
+		break;
+	case camera_x:
+		lua_pushinteger(L, cam->x);
+		break;
+	case camera_y:
+		lua_pushinteger(L, cam->y);
+		break;
+	case camera_z:
+		lua_pushinteger(L, cam->z);
+		break;
+	case camera_angle:
+		lua_pushinteger(L, cam->angle);
+		break;
+	case camera_subsector:
+		LUA_PushUserdata(L, cam->subsector, META_SUBSECTOR);
+		break;
+	case camera_floorz:
+		lua_pushinteger(L, cam->floorz);
+		break;
+	case camera_ceilingz:
+		lua_pushinteger(L, cam->ceilingz);
+		break;
+	case camera_radius:
+		lua_pushinteger(L, cam->radius);
+		break;
+	case camera_height:
+		lua_pushinteger(L, cam->height);
+		break;
+	case camera_momx:
+		lua_pushinteger(L, cam->momx);
+		break;
+	case camera_momy:
+		lua_pushinteger(L, cam->momy);
+		break;
+	case camera_momz:
+		lua_pushinteger(L, cam->momz);
+		break;
+	}
+	return 1;
+}
+
+#define NOSET luaL_error(L, LUA_QL("camera_t") " field " LUA_QS " should not be set directly.", camera_opt[field])
+
+static int camera_set(lua_State *L)
+{
+	camera_t *cam = *((camera_t **)luaL_checkudata(L, 1, META_CAMERA));
+	enum cameraf field = luaL_checkoption(L, 2, NULL, camera_opt);
+	lua_settop(L, 3);
+
+	// cameras should always be valid unless I'm a nutter
+	I_Assert(cam != NULL);
+
+	//if !(titlemapinaction)
+	//	return luaL_error(L, "This field can only be written to on the titlemap!");
+
+	switch (field)
+	{
+	case camera_chase:
+		return NOSET;
+	case camera_aiming:
+		cam->aiming = luaL_checkangle(L, 3);
+		break;
+	case camera_x:
+		cam->x = luaL_checkfixed(L, 3);
+		break;
+	case camera_y:
+		cam->y = luaL_checkfixed(L, 3);
+		break;
+	case camera_z:
+		cam->z = luaL_checkfixed(L, 3);
+		break;
+	case camera_angle:
+		cam->angle = luaL_checkangle(L, 3);
+		break;
+	case camera_subsector:
+		return NOSET;
+	case camera_floorz:
+		return NOSET;
+	case camera_ceilingz:
+		return NOSET;
+	case camera_radius:
+		cam->radius = luaL_checkfixed(L, 3);
+		break;
+	case camera_height:
+		cam->height = luaL_checkfixed(L, 3);
+		break;
+	case camera_momx:
+		cam->momx = luaL_checkfixed(L, 3);
+		break;
+	case camera_momy:
+		cam->momy = luaL_checkfixed(L, 3);
+		break;
+	case camera_momz:
+		cam->momz = luaL_checkfixed(L, 3);
+		break;
+	}
+	return 0;
+}
+
+#undef NOSET
 
 // Takes hook, function, and additional arguments (mobj type to act on, etc.)
 static int lib_addHook(lua_State *L)
@@ -221,6 +377,14 @@ int LUA_HookLib(lua_State *L)
 	memset(hooksAvailable,0,sizeof(UINT8[(hook_MAX/8)+1]));
 	roothook = NULL;
 	lua_register(L, "addHook", lib_addHook);
+
+	luaL_newmetatable(L, META_CAMERA);
+		lua_pushcfunction(L, camera_get);
+		lua_setfield(L, -2, "__index");
+		lua_pushcfunction(L, camera_set);
+		lua_setfield(L, -2, "__newindex");
+	lua_pop(L,1);
+
 	return 0;
 }
 
