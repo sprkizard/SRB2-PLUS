@@ -1602,6 +1602,7 @@ void F_TitleScreenTicker(boolean run)
 			camera.z = cameraref->z;
 			camera.angle = cameraref->angle;
 			camera.aiming = cameraref->cusval;
+			camera.subsector = cameraref->subsector;
 		}
 		else
 		{
