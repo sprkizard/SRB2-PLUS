@@ -151,8 +151,8 @@ extern FILE *logstream;
 #else
 #define VERSION    100 // Game version
 #define SUBVERSION 1  // more precise version number
-#define VERSIONSTRING "PlusC v1.1.0"
-#define VERSIONSTRINGW L"PlusC v1.1.0"
+#define VERSIONSTRING "PlusC v1.1.1"
+#define VERSIONSTRINGW L"PlusC v1.1.1"
 // Hey! If you change this, add 1 to the MODVERSION below!
 // Otherwise we can't force updates!
 #endif
