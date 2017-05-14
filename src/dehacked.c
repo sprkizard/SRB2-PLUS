@@ -77,6 +77,8 @@ boolean deh_loaded = false;
 static int dbg_line;
 
 static boolean gamedataadded = false;
+static boolean titlechanged = false;
+static boolean introchanged = false;
 
 #ifdef DELFILE
 typedef struct undehacked_s
@@ -3012,11 +3014,13 @@ static void readmaincfg(MYFILE *f)
 				// range check, you morons.
 				if (introtoplay > 128)
 					introtoplay = 128;
+				introchanged = true;
 			}
 			else if (fastcmp(word, "LOOPTITLE"))
 			{
 				DEH_WriteUndoline(word, va("%d", looptitle), UNDO_NONE);
 				looptitle = (boolean)(value || word2[0] == 'T' || word2[0] == 'Y');
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "TITLEMAP"))
 			{
@@ -3031,16 +3035,19 @@ static void readmaincfg(MYFILE *f)
 
 				DEH_WriteUndoline(word, va("%d", titlemap), UNDO_NONE);
 				titlemap = (INT16)value;
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "HIDETITLEPICS"))
 			{
 				DEH_WriteUndoline(word, va("%d", hidetitlepics), UNDO_NONE);
 				hidetitlepics = (boolean)(value || word2[0] == 'T' || word2[0] == 'Y');
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "TITLESCROLLSPEED"))
 			{
 				DEH_WriteUndoline(word, va("%d", titlescrollspeed), UNDO_NONE);
 				titlescrollspeed = get_number(word2);
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "CREDITSCUTSCENE"))
 			{
@@ -3059,16 +3066,19 @@ static void readmaincfg(MYFILE *f)
 			{
 				DEH_WriteUndoline(word, va("%d", numDemos), UNDO_NONE);
 				numDemos = (UINT8)get_number(word2);
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "DEMODELAYTIME"))
 			{
 				DEH_WriteUndoline(word, va("%d", demoDelayTime), UNDO_NONE);
 				demoDelayTime = get_number(word2);
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "DEMOIDLETIME"))
 			{
 				DEH_WriteUndoline(word, va("%d", demoIdleTime), UNDO_NONE);
 				demoIdleTime = get_number(word2);
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "USE1UPSOUND"))
 			{
@@ -3105,16 +3115,19 @@ static void readmaincfg(MYFILE *f)
 				strlcat(savegamename, "%u.ssg", sizeof(savegamename));
 
 				gamedataadded = true;
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "RESETDATA"))
 			{
 				DEH_WriteUndoline(word, "0", UNDO_TODO); /// \todo
 				P_ResetData(value);
+				titlechanged = true;
 			}
 			else if (fastcmp(word, "CUSTOMVERSION"))
 			{
 				DEH_WriteUndoline(word, customversionstring, UNDO_NONE);
 				strlcpy(customversionstring, word2, sizeof (customversionstring));
+				//titlechanged = true;
 			}
 			else if (fastcmp(word, "BOOTMAP"))
 			{
@@ -3131,6 +3144,7 @@ static void readmaincfg(MYFILE *f)
 
 				DEH_WriteUndoline(word, va("%d", bootmap), UNDO_NONE);
 				bootmap = (INT16)value;
+				//titlechanged = true;
 			}
 			else
 				deh_warning("Maincfg: unknown word '%s'", word);
@@ -3340,7 +3354,7 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 	for (i = 0; i < NUMSFX; i++)
 		savesfxnames[i] = S_sfx[i].name;
 
-	gamedataadded = false;
+	gamedataadded = titlechanged = introchanged = false;
 
 	// it doesn't test the version of SRB2 and version of dehacked file
 	dbg_line = -1; // start at -1 so the first line is 0.
@@ -3710,6 +3724,14 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 
 	if (gamedataadded)
 		G_LoadGameData();
+
+	if (gamestate == GS_TITLESCREEN)
+	{
+		if (introchanged)
+			COM_BufAddText("playintro");
+		else if (titlechanged)
+			COM_BufAddText("exitgame"); // Command_ExitGame_f() but delayed
+	}
 
 	dbg_line = -1;
 	if (deh_num_warning)
