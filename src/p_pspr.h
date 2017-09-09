@@ -57,6 +57,7 @@
 #define FF_TRANS70 (tr_trans70<<FF_TRANSSHIFT)
 #define FF_TRANS80 (tr_trans80<<FF_TRANSSHIFT)
 #define FF_TRANS90 (tr_trans90<<FF_TRANSSHIFT)
+#define FF_TRANSA0 (tr_transa0<<FF_TRANSSHIFT)
 
 /**	\brief translucency tables
 
@@ -78,6 +79,7 @@ typedef enum
 	tr_trans70,
 	tr_trans80,
 	tr_trans90,
+	tr_transa0,
 	NUMTRANSMAPS
 } transnum_t;
 
