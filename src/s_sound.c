@@ -1243,7 +1243,23 @@ static boolean S_DigMusic(const char *mname, boolean looping)
 	return true;
 }
 
-void S_ChangeMusic(const char *mmusic, UINT16 mflags, boolean looping)
+static boolean S_DigMusicFadeIn(const char *mname, boolean looping, UINT32 fadein_ms)
+{
+	if (nodigimusic || digital_disabled)
+		return false; // try midi
+
+	if (!I_FadeInDigSong(mname, looping, fadein_ms))
+		return false;
+
+	strncpy(music_name, mname, 7);
+	music_name[6] = 0;
+	music_lumpnum = LUMPERROR;
+	music_data = NULL;
+	music_handle = 0;
+	return true;
+}
+
+void S_ChangeMusicFadeIn(const char *mmusic, UINT16 mflags, boolean looping, UINT32 fadein_ms)
 {
 #if defined (DC) || defined (_WIN32_WCE) || defined (PSP) || defined(GP2X)
 	S_ClearSfx();
@@ -1262,7 +1278,7 @@ void S_ChangeMusic(const char *mmusic, UINT16 mflags, boolean looping)
 	if (strncmp(music_name, mmusic, 6))
 	{
 		S_StopMusic(); // shutdown old music
-		if (!S_DigMusic(mmusic, looping) && !S_MIDIMusic(mmusic, looping))
+		if (!S_DigMusicFadeIn(mmusic, looping, fadein_ms) && !S_MIDIMusic(mmusic, looping))
 		{
 			CONS_Alert(CONS_ERROR, M_GetText("Music lump %.6s not found!\n"), mmusic);
 			return;
@@ -1279,6 +1295,14 @@ void S_SetMusicPosition(float position)
 float S_GetMusicPosition(void)
 {
 	return I_GetMusicPosition();
+}
+
+void S_MusicVolume(int volume)
+{
+	if (volume == -1)
+		return I_VolumeMusic(volume);
+	else
+		I_VolumeMusic(volume);
 }
 
 void S_FadeOutMusic(int ms)

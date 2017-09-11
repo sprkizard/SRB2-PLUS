@@ -68,6 +68,8 @@ static boolean midimode;
 static Mix_Music *music;
 static UINT8 music_volume, midi_volume, sfx_volume;
 static float loop_point;
+static Uint32 fadeout_start_ticks = 0;
+static int fadeout_ms;
 
 #ifdef HAVE_LIBGME
 static Music_Emu *gme;
@@ -453,18 +455,27 @@ static void music_loop(void)
 	Mix_PlayMusic(music, 0);
 	Mix_SetMusicPosition(loop_point);
 	music_pos = (int)(loop_point * SAMPLE_RATE);
+
+	if (fadeout_start_ticks)
+	{
+		Uint32 diff = SDL_GetTicks() - fadeout_start_ticks;
+
+		//CONS_Printf("%d\n", diff);
+		if (diff > fadeout_ms - 100) // Fadeout is done (or will finish in less than 1/10 second; not worth continuing)
+		{
+			//CONS_Printf("faded... get owned...\n");
+			Mix_HookMusicFinished(NULL);
+			Mix_HaltMusic();
+
+			return;
+		}
+
+		Mix_VolumeMusic((UINT32)music_volume*128 * (fadeout_ms - diff) / fadeout_ms /31);
+		Mix_FadeOutMusic(fadeout_ms - diff);
+	}
+	//TODO: Maximum volume is hit on fade-in loop
 }
 
-//miru: some music hooks and callbacks (including music_pos above)
-/*static void music_fadeloop(void)
-{
-	Mix_HookMusicFinished(NULL);
-	// Mix_PlayMusic(music, 0);
-	//if (music_pos >= I_GetMusicPosition() - 1000)
-	//    Mix_SetMusicPosition(loop_point);
-
-	music_pos = (int)(loop_point * SAMPLE_RATE);
-}*/
 
 static void mixmusic_callback(void *udata, Uint8 *stream, int len)
 {
@@ -553,7 +564,7 @@ void I_ShutdownDigMusic(void)
 	music = NULL;
 }
 
-boolean I_StartDigSong(const char *musicname, boolean looping)
+boolean I_FadeInDigSong(const char *musicname, boolean looping, UINT32 fadein_ms)
 {
 	char *data;
 	size_t len;
@@ -711,12 +722,21 @@ boolean I_StartDigSong(const char *musicname, boolean looping)
 		}
 	}
 
-	if (Mix_PlayMusic(music, /*looping && loop_point == 0.0f ? -1 :*/ 0) == -1)
+	if (fadein_ms)
+	{
+		if (Mix_FadeInMusic(music, 0, fadein_ms) == -1)
+		{
+			CONS_Alert(CONS_ERROR, "Mix_PlayMusic: %s\n", Mix_GetError());
+			return true;
+		}
+	}
+	else if (Mix_PlayMusic(music, /*looping && loop_point == 0.0f ? -1 :*/ 0) == -1)
 	{
 		CONS_Alert(CONS_ERROR, "Mix_PlayMusic: %s\n", Mix_GetError());
 		return true;
 	}
 	Mix_VolumeMusic((UINT32)music_volume*128/31);
+	fadeout_start_ticks = 0;
 
 	Mix_SetPostMix(mixmusic_callback, NULL);
 	music_pos = 0;
@@ -776,29 +796,16 @@ float I_GetMusicPosition(void)
 	);
 }
 
-void I_FadeInMusic(int ms)
-{
-	Mix_FadeInMusic(music, 0, ms);
-}
-
-void I_FadeInMusicPos(int ms, float position)
-{
-	Mix_FadeInMusicPos(music, 0, ms, position);
-	//music_pos = (int)(position * SAMPLE_RATE);
-}
-/*
 void I_VolumeMusic(int volume)
 {
+	Mix_VolumeMusic(volume);
 }
-*/
+
 void I_FadeOutMusic(int ms)
 {
-	//TODO: music ends if fading before a loop point, fix it
-	Mix_PlayMusic(music, -1);
-	Mix_SetMusicPosition(I_GetMusicPosition());
+	fadeout_start_ticks = SDL_GetTicks();
+	fadeout_ms = ms;
 	Mix_FadeOutMusic(ms);
-	Mix_HookMusicFinished(NULL);
-	//Mix_HookMusicFinished(music_fadeloop);
 }
 
 boolean I_SetSongSpeed(float speed)
