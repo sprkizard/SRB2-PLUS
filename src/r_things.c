@@ -1162,6 +1162,9 @@ static void R_ProjectSprite(mobj_t *thing)
 		tx -= FixedMul(spritecachedinfo[lump].width-spritecachedinfo[lump].offset, this_scale);
 	else
 		tx -= FixedMul(spritecachedinfo[lump].offset, this_scale);
+	//is it an odd-width sprite?
+	if (thing->frame & FF_ODDSPRITE)
+		tx -= this_scale/2;
 	x1 = (centerxfrac + FixedMul (tx,xscale)) >>FRACBITS;
 
 	// off the right side?
