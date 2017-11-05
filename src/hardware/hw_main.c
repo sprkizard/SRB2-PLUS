@@ -5144,7 +5144,10 @@ static void HWR_ProjectSprite(mobj_t *thing)
 		tx -= FIXED_TO_FLOAT(spritecachedinfo[lumpoff].width - spritecachedinfo[lumpoff].offset) * this_scale;
 	else
 		tx -= FIXED_TO_FLOAT(spritecachedinfo[lumpoff].offset) * this_scale;
-
+	//is it an odd-width sprite?
+	if (thing->frame & FF_ODDSPRITE)
+		tx -= this_scale/2;
+	
 	// project x
 	x1 = gr_windowcenterx + (tx * gr_centerx / tz);
 
