@@ -150,7 +150,7 @@ void S_SetMusicPosition(float position);
 float S_GetMusicPosition(void);
 
 // Fade in over milliseconds of time
-void S_FadeInMusic(int ms);
+//boolean S_FadeInSong(boolean looping, UINT32 fadein_ms);
 
 // Fade in over ms milliseconds of time, at position
 void S_FadeInMusicPos(int ms, float position);

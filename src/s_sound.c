@@ -1377,7 +1377,7 @@ static void S_UnloadMusic(void)
 	music_looping = false;
 }
 
-static boolean S_PlayMusic(boolean looping)
+/*static boolean S_PlayMusic(boolean looping)
 {
 	if (S_MusicDisabled())
 		return false;
@@ -1390,21 +1390,20 @@ static boolean S_PlayMusic(boolean looping)
 
 	S_InitMusicVolume(); // switch between digi and sequence volume
 	return true;
-}
+}*/
 
-static boolean S_DigMusicFadeIn(const char *mname, boolean looping, UINT32 fadein_ms)
+static boolean S_PlayMusicFadeIn(boolean looping, UINT32 fadein_ms)
 {
-	if (nodigimusic || digital_disabled)
+	if (S_MusicDisabled())
 		return false; // try midi
 
-	if (!I_FadeInDigSong(mname, looping, fadein_ms))
+	if (!I_FadeInSong(looping, fadein_ms))
+	{
+		S_UnloadMusic();
 		return false;
+	}
 
-	strncpy(music_name, mname, 7);
-	music_name[6] = 0;
-	music_lumpnum = LUMPERROR;
-	music_data = NULL;
-	music_handle = 0;
+	S_InitMusicVolume(); // switch between digi and sequence volume
 	return true;
 }
 
@@ -1437,7 +1436,7 @@ void S_ChangeMusicFadeIn(const char *mmusic, UINT16 mflags, boolean looping, UIN
 		music_flags = mflags;
 		music_looping = looping;
 
-		if (!S_FadeInMusic(looping, loop_ms))
+		if (!S_PlayMusicFadeIn(looping, fadein_ms))
 		{
 			CONS_Alert(CONS_ERROR, "Music %.6s could not be played!\n", mmusic);
 			return;
@@ -1467,11 +1466,6 @@ void S_MusicVolume(int volume)
 void S_FadeOutMusic(int ms)
 {
 	I_FadeOutMusic(ms);
-}
-
-boolean S_SpeedMusic(float speed)
-{
-	return I_SetSongSpeed(speed);
 }
 
 void S_StopMusic(void)

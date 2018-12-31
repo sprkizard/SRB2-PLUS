@@ -247,18 +247,6 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 
 /* Compiler-specific attributes and other macros */
 
-typedef enum
-{
-	postimg_none,
-	postimg_water,
-	postimg_motion,
-	postimg_flip,
-	postimg_heat,
-
-	// miru: more postimg definitions
-	postimg_roll
-} postimg_t;
-
 #ifdef __GNUC__ // __attribute__ ((X))
 	#define FUNCNORETURN __attribute__ ((noreturn))
 
@@ -397,7 +385,10 @@ typedef enum
 	postimg_water,
 	postimg_motion,
 	postimg_flip,
-	postimg_heat
+	postimg_heat,
+
+	// miru: more postimg definitions
+	postimg_roll
 } postimg_t;
 
 typedef UINT32 lumpnum_t; // 16 : 16 unsigned long (wad num: lump num)

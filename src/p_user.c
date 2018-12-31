@@ -7971,7 +7971,7 @@ boolean P_MoveChaseCamera(player_t *player, camera_t *thiscam, boolean resetcall
 		}
 		else if (mo->target)
 		{
-			if (mo->target->flags & MF_AMBUSH)
+			if (mo->target->flags2 & MF2_AMBUSH)
 				angle = R_PointToAngle2(mo->target->x, mo->target->y, mo->x, mo->y);
 			else
 				angle = R_PointToAngle2(mo->x, mo->y, mo->target->x, mo->target->y);

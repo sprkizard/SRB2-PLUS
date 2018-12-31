@@ -47,7 +47,7 @@ enum sector_e {
 	sector_ceilingxoffs,
 	sector_ceilingyoffs,
 	sector_floorpicangle,
-	sector_ceilingpicangle
+	sector_ceilingpicangle,
 #ifdef ESLOPE
 	sector_ffloors,
 	sector_fslope,
@@ -70,13 +70,13 @@ static const char *const sector_opt[] = {
 	"heightsec",
 	"camsec",
 	"lines",
-	"ffloors",
 	"floor_xoffs",
 	"floor_yoffs",
 	"ceiling_xoffs",
 	"ceiling_yoffs",
 	"floorpic_angle",
 	"ceilingpic_angle",
+	"ffloors",
 #ifdef ESLOPE
 	"f_slope",
 	"c_slope",
@@ -453,6 +453,7 @@ static int sector_get(lua_State *L)
 				break;
 		lua_pushlstring(L, levelflat->name, i);
 		return 1;
+	}
 	case sector_floorxoffs:
 		lua_pushfixed(L, sector->floor_xoffs);
 		return 1;
