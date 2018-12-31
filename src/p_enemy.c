@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -4812,9 +4812,11 @@ void A_UnidusBall(mobj_t *actor)
 		case 0: // at least one frame where not dashing
 			if (!skull) ++actor->extravalue2;
 			else break;
+			/* FALLTHRU */
 		case 1: // at least one frame where ARE dashing
 			if (skull) ++actor->extravalue2;
 			else break;
+			/* FALLTHRU */
 		case 2: // not dashing again?
 			if (skull) break;
 			// launch.
@@ -6169,7 +6171,7 @@ void A_Boss7Chase(mobj_t *actor)
 					break;
 				}
 				actor->threshold++;
-				// fall into...
+				/* FALLTHRU */
 			case 1: // Chaingun Goop
 				A_FaceTarget(actor);
 				P_SetMobjState(actor, S_BLACKEGG_SHOOT1);

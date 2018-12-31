@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -242,11 +242,19 @@ static void F_SkyScroll(INT32 scrollspeed)
 #ifdef HWRENDER
 	else if (rendermode != render_none)
 	{ // if only software rendering could be this simple and retarded
-		scrolled = animtimer;
-		if (scrolled > 0)
-			V_DrawScaledPatch(scrolled - patwidth, 0, 0, pat);
-		for (x = 0; x < fakedwidth; x += patwidth)
-			V_DrawScaledPatch(x + scrolled, 0, 0, pat);
+		INT32 dupz = (vid.dupx < vid.dupy ? vid.dupx : vid.dupy);
+		INT32 y, pw = SHORT(pat->width) * dupz, ph = SHORT(pat->height) * dupz;
+		scrolled = animtimer * dupz;
+		for (x = 0; x < vid.width; x += pw)
+		{
+			for (y = 0; y < vid.height; y += ph)
+			{
+				if (scrolled > 0)
+					V_DrawScaledPatch(scrolled - pw, y, V_NOSCALESTART, pat);
+
+				V_DrawScaledPatch(x + scrolled, y, V_NOSCALESTART, pat);
+			}
+		}
 	}
 #endif
 
@@ -445,7 +453,6 @@ void F_StartIntro(void)
 
 	G_SetGamestate(GS_INTRO);
 	gameaction = ga_nothing;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 	CON_ClearHUD();
@@ -980,33 +987,41 @@ static const char *credits[] = {
 	"\1Programming",
 	"Alam \"GBC\" Arias",
 	"Logan \"GBA\" Arias",
-	"Tim \"RedEnchilada\" Bordelon",
 	"Callum Dickinson",
 	"Scott \"Graue\" Feeney",
 	"Nathan \"Jazz\" Giroux",
+	"Vivian \"toaster\" Grannell",
+	"Kepa \"Nev3r\" Iceta",
 	"Thomas \"Shadow Hog\" Igoe",
 	"Iestyn \"Monster Iestyn\" Jealous",
 	"Ronald \"Furyhunter\" Kinard", // The SDL2 port
 	"John \"JTE\" Muniz",
 	"Ehab \"Wolfy\" Saeed",
+	"\"Kaito Sinclaire\"",
 	"\"SSNTails\"",
-	"Matthew \"Inuyasha\" Walsh",
+	"Marco \"mazmazz\" Zafra",
 	"",
 	"\1Programming",
 	"\1Assistance",
-	"\"chi.miru\"", // Red's secret weapon, the REAL reason slopes exist (also helped port drawing code from ZDoom)
+	"\"chi.miru\"", // helped port slope drawing code from ZDoom
 	"Andrew \"orospakr\" Clunis",
 	"Gregor \"Oogaland\" Dick",
 	"Louis-Antoine \"LJSonic\" de Moulins", // for fixing 2.1's netcode (de Rochefort doesn't quite fit on the screen sorry lol)
-	"Vivian \"toaster\" Grannell",
 	"Julio \"Chaos Zero 64\" Guir",
+	"\"Jimita\"",
 	"\"Kalaron\"", // Coded some of Sryder13's collection of OpenGL fixes, especially fog
+	"\"Lat'\"", // SRB2-CHAT, the chat window from Kart
 	"Matthew \"Shuffle\" Marsalko",
 	"Steven \"StroggOnMeth\" McGranahan",
 	"\"Morph\"", // For SRB2Morphed stuff
 	"Colin \"Sonict\" Pfaff",
 	"Sean \"Sryder13\" Ryder",
+	"Tasos \"tatokis\" Sahanidis", // Corrected C FixedMul, making 64-bit builds netplay compatible
+	"\"Steel Titanium\"",
 	"Ben \"Cue\" Woodford",
+	// Git contributors with 5+ approved merges of substantive quality,
+	// or contributors with at least one groundbreaking merge, may be named.
+	// Everyone else is acknowledged under "Special Thanks > SRB2 Community Contributors".
 	"",
 	"\1Sprite Artists",
 	"Odi \"Iceman404\" Atunzu",
@@ -1028,7 +1043,7 @@ static const char *credits[] = {
 	"\1Music and Sound",
 	"\1Production",
 	"Malcolm \"RedXVI\" Brown",
-	"David \"Bulmybag\" Bulmer",
+	"Dave \"DemonTomatoDave\" Bulmer",
 	"Paul \"Boinciel\" Clempson",
 	"Cyan Helkaraxe",
 	"Kepa \"Nev3r\" Iceta",
@@ -1052,14 +1067,14 @@ static const char *credits[] = {
 	"Kepa \"Nev3r\" Iceta",
 	"Thomas \"Shadow Hog\" Igoe",
 	"Erik \"Torgo\" Nielsen",
-	"Wessel \"Spherallic\" Smit",
+	"\"Kaito Sinclaire\"",
+	"Wessel \"sphere\" Smit",
 	"\"Spazzo\"",
 	"\"SSNTails\"",
 	"Rob Tisdell",
 	"Jarrett \"JEV3\" Voight",
 	"Johnny \"Sonikku\" Wallbank",
-	"Matthew \"Inuyasha\" Walsh",
-	"Marco \"Digiku\" Zafra",
+	"Marco \"mazmazz\" Zafra",
 	"",
 	"\1Boss Design",
 	"Ben \"Mystic\" Geyer",
@@ -1080,11 +1095,17 @@ static const char *credits[] = {
 	"Bill \"Tets\" Reed",
 	"",
 	"\1Special Thanks",
-	"Doom Legacy Project",
 	"iD Software",
-	"Alex \"MistaED\" Fuller",
+	"Doom Legacy Project",
 	"FreeDoom Project", // Used some of the mancubus and rocket launcher sprites for Brak
+	"Alex \"MistaED\" Fuller",
+	"Pascal \"CodeImp\" vd Heiden", // Doom Builder developer
 	"Randi Heit (<!>)", // For their MSPaint <!> sprite that we nicked
+	"Simon \"sirjuddington\" Judd", // SLADE developer
+	// Acknowledged here are the following:
+	// Minor merge request authors, see guideline above
+	// Golden - Expanded thin font
+	"SRB2 Community Contributors",
 	"",
 	"\1Produced By",
 	"Sonic Team Junior",
@@ -1134,7 +1155,6 @@ void F_StartCredits(void)
 	}
 
 	gameaction = ga_nothing;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 	CON_ClearHUD();
@@ -1157,6 +1177,9 @@ void F_CreditDrawer(void)
 	// Draw background pictures first
 	for (i = 0; credits_pics[i].patch; i++)
 		V_DrawSciencePatch(credits_pics[i].x<<FRACBITS, (credits_pics[i].y<<FRACBITS) - 4*(animtimer<<FRACBITS)/5, 0, W_CachePatchName(credits_pics[i].patch, PU_CACHE), FRACUNIT>>1);
+
+	// Dim the background
+	V_DrawFadeScreen();
 
 	// Draw credits text on top
 	for (i = 0; credits[i]; i++)
@@ -1281,7 +1304,6 @@ void F_StartGameEvaluation(void)
 		G_SaveGame((UINT32)cursaveslot);
 
 	gameaction = ga_nothing;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 	CON_ClearHUD();
@@ -1392,7 +1414,6 @@ void F_StartGameEnd(void)
 	G_SetGamestate(GS_GAMEEND);
 
 	gameaction = ga_nothing;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 	CON_ClearHUD();
@@ -1409,6 +1430,7 @@ void F_StartGameEnd(void)
 //
 void F_GameEndDrawer(void)
 {
+	// this function does nothing
 }
 
 //
@@ -1704,7 +1726,6 @@ void F_StartContinue(void)
 	gameaction = ga_nothing;
 
 	keypressed = false;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 	CON_ClearHUD();
@@ -1846,7 +1867,7 @@ static void F_AdvanceToNextScene(void)
 
 void F_EndCutScene(void)
 {
-	cutsceneover = true; // do this first, just in case Y_EndGame or something wants to turn it back false later
+	cutsceneover = true; // do this first, just in case G_EndGame or something wants to turn it back false later
 	if (runningprecutscene)
 	{
 		if (server)
@@ -1861,7 +1882,7 @@ void F_EndCutScene(void)
 		else if (nextmap < 1100-1)
 			G_NextLevel();
 		else
-			Y_EndGame();
+			G_EndGame();
 	}
 }
 
@@ -1873,7 +1894,6 @@ void F_StartCustomCutscene(INT32 cutscenenum, boolean precutscene, boolean reset
 	G_SetGamestate(GS_CUTSCENE);
 
 	gameaction = ga_nothing;
-	playerdeadview = false;
 	paused = false;
 	CON_ToggleOff();
 
@@ -1966,7 +1986,7 @@ void F_CutsceneTicker(void)
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (netgame && i != serverplayer && i != adminplayer)
+		if (netgame && i != serverplayer && !IsPlayerAdmin(i))
 			continue;
 
 		if (players[i].cmd.buttons & BT_USE)

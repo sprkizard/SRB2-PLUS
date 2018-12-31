@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 2012-2016 by John "JTE" Muniz.
-// Copyright (C) 2012-2016 by Sonic Team Junior.
+// Copyright (C) 2012-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -54,6 +54,7 @@ const char *const hookNames[hook_MAX+1] = {
 	"PlayerMsg",
 	"HurtMsg",
 	"PlayerSpawn",
+	"PlayerQuit",
 	NULL
 };
 
@@ -231,6 +232,8 @@ boolean LUAh_MobjHook(mobj_t *mo, enum hook which)
 	if (!gL || !(hooksAvailable[which/8] & (1<<(which%8))))
 		return false;
 
+	I_Assert(mo->type < NUMMOBJTYPES);
+
 	lua_settop(gL, 0);
 
 	// Look for all generic mobj hooks
@@ -312,14 +315,14 @@ boolean LUAh_PlayerHook(player_t *plr, enum hook which)
 }
 
 // Hook for map change (before load)
-void LUAh_MapChange(void)
+void LUAh_MapChange(INT16 mapnumber)
 {
 	hook_p hookp;
 	if (!gL || !(hooksAvailable[hook_MapChange/8] & (1<<(hook_MapChange%8))))
 		return;
 
 	lua_settop(gL, 0);
-	lua_pushinteger(gL, gamemap);
+	lua_pushinteger(gL, mapnumber);
 
 	for (hookp = roothook; hookp; hookp = hookp->next)
 		if (hookp->type == hook_MapChange)
@@ -406,6 +409,8 @@ UINT8 LUAh_MobjCollideHook(mobj_t *thing1, mobj_t *thing2, enum hook which)
 	if (!gL || !(hooksAvailable[which/8] & (1<<(which%8))))
 		return 0;
 
+	I_Assert(thing1->type < NUMMOBJTYPES);
+
 	lua_settop(gL, 0);
 
 	// Look for all generic mobj collision hooks
@@ -479,6 +484,8 @@ boolean LUAh_MobjThinker(mobj_t *mo)
 	if (!gL || !(hooksAvailable[hook_MobjThinker/8] & (1<<(hook_MobjThinker%8))))
 		return false;
 
+	I_Assert(mo->type < NUMMOBJTYPES);
+
 	lua_settop(gL, 0);
 
 	// Look for all generic mobj thinker hooks
@@ -531,6 +538,8 @@ boolean LUAh_TouchSpecial(mobj_t *special, mobj_t *toucher)
 	boolean hooked = false;
 	if (!gL || !(hooksAvailable[hook_TouchSpecial/8] & (1<<(hook_TouchSpecial%8))))
 		return 0;
+
+	I_Assert(special->type < NUMMOBJTYPES);
 
 	lua_settop(gL, 0);
 
@@ -594,6 +603,8 @@ UINT8 LUAh_ShouldDamage(mobj_t *target, mobj_t *inflictor, mobj_t *source, INT32
 	UINT8 shouldDamage = 0; // 0 = default, 1 = force yes, 2 = force no.
 	if (!gL || !(hooksAvailable[hook_ShouldDamage/8] & (1<<(hook_ShouldDamage%8))))
 		return 0;
+
+	I_Assert(target->type < NUMMOBJTYPES);
 
 	lua_settop(gL, 0);
 
@@ -676,6 +687,8 @@ boolean LUAh_MobjDamage(mobj_t *target, mobj_t *inflictor, mobj_t *source, INT32
 	if (!gL || !(hooksAvailable[hook_MobjDamage/8] & (1<<(hook_MobjDamage%8))))
 		return 0;
 
+	I_Assert(target->type < NUMMOBJTYPES);
+
 	lua_settop(gL, 0);
 
 	// Look for all generic mobj damage hooks
@@ -746,6 +759,8 @@ boolean LUAh_MobjDeath(mobj_t *target, mobj_t *inflictor, mobj_t *source)
 	boolean hooked = false;
 	if (!gL || !(hooksAvailable[hook_MobjDeath/8] & (1<<(hook_MobjDeath%8))))
 		return 0;
+
+	I_Assert(target->type < NUMMOBJTYPES);
 
 	lua_settop(gL, 0);
 
@@ -937,7 +952,7 @@ boolean LUAh_LinedefExecute(line_t *line, mobj_t *mo, sector_t *sector)
 	return hooked;
 }
 
-// Hook for player chat
+
 boolean LUAh_PlayerMsg(int source, int target, int flags, char *msg)
 {
 	hook_p hookp;
@@ -989,6 +1004,7 @@ boolean LUAh_PlayerMsg(int source, int target, int flags, char *msg)
 	lua_settop(gL, 0);
 	return hooked;
 }
+
 
 // Hook for hurt messages
 boolean LUAh_HurtMsg(player_t *player, mobj_t *inflictor, mobj_t *source)
@@ -1058,6 +1074,32 @@ void LUAh_NetArchiveHook(lua_CFunction archFunc)
 
 	lua_pop(gL, 1); // pop archFunc
 	// stack: tables
+}
+
+void LUAh_PlayerQuit(player_t *plr, int reason)
+{
+	hook_p hookp;
+	if (!gL || !(hooksAvailable[hook_PlayerQuit/8] & (1<<(hook_PlayerQuit%8))))
+		return;
+
+	lua_settop(gL, 0);
+
+	for (hookp = roothook; hookp; hookp = hookp->next)
+		if (hookp->type == hook_PlayerQuit)
+		{
+		    if (lua_gettop(gL) == 0)
+		    {
+		        LUA_PushUserdata(gL, plr, META_PLAYER); // Player that quit
+		        lua_pushinteger(gL, reason); // Reason for quitting
+		    }
+			lua_pushfstring(gL, FMT_HOOKID, hookp->id);
+			lua_gettable(gL, LUA_REGISTRYINDEX);
+			lua_pushvalue(gL, -3);
+			lua_pushvalue(gL, -3);
+			LUA_Call(gL, 2);
+		}
+
+	lua_settop(gL, 0);
 }
 
 #endif

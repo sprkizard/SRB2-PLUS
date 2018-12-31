@@ -322,6 +322,7 @@ static inline boolean I_SkipFrame(void)
 		case GS_LEVEL:
 			if (!paused)
 				return false;
+			/* FALLTHRU */
 		case GS_TIMEATTACK:
 #ifndef CLIENT_LOADINGSCREEN
 		case GS_WAITINGPLAYERS:
@@ -995,7 +996,7 @@ static INT32 WINAPI VID_SetDirectDrawMode(viddef_t *lvid, vmode_t *currentmode)
 	// but rather render to memory bitmap buffer
 	lvid->direct = NULL;
 
-	if (!cv_stretch.value && (float)vid.width/vid.height != ((float)BASEVIDWIDTH/BASEVIDHEIGHT))
+	if (!cv_stretch.value && fabsf((float)vid.width/vid.height - ((float)BASEVIDWIDTH/BASEVIDHEIGHT)) > 1.0E-36f)
 		vid.height = (int)(vid.width * ((float)BASEVIDHEIGHT/BASEVIDWIDTH));// Adjust the height to match
 
 	return 1;

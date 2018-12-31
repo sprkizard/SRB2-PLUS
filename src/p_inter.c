@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -383,9 +383,11 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher, boolean heightcheck)
 		case MT_REDTEAMRING:
 			if (player->ctfteam != 1)
 				return;
+			/* FALLTHRU */
 		case MT_BLUETEAMRING: // Yes, I'm lazy. Oh well, deal with it.
 			if (special->type == MT_BLUETEAMRING && player->ctfteam != 2)
 				return;
+			/* FALLTHRU */
 		case MT_RING:
 		case MT_FLINGRING:
 			if (!(P_CanPickupItem(player, false)))
@@ -3127,7 +3129,7 @@ boolean P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source, INT32 da
 				P_SetMobjState(target, target->info->meleestate); // go to pinch pain state
 				break;
 			}
-			// fallthrough
+			/* FALLTHRU */
 		default:
 			P_SetMobjState(target, target->info->painstate);
 			break;

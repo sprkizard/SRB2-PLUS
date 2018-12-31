@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -97,7 +97,7 @@
 #include <time.h>
 
 #ifdef _arch_dreamcast
-#include "sdl/SRB2DC/dchelp.h"
+#include "sdl12/SRB2DC/dchelp.h"
 #endif
 
 #if (defined (__unix__) && !defined (MSDOS)) || defined(__APPLE__) || defined (UNIXCOMMON)
@@ -192,7 +192,7 @@ static UINT8 UPNP_support = TRUE;
 	#define close closesocket
 
 	#ifdef _WIN32_WCE
-	#include "sdl/SRB2CE/cehelp.h"
+	#include "sdl12/SRB2CE/cehelp.h"
 	#endif
 
 #endif
@@ -215,7 +215,6 @@ static UINT8 UPNP_support = TRUE;
 
 #if defined (USE_WINSOCK) && !defined (NONET)
 typedef SOCKET SOCKET_TYPE;
-#define BADSOCKET INVALID_SOCKET
 #define ERRSOCKET (SOCKET_ERROR)
 #else
 #if (defined (__unix__) && !defined (MSDOS)) || defined (__APPLE__) || defined (__HAIKU__) || defined(_PS3)
@@ -223,7 +222,6 @@ typedef int SOCKET_TYPE;
 #else
 typedef unsigned long SOCKET_TYPE;
 #endif
-#define BADSOCKET (SOCKET_TYPE)(~0)
 #define ERRSOCKET (-1)
 #endif
 
@@ -232,10 +230,10 @@ typedef int socklen_t;
 #endif
 
 #ifndef NONET
-static SOCKET_TYPE mysockets[MAXNETNODES+1] = {BADSOCKET};
+static SOCKET_TYPE mysockets[MAXNETNODES+1] = {ERRSOCKET};
 static size_t mysocketses = 0;
 static int myfamily[MAXNETNODES+1] = {0};
-static SOCKET_TYPE nodesocket[MAXNETNODES+1] = {BADSOCKET};
+static SOCKET_TYPE nodesocket[MAXNETNODES+1] = {ERRSOCKET};
 static mysockaddr_t clientaddress[MAXNETNODES+1];
 static mysockaddr_t broadcastaddress[MAXNETNODES+1];
 static size_t broadcastaddresses = 0;
@@ -262,6 +260,33 @@ static void wattcp_outch(char s)
 	if (s == '\r') CONS_Printf("\n");
 	else if (s != '\n') CONS_Printf(pr);
 }
+#endif
+
+#ifdef USE_WINSOCK
+// stupid microsoft makes things complicated
+static char *get_WSAErrorStr(int e)
+{
+	static char buf[256]; // allow up to 255 bytes
+
+	buf[0] = '\0';
+
+	FormatMessageA(
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		(DWORD)e,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)buf,
+		sizeof (buf),
+		NULL);
+
+	if (!buf[0]) // provide a fallback error message if no message is available for some reason
+		sprintf(buf, "Unknown error");
+
+	return buf;
+}
+#undef strerror
+#define strerror get_WSAErrorStr
 #endif
 
 #ifdef USE_WINSOCK2
@@ -498,8 +523,7 @@ static void cleanupnodes(void)
 
 	// Why can't I start at zero?
 	for (j = 1; j < MAXNETNODES; j++)
-		//if (!(nodeingame[j] || SV_SendingFile(j)))
-		if (!nodeingame[j])
+		if (!(nodeingame[j] || SV_SendingFile(j)))
 			nodeconnected[j] = false;
 }
 
@@ -648,7 +672,7 @@ static boolean FD_CPY(fd_set *src, fd_set *dst, SOCKET_TYPE *fd, size_t len)
 	FD_ZERO(dst);
 	for (i = 0; i < len;i++)
 	{
-		if(fd[i] != BADSOCKET && fd[i] != (SOCKET_TYPE)ERRSOCKET &&
+		if(fd[i] != (SOCKET_TYPE)ERRSOCKET &&
 		   FD_ISSET(fd[i], src) && !FD_ISSET(fd[i], dst)) // no checking for dups
 		{
 			FD_SET(fd[i], dst);
@@ -689,14 +713,29 @@ static boolean SOCK_CanGet(void)
 #endif
 
 #ifndef NONET
-static void SOCK_Send(void)
+static inline ssize_t SOCK_SendToAddr(SOCKET_TYPE socket, mysockaddr_t *sockaddr)
 {
-	ssize_t c = ERRSOCKET;
 	socklen_t d4 = (socklen_t)sizeof(struct sockaddr_in);
 #ifdef HAVE_IPV6
 	socklen_t d6 = (socklen_t)sizeof(struct sockaddr_in6);
 #endif
 	socklen_t d, da = (socklen_t)sizeof(mysockaddr_t);
+
+	switch (sockaddr->any.sa_family)
+	{
+		case AF_INET:  d = d4; break;
+#ifdef HAVE_IPV6
+		case AF_INET6: d = d6; break;
+#endif
+		default:       d = da; break;
+	}
+
+	return sendto(socket, (char *)&doomcom->data, doomcom->datalength, 0, &sockaddr->any, d);
+}
+
+static void SOCK_Send(void)
+{
+	ssize_t c = ERRSOCKET;
 	size_t i, j;
 
 	if (!nodeconnected[doomcom->remotenode])
@@ -709,62 +748,32 @@ static void SOCK_Send(void)
 			for (j = 0; j < broadcastaddresses; j++)
 			{
 				if (myfamily[i] == broadcastaddress[j].any.sa_family)
-				{
-					if (broadcastaddress[i].any.sa_family == AF_INET)
-						d = d4;
-#ifdef HAVE_IPV6
-					else if (broadcastaddress[i].any.sa_family == AF_INET6)
-						d = d6;
-#endif
-					else
-						d = da;
-
-					c = sendto(mysockets[i], (char *)&doomcom->data, doomcom->datalength, 0,
-						&broadcastaddress[j].any, d);
-				}
+					SOCK_SendToAddr(mysockets[i], &broadcastaddress[j]);
 			}
 		}
 		return;
 	}
-	else if (nodesocket[doomcom->remotenode] == BADSOCKET)
+	else if (nodesocket[doomcom->remotenode] == (SOCKET_TYPE)ERRSOCKET)
 	{
 		for (i = 0; i < mysocketses; i++)
 		{
 			if (myfamily[i] == clientaddress[doomcom->remotenode].any.sa_family)
-			{
-				if (clientaddress[doomcom->remotenode].any.sa_family == AF_INET)
-					d = d4;
-#ifdef HAVE_IPV6
-				else if (clientaddress[doomcom->remotenode].any.sa_family == AF_INET6)
-					d = d6;
-#endif
-				else
-					d = da;
-
-				sendto(mysockets[i], (char *)&doomcom->data, doomcom->datalength, 0,
-					&clientaddress[doomcom->remotenode].any, d);
-			}
+				SOCK_SendToAddr(mysockets[i], &clientaddress[doomcom->remotenode]);
 		}
 		return;
 	}
 	else
 	{
-		if (clientaddress[doomcom->remotenode].any.sa_family == AF_INET)
-			d = d4;
-#ifdef HAVE_IPV6
-		else if (clientaddress[doomcom->remotenode].any.sa_family == AF_INET6)
-			d = d6;
-#endif
-		else
-			d = da;
-
-		c = sendto(nodesocket[doomcom->remotenode], (char *)&doomcom->data, doomcom->datalength, 0,
-			&clientaddress[doomcom->remotenode].any, d);
+		c = SOCK_SendToAddr(nodesocket[doomcom->remotenode], &clientaddress[doomcom->remotenode]);
 	}
 
-	if (c == ERRSOCKET && errno != ECONNREFUSED && errno != EWOULDBLOCK)
-		I_Error("SOCK_Send, error sending to node %d (%s) #%u: %s", doomcom->remotenode,
-			SOCK_GetNodeAddress(doomcom->remotenode), errno, strerror(errno));
+	if (c == ERRSOCKET)
+	{
+		int e = errno; // save error code so it can't be modified later
+		if (e != ECONNREFUSED && e != EWOULDBLOCK)
+			I_Error("SOCK_Send, error sending to node %d (%s) #%u: %s", doomcom->remotenode,
+				SOCK_GetNodeAddress(doomcom->remotenode), e, strerror(e));
+	}
 }
 #endif
 
@@ -778,7 +787,7 @@ static void SOCK_FreeNodenum(INT32 numnode)
 	DEBFILE(va("Free node %d (%s)\n", numnode, SOCK_GetNodeAddress(numnode)));
 
 	nodeconnected[numnode] = false;
-	nodesocket[numnode] = BADSOCKET;
+	nodesocket[numnode] = ERRSOCKET;
 
 	// put invalid address
 	memset(&clientaddress[numnode], 0, sizeof (clientaddress[numnode]));
@@ -805,7 +814,7 @@ static SOCKET_TYPE UDP_Bind(int family, struct sockaddr *addr, socklen_t addrlen
 #endif
 	mysockaddr_t straddr;
 
-	if (s == (SOCKET_TYPE)ERRSOCKET || s == BADSOCKET)
+	if (s == (SOCKET_TYPE)ERRSOCKET)
 		return (SOCKET_TYPE)ERRSOCKET;
 #ifdef USE_WINSOCK
 	{ // Alam_GBC: disable the new UDP connection reset behavior for Win2k and up
@@ -912,9 +921,9 @@ static boolean UDP_Socket(void)
 
 
 	for (s = 0; s < mysocketses; s++)
-		mysockets[s] = BADSOCKET;
+		mysockets[s] = ERRSOCKET;
 	for (s = 0; s < MAXNETNODES+1; s++)
-		nodesocket[s] = BADSOCKET;
+		nodesocket[s] = ERRSOCKET;
 	FD_ZERO(&masterset);
 	s = 0;
 
@@ -1047,7 +1056,7 @@ static boolean UDP_Socket(void)
 	if (gaie == 0)
 	{
 		runp = ai;
-		while (runp != NULL)
+		while (runp != NULL && s < MAXNETNODES+1)
 		{
 			memcpy(&clientaddress[s], runp->ai_addr, runp->ai_addrlen);
 			s++;
@@ -1062,12 +1071,15 @@ static boolean UDP_Socket(void)
 		clientaddress[s].ip4.sin_addr.s_addr = htonl(INADDR_LOOPBACK); //GetLocalAddress(); // my own ip
 		s++;
 	}
+
+	s = 0;
+
 	// setup broadcast adress to BROADCASTADDR entry
 	gaie = I_getaddrinfo("255.255.255.255", "0", &hints, &ai);
 	if (gaie == 0)
 	{
 		runp = ai;
-		while (runp != NULL)
+		while (runp != NULL && s < MAXNETNODES+1)
 		{
 			memcpy(&broadcastaddress[s], runp->ai_addr, runp->ai_addrlen);
 			s++;
@@ -1090,7 +1102,7 @@ static boolean UDP_Socket(void)
 		if (gaie == 0)
 		{
 			runp = ai;
-			while (runp != NULL)
+			while (runp != NULL && s < MAXNETNODES+1)
 			{
 				memcpy(&broadcastaddress[s], runp->ai_addr, runp->ai_addrlen);
 				s++;
@@ -1251,7 +1263,6 @@ static void SOCK_CloseSocket(void)
 	for (i=0; i < MAXNETNODES+1; i++)
 	{
 		if (mysockets[i] != (SOCKET_TYPE)ERRSOCKET
-		 && mysockets[i] != BADSOCKET
 		 && FD_ISSET(mysockets[i], &masterset))
 		{
 #if !defined (__DJGPP__) || defined (WATTCP)
@@ -1259,7 +1270,7 @@ static void SOCK_CloseSocket(void)
 			close(mysockets[i]);
 #endif
 		}
-		mysockets[i] = BADSOCKET;
+		mysockets[i] = ERRSOCKET;
 	}
 }
 #endif

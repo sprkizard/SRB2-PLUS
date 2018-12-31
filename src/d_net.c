@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -27,6 +27,7 @@
 #include "d_clisrv.h"
 #include "z_zone.h"
 #include "i_tcp.h"
+#include "d_main.h" // srb2home
 
 //
 // NETWORKING
@@ -49,7 +50,9 @@ doomcom_t *doomcom = NULL;
 /// \brief network packet data, points inside doomcom
 doomdata_t *netbuffer = NULL;
 
+#ifdef DEBUGFILE
 FILE *debugfile = NULL; // put some net info in a file during the game
+#endif
 
 #define MAXREBOUND 8
 static doomdata_t reboundstore[MAXREBOUND];
@@ -1028,6 +1031,7 @@ boolean HSendPacket(INT32 node, boolean reliable, UINT8 acknum, size_t packetlen
 #endif
 			return false;
 		}
+		netbuffer->ack = netbuffer->ackreturn = 0; // don't hold over values from last packet sent/received
 		M_Memcpy(&reboundstore[rebound_head], netbuffer,
 			doomcom->datalength);
 		reboundsize[rebound_head] = doomcom->datalength;
@@ -1363,7 +1367,7 @@ boolean D_CheckNetGame(void)
 #else
 	if (M_CheckParm("-debugfile"))
 	{
-		char filename[20];
+		char filename[21];
 		INT32 k = doomcom->consoleplayer - 1;
 		if (M_IsNextParm())
 			k = atoi(M_GetNextParm()) - 1;
@@ -1371,12 +1375,12 @@ boolean D_CheckNetGame(void)
 		{
 			k++;
 			sprintf(filename, "debug%d.txt", k);
-			debugfile = fopen(filename, "w");
+			debugfile = fopen(va("%s" PATHSEP "%s", srb2home, filename), "w");
 		}
 		if (debugfile)
-			CONS_Printf(M_GetText("debug output to: %s\n"), filename);
+			CONS_Printf(M_GetText("debug output to: %s\n"), va("%s" PATHSEP "%s", srb2home, filename));
 		else
-			CONS_Alert(CONS_WARNING, M_GetText("cannot debug output to file %s!\n"), filename);
+			CONS_Alert(CONS_WARNING, M_GetText("cannot debug output to file %s!\n"), va("%s" PATHSEP "%s", srb2home, filename));
 	}
 #endif
 #endif

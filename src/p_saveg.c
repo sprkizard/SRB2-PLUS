@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2016 by Sonic Team Junior.
+// Copyright (C) 1999-2018 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -489,16 +489,34 @@ static void P_NetArchiveWorld(void)
 	UINT8 *put;
 
 	// reload the map just to see difference
-	const mapsector_t *ms;
-	const mapsidedef_t *msd;
-	const maplinedef_t *mld;
+	mapsector_t *ms;
+	mapsidedef_t *msd;
+	maplinedef_t *mld;
 	const sector_t *ss = sectors;
 	UINT8 diff, diff2;
 
 	WRITEUINT32(save_p, ARCHIVEBLOCK_WORLD);
 	put = save_p;
 
-	ms = W_CacheLumpNum(lastloadedmaplumpnum+ML_SECTORS, PU_CACHE);
+	if (W_IsLumpWad(lastloadedmaplumpnum)) // welp it's a map wad in a pk3
+	{ // HACK: Open wad file rather quickly so we can get the data from the relevant lumps
+		UINT8 *wadData = W_CacheLumpNum(lastloadedmaplumpnum, PU_STATIC);
+		filelump_t *fileinfo = (filelump_t *)(wadData + ((wadinfo_t *)wadData)->infotableofs);
+#define retrieve_mapdata(d, f)\
+		d = Z_Malloc((f)->size, PU_CACHE, NULL); \
+		M_Memcpy(d, wadData + (f)->filepos, (f)->size)
+		retrieve_mapdata(ms, fileinfo + ML_SECTORS);
+		retrieve_mapdata(mld, fileinfo + ML_LINEDEFS);
+		retrieve_mapdata(msd, fileinfo + ML_SIDEDEFS);
+#undef retrieve_mapdata
+		Z_Free(wadData); // we're done with this now
+	}
+	else // phew it's just a WAD
+	{
+			ms = W_CacheLumpNum(lastloadedmaplumpnum+ML_SECTORS, PU_CACHE);
+			mld = W_CacheLumpNum(lastloadedmaplumpnum+ML_LINEDEFS, PU_CACHE);
+			msd = W_CacheLumpNum(lastloadedmaplumpnum+ML_SIDEDEFS, PU_CACHE);
+	}
 
 	for (i = 0; i < numsectors; i++, ss++, ms++)
 	{
@@ -950,6 +968,7 @@ typedef enum
 	tc_bouncecheese,
 	tc_startcrumble,
 	tc_marioblock,
+	tc_marioblockchecker,
 	tc_spikesector,
 	tc_floatsector,
 	tc_bridgethinker,
@@ -1259,7 +1278,10 @@ static void SaveSpecialLevelThinker(const thinker_t *th, const UINT8 type)
 	size_t i;
 	WRITEUINT8(save_p, type);
 	for (i = 0; i < 16; i++)
+	{
 		WRITEFIXED(save_p, ht->vars[i]); //var[16]
+		WRITEFIXED(save_p, ht->var2s[i]); //var[16]
+	}
 	WRITEUINT32(save_p, SaveLine(ht->sourceline));
 	WRITEUINT32(save_p, SaveSector(ht->sector));
 }
@@ -1653,20 +1675,24 @@ static inline void SaveWhatThinker(const thinker_t *th, const UINT8 type)
 static void P_NetArchiveThinkers(void)
 {
 	const thinker_t *th;
+	UINT32 numsaved = 0;
 
 	WRITEUINT32(save_p, ARCHIVEBLOCK_THINKERS);
 
 	// save off the current thinkers
 	for (th = thinkercap.next; th != &thinkercap; th = th->next)
 	{
+		if (!(th->function.acp1 == (actionf_p1)P_RemoveThinkerDelayed
+		 || th->function.acp1 == (actionf_p1)P_NullPrecipThinker))
+			numsaved++;
+
 		if (th->function.acp1 == (actionf_p1)P_MobjThinker)
 		{
 			SaveMobjThinker(th, tc_mobj);
 			continue;
 		}
 #ifdef PARANOIA
-		else if (th->function.acp1 == (actionf_p1)P_RainThinker
-			|| th->function.acp1 == (actionf_p1)P_SnowThinker);
+		else if (th->function.acp1 == (actionf_p1)P_NullPrecipThinker);
 #endif
 		else if (th->function.acp1 == (actionf_p1)T_MoveCeiling)
 		{
@@ -1768,6 +1794,11 @@ static void P_NetArchiveThinkers(void)
 			SaveSpecialLevelThinker(th, tc_marioblock);
 			continue;
 		}
+		else if (th->function.acp1 == (actionf_p1)T_MarioBlockChecker)
+		{
+			SaveSpecialLevelThinker(th, tc_marioblockchecker);
+			continue;
+		}
 		else if (th->function.acp1 == (actionf_p1)T_SpikeSector)
 		{
 			SaveSpecialLevelThinker(th, tc_spikesector);
@@ -1845,6 +1876,8 @@ static void P_NetArchiveThinkers(void)
 			I_Error("unknown thinker type %p", th->function.acp1);
 #endif
 	}
+
+	CONS_Debug(DBG_NETPLAY, "%u thinkers saved\n", numsaved);
 
 	WRITEUINT8(save_p, tc_end);
 }
@@ -2149,7 +2182,10 @@ static void LoadSpecialLevelThinker(actionf_p1 thinker, UINT8 floorOrCeiling)
 	size_t i;
 	ht->thinker.function.acp1 = thinker;
 	for (i = 0; i < 16; i++)
+	{
 		ht->vars[i] = READFIXED(save_p); //var[16]
+		ht->var2s[i] = READFIXED(save_p); //var[16]
+	}
 	ht->sourceline = LoadLine(READUINT32(save_p));
 	ht->sector = LoadSector(READUINT32(save_p));
 
@@ -2610,6 +2646,7 @@ static void P_NetUnArchiveThinkers(void)
 	UINT8 tclass;
 	UINT8 restoreNum = false;
 	UINT32 i;
+	UINT32 numloaded = 0;
 
 	if (READUINT32(save_p) != ARCHIVEBLOCK_THINKERS)
 		I_Error("Bad $$$.sav at archive block Thinkers");
@@ -2643,6 +2680,7 @@ static void P_NetUnArchiveThinkers(void)
 
 		if (tclass == tc_end)
 			break; // leave the saved thinker reading loop
+		numloaded++;
 
 		switch (tclass)
 		{
@@ -2720,6 +2758,10 @@ static void P_NetUnArchiveThinkers(void)
 				LoadSpecialLevelThinker((actionf_p1)T_MarioBlock, 3);
 				break;
 
+			case tc_marioblockchecker:
+				LoadSpecialLevelThinker((actionf_p1)T_MarioBlockChecker, 0);
+				break;
+
 			case tc_spikesector:
 				LoadSpecialLevelThinker((actionf_p1)T_SpikeSector, 0);
 				break;
@@ -2793,6 +2835,8 @@ static void P_NetUnArchiveThinkers(void)
 				I_Error("P_UnarchiveSpecials: Unknown tclass %d in savegame", tclass);
 		}
 	}
+
+	CONS_Debug(DBG_NETPLAY, "%u thinkers loaded\n", numloaded);
 
 	if (restoreNum)
 	{
