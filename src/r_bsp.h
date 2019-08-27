@@ -40,6 +40,8 @@ void R_ClearDrawSegs(void);
 void R_RenderBSPNode(INT32 bspnum);
 void R_AddPortal(INT32 line1, INT32 line2, INT32 x1, INT32 x2);
 
+boolean R_CheckBBox(const fixed_t *bspcoord);
+
 #ifdef POLYOBJECTS
 void R_SortPolyObjects(subsector_t *sub);
 

@@ -798,12 +798,8 @@ const char *G_BuildMapName(INT32 map)
   * \param aiming Pointer to the vertical angle to clip.
   * \return Short version of the clipped angle for building a ticcmd.
   */
-INT16 G_ClipAimingPitch(INT32 *aiming)
+static INT16 G_ClipAimingPitchInternal(INT32 *aiming, INT32 limitangle)
 {
-	INT32 limitangle;
-
-	limitangle = ANGLE_90 - 1;
-
 	if (*aiming > limitangle)
 		*aiming = limitangle;
 	else if (*aiming < -limitangle)
@@ -812,19 +808,14 @@ INT16 G_ClipAimingPitch(INT32 *aiming)
 	return (INT16)((*aiming)>>16);
 }
 
+INT16 G_ClipAimingPitch(INT32 *aiming)
+{
+	return G_ClipAimingPitchInternal(aiming, ANGLE_90 - 1);
+}
+
 INT16 G_SoftwareClipAimingPitch(INT32 *aiming)
 {
-	INT32 limitangle;
-
-	// note: the current software mode implementation doesn't have true perspective
-	limitangle = ANGLE_90 - ANG10; // Some viewing fun, but not too far down...
-
-	if (*aiming > limitangle)
-		*aiming = limitangle;
-	else if (*aiming < -limitangle)
-		*aiming = -limitangle;
-
-	return (INT16)((*aiming)>>16);
+	return G_ClipAimingPitchInternal(aiming, ANGLE_90 - ANG10); // Some viewing fun, but not too far down...
 }
 
 static INT32 JoyAxis(axis_input_e axissel)

@@ -54,26 +54,9 @@ typedef struct
 	INT16 patch, stepdir, colormap;
 } ATTRPACK mappatch_t;
 
-//
-// Texture definition.
-// An SRB2 wall texture is a list of patches
-// which are to be combined in a predefined order.
-//
-typedef struct
-{
-	char name[8];
-	INT32 masked;
-	INT16 width;
-	INT16 height;
-	INT32 columndirectory; // FIXTHIS: OBSOLETE
-	INT16 patchcount;
-	mappatch_t patches[1];
-} ATTRPACK maptexture_t;
-
 #if defined(_MSC_VER)
 #pragma pack()
 #endif
-
 
 // Store lists of lumps for F_START/F_END etc.
 typedef struct
@@ -128,7 +111,7 @@ static struct {
 static INT32 tidcachelen = 0;
 
 //
-// MAPTEXTURE_T CACHING
+// TEXTURE_T CACHING
 // When a texture is first needed, it counts the number of composite columns
 //  required in the texture and allocates space for a column directory and
 //  any new columns.
@@ -291,7 +274,7 @@ static UINT8 *R_GenerateTexture(size_t texnum)
 		{
 			patchcol = (column_t *)((UINT8 *)realpatch + LONG(realpatch->columnofs[x-x1]));
 
-			// generate column ofset lookup
+			// generate column offset lookup
 			colofs[x] = LONG((x * texture->height) + (texture->width*4));
 			R_DrawColumnInCache(patchcol, block + LONG(colofs[x]), patch->originy, texture->height);
 		}
@@ -302,6 +285,66 @@ done:
 	Z_ChangeTag(block, PU_CACHE);
 	return blocktex;
 }
+
+#ifdef SOFTPOLY
+void RSP_GenerateTexture(patch_t *patch, UINT8 *buffer, INT32 x, INT32 y, INT32 maxwidth, INT32 maxheight, UINT8 *colormap, UINT8 *translation)
+{
+	fixed_t col, ofs;
+	column_t *column;
+	UINT8 *desttop, *dest;
+	UINT8 *source, *deststop;
+
+	if (x >= maxwidth)
+		return;
+	if (y >= maxheight)
+		return;
+
+	desttop = buffer + ((y*maxwidth) + x);
+	deststop = desttop + (maxwidth * maxheight);
+
+	if (!colormap) colormap = colormaps;
+	if (!translation) translation = colormap;
+
+	for (col = 0; col < SHORT(patch->width); col++, desttop++)
+	{
+		INT32 topdelta, prevdelta = -1;
+		if (x+col < 0) // don't draw off the left of the buffer (WRAP PREVENTION)
+			continue;
+		if (x+col >= maxwidth) // don't draw off the right of the buffer (WRAP PREVENTION)
+			break;
+		column = (column_t *)((UINT8 *)patch + LONG(patch->columnofs[col]));
+
+		while (column->topdelta != 0xff)
+		{
+			topdelta = column->topdelta;
+			if (topdelta <= prevdelta)
+				topdelta += prevdelta;
+			prevdelta = topdelta;
+
+			dest = desttop + (topdelta * maxwidth);
+			source = (UINT8 *)column+3;
+
+			for (ofs = 0; dest < deststop && ofs < column->length; ofs++)
+			{
+				if (dest >= buffer && source[ofs] != TRANSPARENTPIXEL)
+				{
+					UINT8 pixel = source[ofs];
+					if (colormap && translation)
+						*dest = colormap[translation[pixel]];
+					else if (colormap)
+						*dest = colormap[pixel];
+					else if (translation)
+						*dest = translation[pixel];
+					else
+						*dest = pixel;
+				}
+				dest += maxwidth;
+			}
+			column = (column_t *)((UINT8 *)column + column->length + 4);
+		}
+	}
+}
+#endif
 
 //
 // R_GetTextureNum
@@ -345,8 +388,6 @@ UINT8 *R_GetColumn(fixed_t tex, INT32 col)
 	return data + LONG(texturecolumnofs[tex][col]);
 }
 
-// convert flats to hicolor as they are requested
-//
 UINT8 *R_GetFlat(lumpnum_t flatlumpnum)
 {
 	return W_CacheLumpNum(flatlumpnum, PU_CACHE);
@@ -1162,7 +1203,6 @@ INT32 R_ColormapNumForName(char *name)
 //
 static double deltas[256][3], map[256][3];
 
-static UINT8 NearestColor(UINT8 r, UINT8 g, UINT8 b);
 static int RoundUp(double number);
 
 INT32 R_CreateColormap(char *p1, char *p2, char *p3)
@@ -1342,7 +1382,7 @@ INT32 R_CreateColormap(char *p1, char *p2, char *p3)
 
 // Thanks to quake2 source!
 // utils3/qdata/images.c
-static UINT8 NearestColor(UINT8 r, UINT8 g, UINT8 b)
+UINT8 NearestColor(UINT8 r, UINT8 g, UINT8 b)
 {
 	int dr, dg, db;
 	int distortion, bestdistortion = 256 * 256 * 4, bestcolor = 0, i;
@@ -1622,4 +1662,49 @@ void R_PrecacheLevel(void)
 			"flatmemory:    %s k\n"
 			"texturememory: %s k\n"
 			"spritememory:  %s k\n", sizeu1(flatmemory>>10), sizeu2(texturememory>>10), sizeu3(spritememory>>10));
+}
+
+// https://github.com/coelckers/prboom-plus/blob/master/prboom2/src/r_patch.c#L350
+boolean R_CheckIfPatch(lumpnum_t lump)
+{
+	size_t size;
+	INT16 width, height;
+	patch_t *patch;
+	boolean result;
+
+	size = W_LumpLength(lump);
+
+	// minimum length of a valid Doom patch
+	if (size < 13)
+		return false;
+
+	patch = (patch_t *)W_CacheLumpNum(lump, PU_STATIC);
+
+	width = SHORT(patch->width);
+	height = SHORT(patch->height);
+
+	result = (height > 0 && height <= 16384 && width > 0 && width <= 16384 && width < (INT16)(size / 4));
+
+	if (result)
+	{
+		// The dimensions seem like they might be valid for a patch, so
+		// check the column directory for extra security. All columns
+		// must begin after the column directory, and none of them must
+		// point past the end of the patch.
+		INT16 x;
+
+		for (x = 0; x < width; x++)
+		{
+			UINT32 ofs = LONG(patch->columnofs[x]);
+
+			// Need one byte for an empty column (but there's patches that don't know that!)
+			if (ofs < (UINT32)width * 4 + 8 || ofs >= (UINT32)size)
+			{
+				result = false;
+				break;
+			}
+		}
+	}
+
+	return result;
 }

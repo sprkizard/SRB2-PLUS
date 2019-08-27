@@ -270,6 +270,14 @@ ifdef NO_IPV6
 endif
 endif
 
+ifdef NO_POLYRENDERER
+	OPTS+=-DNO_POLYRENDERER
+else
+	OPTS+=-DSOFTPOLY
+	OBJS+=$(OBJDIR)/r_softpoly.o $(OBJDIR)/rsp_spans.o $(OBJDIR)/rsp_draw.o \
+		 $(OBJDIR)/rsp_math.o $(OBJDIR)/rsp_tris.o $(OBJDIR)/rsp_model.o
+endif
+
 ifdef NOHW
 	OPTS+=-DNOHW
 else
@@ -515,6 +523,7 @@ OBJS:=$(i_main_o) \
 		$(OBJDIR)/r_data.o   \
 		$(OBJDIR)/r_draw.o   \
 		$(OBJDIR)/r_main.o   \
+		$(OBJDIR)/r_model.o   \
 		$(OBJDIR)/r_plane.o  \
 		$(OBJDIR)/r_segs.o   \
 		$(OBJDIR)/r_sky.o    \
@@ -761,6 +770,9 @@ $(OBJDIR)/depend.dep:
 	-$(MKDIR) $(OBJDIR)
 	$(CC) $(CFLAGS) -MM *.c > $(OBJDIR)/depend.ped
 	$(CC) $(CFLAGS) -MM $(INTERFACE)/*.c >> $(OBJDIR)/depend.ped
+ifndef NO_POLYRENDERER
+	$(CC) $(CFLAGS) -MM polyrenderer/*.c >> $(OBJDIR)/depend.ped
+endif
 ifndef NOHW
 	$(CC) $(CFLAGS) -MM hardware/*.c >> $(OBJDIR)/depend.ped
 endif
@@ -773,7 +785,7 @@ endif
 
 ifdef DC
 $(OBJDIR)/v_video.o: v_video.c doomdef.h doomtype.h g_state.h m_swap.h r_local.h \
-  tables.h m_fixed.h screen.h command.h m_bbox.h r_main.h d_player.h \
+  tables.h m_fixed.h screen.h command.h m_bbox.h r_main.h r_model.h d_player.h \
   p_pspr.h info.h d_think.h sounds.h p_mobj.h doomdata.h d_ticcmd.h \
   r_data.h r_defs.h r_state.h r_bsp.h r_segs.h r_plane.h r_sky.h \
   r_things.h r_draw.h v_video.h hu_stuff.h d_event.h w_wad.h console.h \
@@ -803,6 +815,9 @@ ifdef MACOSX
 $(OBJDIR)/%.o: sdl/macosx/%.c
 	$(CC) $(CFLAGS) $(WFLAGS) -c $< -o $@
 endif
+
+$(OBJDIR)/%.o: polyrenderer/%.c
+	$(CC) $(CFLAGS) $(WFLAGS) -c $< -o $@
 
 $(OBJDIR)/%.o: hardware/%.c
 	$(CC) $(CFLAGS) $(WFLAGS) -c $< -o $@

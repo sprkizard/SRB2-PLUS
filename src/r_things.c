@@ -31,6 +31,9 @@
 #ifdef HWRENDER
 #include "hardware/hw_md2.h"
 #endif
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
+#endif // SOFTPOLY
 
 #ifdef PC_DOS
 #include <stdio.h> // for snprintf
@@ -106,6 +109,24 @@ static void R_InstallSpriteLump(UINT16 wad,            // graphics patch
 	if (maxframe ==(size_t)-1 || frame > maxframe)
 		maxframe = frame;
 
+#ifdef SOFTPOLY
+	{
+		UINT8 rot = (rotation != 0) ? (rotation-1) : 0;
+		patch_t *patch = (patch_t *)W_CacheLumpNumPwad(wad, lump, PU_STATIC);
+		rsp_spritetexture_t *tex = &sprtemp[frame].rsp_texture[rot];
+
+		tex->width = patch->width;
+		tex->height = patch->height;
+		tex->data = Z_Malloc(tex->width * tex->height, PU_STATIC, NULL);
+		memset(tex->data, TRANSPARENTPIXEL, tex->width * tex->height);
+
+		if (R_CheckIfPatch(lumppat))
+			RSP_GenerateTexture(patch, tex->data, 0, 0, tex->width, tex->height, NULL, NULL);
+
+		Z_Free(patch);
+	}
+#endif
+
 	if (rotation == 0)
 	{
 		// the lump should be used for all rotations
@@ -120,6 +141,10 @@ static void R_InstallSpriteLump(UINT16 wad,            // graphics patch
 		{
 			sprtemp[frame].lumppat[r] = lumppat;
 			sprtemp[frame].lumpid[r] = lumpid;
+#ifdef SOFTPOLY
+			if (r > 0)
+				sprtemp[frame].rsp_texture[r] = sprtemp[frame].rsp_texture[0];
+#endif
 		}
 		sprtemp[frame].flip = flipped ? UINT8_MAX : 0;
 		return;
@@ -370,6 +395,10 @@ void R_AddSpriteDefs(UINT16 wadnum)
 			if (rendermode == render_opengl)
 				HWR_AddSpriteMD2(i);
 #endif
+#ifdef SOFTPOLY
+			if (rendermode == render_soft)
+				RSP_AddSpriteModel(i);
+#endif // SOFTPOLY
 			// if a new sprite was added (not just replaced)
 			addsprites++;
 #ifndef ZDEBUG
@@ -590,6 +619,10 @@ static vissprite_t *R_NewVisSprite(void)
 //
 INT16 *mfloorclip;
 INT16 *mceilingclip;
+#ifdef SOFTPOLY
+INT16 *rsp_mfloorclip;
+INT16 *rsp_mceilingclip;
+#endif
 
 fixed_t spryscale = 0, sprtopscreen = 0, sprbotscreen = 0;
 fixed_t windowtop = 0, windowbottom = 0;
@@ -2050,7 +2083,18 @@ static void R_DrawSprite(vissprite_t *spr)
 {
 	mfloorclip = spr->clipbot;
 	mceilingclip = spr->cliptop;
+#ifdef SOFTPOLY
+	rsp_mfloorclip = mfloorclip;
+	rsp_mceilingclip = mceilingclip;
+	if (!cv_models.value)
+		R_DrawVisSprite(spr);
+	else if (!RSP_RenderModel(spr))
+#endif // SOFTPOLY
 	R_DrawVisSprite(spr);
+#ifdef SOFTPOLY
+	rsp_mfloorclip = NULL;
+	rsp_mceilingclip = NULL;
+#endif // SOFTPOLY
 }
 
 // Special drawer for precipitation sprites Tails 08-18-2002
@@ -2075,8 +2119,23 @@ void R_ClipSprites(void)
 		fixed_t		scale;
 		fixed_t		lowscale;
 		INT32		silhouette;
+#ifdef SOFTPOLY
+		boolean model = false;
+		INT32 ox1 = 0, ox2 = 0;
+#endif // SOFTPOLY
 
 		spr = R_GetVisSprite(clippedvissprites);
+
+#ifdef SOFTPOLY
+		// Arkus: Yes, clip against the ENTIRE viewport.
+		// You don't know how big the model is!
+		if (RSP_ModelAvailable(spr))
+		{
+			model = true;
+			ox1 = spr->x1, ox2 = spr->x2;
+			spr->x1 = 0, spr->x2 = viewwidth;
+		}
+#endif // SOFTPOLY
 
 		for (x = spr->x1; x <= spr->x2; x++)
 			spr->clipbot[x] = spr->cliptop[x] = -2;
@@ -2245,6 +2304,12 @@ void R_ClipSprites(void)
 				//Fab : 26-04-98: was -1, now clips against console bottom
 				spr->cliptop[x] = (INT16)con_clipviewtop;
 		}
+
+#ifdef SOFTPOLY
+		// Arkus: Restore column positions.
+		if (model)
+			spr->x1 = ox1, spr->x2 = ox2;
+#endif // SOFTPOLY
 	}
 }
 
@@ -2414,6 +2479,10 @@ void R_InitSkins(void)
 	if (rendermode == render_opengl)
 		HWR_AddPlayerMD2(0);
 #endif
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		RSP_AddPlayerModel(0);
+#endif // SOFTPOLY
 }
 
 // returns true if the skin name is found (loaded from pwad)
@@ -2823,6 +2892,10 @@ next_token:
 		if (rendermode == render_opengl)
 			HWR_AddPlayerMD2(numskins);
 #endif
+#ifdef SOFTPOLY
+		if (rendermode == render_soft)
+			RSP_AddPlayerModel(numskins);
+#endif // SOFTPOLY
 
 		numskins++;
 	}

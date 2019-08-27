@@ -33,6 +33,10 @@ extern INT16 screenheightarray[MAXVIDWIDTH];
 // vars for R_DrawMaskedColumn
 extern INT16 *mfloorclip;
 extern INT16 *mceilingclip;
+#ifdef SOFTPOLY
+extern INT16 *rsp_mfloorclip;
+extern INT16 *rsp_mceilingclip;
+#endif
 extern fixed_t spryscale;
 extern fixed_t sprtopscreen;
 extern fixed_t sprbotscreen;

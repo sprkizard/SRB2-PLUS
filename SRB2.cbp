@@ -1737,6 +1737,10 @@ HW3SOUND for 3D hardware sound  support
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/r_main.h" />
+		<Unit filename="src/r_model.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/r_model.h" />
 		<Unit filename="src/r_plane.c">
 			<Option compilerVar="CC" />
 		</Unit>

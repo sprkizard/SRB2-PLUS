@@ -372,6 +372,9 @@
     <ClCompile Include="..\r_main.c">
       <Filter>R_Rend</Filter>
     </ClCompile>
+     <ClCompile Include="..\r_model.c">
+      <Filter>R_Rend</Filter>
+    </ClCompile>
     <ClCompile Include="..\r_plane.c">
       <Filter>R_Rend</Filter>
     </ClCompile>

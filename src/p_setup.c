@@ -31,6 +31,7 @@
 #include "r_sky.h"
 #include "r_draw.h"
 
+
 #include "s_sound.h"
 #include "st_stuff.h"
 #include "w_wad.h"
@@ -69,6 +70,11 @@
 #include <malloc.h>
 #include <math.h>
 #endif
+
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
+#endif
+
 #ifdef HWRENDER
 #include "hardware/hw_main.h"
 #include "hardware/hw_light.h"
@@ -2967,7 +2973,7 @@ boolean P_SetupLevel(boolean skipprecip)
 	globalweather = mapheaderinfo[gamemap-1]->weather;
 
 #ifdef HWRENDER // not win32 only 19990829 by Kin
-	if (rendermode != render_soft && rendermode != render_none)
+	if (rendermode == render_opengl)
 	{
 #ifdef ALAM_LIGHTING
 		// BP: reset light between levels (we draw preview frame lights on current frame)

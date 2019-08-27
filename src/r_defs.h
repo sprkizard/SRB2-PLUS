@@ -726,6 +726,15 @@ typedef struct
 #pragma pack()
 #endif
 
+#ifdef SOFTPOLY
+typedef struct
+{
+	INT16 width;
+	INT16 height;
+	UINT8 *data;
+} rsp_spritetexture_t;
+#endif
+
 //
 // Sprites are patches with a special naming convention so they can be
 //  recognized by R_InitSprites.
@@ -747,6 +756,9 @@ typedef struct
 	// Lump to use for view angles 0-7.
 	lumpnum_t lumppat[8]; // lump number 16 : 16 wad : lump
 	size_t lumpid[8]; // id in the spriteoffset, spritewidth, etc. tables
+#ifdef SOFTPOLY
+	rsp_spritetexture_t rsp_texture[8];
+#endif
 
 	// Flip bits (1 = flip) to use for view angles 0-7.
 	UINT8 flip;
@@ -760,5 +772,7 @@ typedef struct
 	size_t numframes;
 	spriteframe_t *spriteframes;
 } spritedef_t;
+
+#define TRANSPARENTPIXEL 247
 
 #endif

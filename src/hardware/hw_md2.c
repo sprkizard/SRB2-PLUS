@@ -241,43 +241,6 @@ float avertexnormals[NUMVERTEXNORMALS][3] = {
 md2_t md2_models[NUMSPRITES];
 md2_t md2_playermodels[MAXSKINS];
 
-
-/*
- * free model
- */
-static void md2_freeModel (md2_model_t *model)
-{
-	if (model)
-	{
-		if (model->skins)
-			free(model->skins);
-
-		if (model->texCoords)
-			free(model->texCoords);
-
-		if (model->triangles)
-			free(model->triangles);
-
-		if (model->frames)
-		{
-			size_t i;
-
-			for (i = 0; i < model->header.numFrames; i++)
-			{
-				if (model->frames[i].vertices)
-					free(model->frames[i].vertices);
-			}
-			free(model->frames);
-		}
-
-		if (model->glCommandBuffer)
-			free(model->glCommandBuffer);
-
-		free(model);
-	}
-}
-
-
 //
 // load model
 //
@@ -318,7 +281,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	if (field > max) \
 	{ \
 		CONS_Alert(CONS_ERROR, "md2_readModel: %s has too many " msgname " (# found: %d, maximum: %d)\n", filename, field, max); \
-		md2_freeModel (model); \
+		model_freeModel (model); \
 		fclose(file); \
 		return 0; \
 	}
@@ -340,7 +303,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		if (!model->skins || model->header.numSkins !=
 			fread(model->skins, sizeof (md2_skin_t), model->header.numSkins, file))
 		{
-			md2_freeModel (model);
+			model_freeModel (model);
 			fclose(file);
 			return 0;
 		}
@@ -354,7 +317,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		if (!model->texCoords || model->header.numTexCoords !=
 			fread(model->texCoords, sizeof (md2_textureCoordinate_t), model->header.numTexCoords, file))
 		{
-			md2_freeModel (model);
+			model_freeModel (model);
 			fclose(file);
 			return 0;
 		}
@@ -368,7 +331,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		if (!model->triangles || model->header.numTriangles !=
 			fread(model->triangles, sizeof (md2_triangle_t), model->header.numTriangles, file))
 		{
-			md2_freeModel (model);
+			model_freeModel (model);
 			fclose(file);
 			return 0;
 		}
@@ -381,7 +344,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		model->frames = calloc(sizeof (md2_frame_t), model->header.numFrames);
 		if (!model->frames)
 		{
-			md2_freeModel (model);
+			model_freeModel (model);
 			fclose(file);
 			return 0;
 		}
@@ -395,7 +358,7 @@ static md2_model_t *md2_readModel(const char *filename)
 			if (!model->frames[i].vertices || model->header.frameSize !=
 				fread(frame, 1, model->header.frameSize, file))
 			{
-				md2_freeModel (model);
+				model_freeModel (model);
 				fclose(file);
 				return 0;
 			}
@@ -421,7 +384,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		if (!model->glCommandBuffer || model->header.numGlCommands !=
 			fread(model->glCommandBuffer, sizeof (INT32), model->header.numGlCommands, file))
 		{
-			md2_freeModel (model);
+			model_freeModel (model);
 			fclose(file);
 			return 0;
 		}
@@ -430,40 +393,6 @@ static md2_model_t *md2_readModel(const char *filename)
 	fclose(file);
 
 	return model;
-}
-
-static inline void md2_printModelInfo (md2_model_t *model)
-{
-#if 0
-	INT32 i;
-
-	CONS_Debug(DBG_RENDER, "magic:\t\t\t%c%c%c%c\n", model->header.magic>>24,
-	            (model->header.magic>>16)&0xff,
-	            (model->header.magic>>8)&0xff,
-	             model->header.magic&0xff);
-	CONS_Debug(DBG_RENDER, "version:\t\t%d\n", model->header.version);
-	CONS_Debug(DBG_RENDER, "skinWidth:\t\t%d\n", model->header.skinWidth);
-	CONS_Debug(DBG_RENDER, "skinHeight:\t\t%d\n", model->header.skinHeight);
-	CONS_Debug(DBG_RENDER, "frameSize:\t\t%d\n", model->header.frameSize);
-	CONS_Debug(DBG_RENDER, "numSkins:\t\t%d\n", model->header.numSkins);
-	CONS_Debug(DBG_RENDER, "numVertices:\t\t%d\n", model->header.numVertices);
-	CONS_Debug(DBG_RENDER, "numTexCoords:\t\t%d\n", model->header.numTexCoords);
-	CONS_Debug(DBG_RENDER, "numTriangles:\t\t%d\n", model->header.numTriangles);
-	CONS_Debug(DBG_RENDER, "numGlCommands:\t\t%d\n", model->header.numGlCommands);
-	CONS_Debug(DBG_RENDER, "numFrames:\t\t%d\n", model->header.numFrames);
-	CONS_Debug(DBG_RENDER, "offsetSkins:\t\t%d\n", model->header.offsetSkins);
-	CONS_Debug(DBG_RENDER, "offsetTexCoords:\t%d\n", model->header.offsetTexCoords);
-	CONS_Debug(DBG_RENDER, "offsetTriangles:\t%d\n", model->header.offsetTriangles);
-	CONS_Debug(DBG_RENDER, "offsetFrames:\t\t%d\n", model->header.offsetFrames);
-	CONS_Debug(DBG_RENDER, "offsetGlCommands:\t%d\n", model->header.offsetGlCommands);
-	CONS_Debug(DBG_RENDER, "offsetEnd:\t\t%d\n", model->header.offsetEnd);
-
-	for (i = 0; i < model->header.numFrames; i++)
-		CONS_Debug(DBG_RENDER, "%s ", model->frames[i].name);
-	CONS_Debug(DBG_RENDER, "\n");
-#else
-	(void)model;
-#endif
 }
 
 #ifdef HAVE_PNG
@@ -1226,7 +1155,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 	md2_t *md2;
 	UINT8 color[4];
 
-	if (!cv_grmd2.value)
+	if (!cv_models.value)
 		return;
 
 	if (spr->precip)
@@ -1311,9 +1240,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 			md2->model = md2_readModel(filename);
 
 			if (md2->model)
-			{
-				md2_printModelInfo(md2->model);
-			}
+				model_printModelInfo(md2->model);
 			else
 			{
 				//CONS_Debug(DBG_RENDER, " FAILED\n");
@@ -1365,7 +1292,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 		frame = (spr->mobj->frame & FF_FRAMEMASK) % md2->model->header.numFrames;
 		buff = md2->model->glCommandBuffer;
 		curr = &md2->model->frames[frame];
-		if (cv_grmd2.value == 1 && tics <= durs)
+		if (cv_models.value == 1 && tics <= durs)
 		{
 			// frames are handled differently for states with FF_ANIMATE, so get the next frame differently for the interpolation
 			if (spr->mobj->frame & FF_ANIMATE)

@@ -67,7 +67,7 @@ typedef struct {
 
 extern pslope_t *ds_slope; // Current slope being used
 extern floatv3_t ds_su, ds_sv, ds_sz; // Vectors for... stuff?
-extern float focallengthf, zeroheight;
+extern float zeroheight;
 #endif
 
 // Variable flat sizes

@@ -48,6 +48,10 @@
 #include "m_anigif.h"
 #include "md5.h"
 
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
+#endif
+
 #ifdef NETGAME_DEVMODE
 #define CV_RESTRICT CV_NETVAR
 #else
@@ -770,10 +774,13 @@ void D_RegisterClientCommands(void)
 
 	// screen.c
 	CV_RegisterVar(&cv_fullscreen);
-	CV_RegisterVar(&cv_renderview);
 	CV_RegisterVar(&cv_scr_depth);
 	CV_RegisterVar(&cv_scr_width);
 	CV_RegisterVar(&cv_scr_height);
+
+	CV_RegisterVar(&cv_renderview);
+
+	CV_RegisterVar(&cv_models);
 
 	CV_RegisterVar(&cv_soundtest);
 
