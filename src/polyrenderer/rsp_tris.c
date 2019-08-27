@@ -233,9 +233,11 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 		{
 			float invV0Z = 1.f/v0.position.z;
 			float invV1Z = 1.f/v1.position.z;
+			fixed_t v0x = FLOAT_TO_FIXED(v0.position.x);
+			fixed_t v1x = FLOAT_TO_FIXED(v1.position.x);
 
 			// get v3.z value by interpolating 1/z (it's lerp-able)
-			if (v0.position.x - v1.position.x)
+			if (v0x - v1x)
 				v3.position.z = 1.0 / LERP(invV1Z, invV0Z, (v3.position.x - v1.position.x) / (v0.position.x - v1.position.x));
 			else
 				v3.position.z = v0.position.z;
