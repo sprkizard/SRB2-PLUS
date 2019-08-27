@@ -4,6 +4,8 @@
 // Copyright (C) 1998-2000 by DooM Legacy Team.
 // Copyright (C) 1999-2018 by Sonic Team Junior.
 // Copyright (C) 2019 by Jaime "Jimita" Passos.
+// Copyright (C) 2019 by Vinícius "Arkus-Kotan" Telésforo.
+// Copyright (C) 2017 by Krzysztof Kondrak.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.

@@ -33,9 +33,9 @@ extern boolean bigstretchy;
 #endif
 
 extern size_t validcount, linecount, loopcount, framecount;
-
-extern fixed_t focallength, fovtan;
+#ifdef ESLOPE
 extern float focallengthf;
+#endif
 
 //
 // Lighting LUT.

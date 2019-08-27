@@ -1,6 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 2019 by Jaime "Jimita" Passos.
+// Copyright (C) 2019 by Vinícius "Arkus-Kotan" Telésforo.
 // Copyright (C) 2017 by Krzysztof Kondrak.
 // Copyright (C) 2018 by "Javidx9".
 //
@@ -16,11 +17,17 @@
 // a triangle is degenerate if v0 == v1 and v0 == v2
 static boolean is_degenerate_triangle(rsp_vertex_t v0, rsp_vertex_t v1, rsp_vertex_t v2)
 {
+	fixed_t v0x = FLOAT_TO_FIXED(v0.position.x);
+	fixed_t v1x = FLOAT_TO_FIXED(v1.position.x);
+	fixed_t v2x = FLOAT_TO_FIXED(v2.position.x);
+	fixed_t v0y = FLOAT_TO_FIXED(v0.position.y);
+	fixed_t v1y = FLOAT_TO_FIXED(v1.position.y);
+	fixed_t v2y = FLOAT_TO_FIXED(v2.position.y);
 	// x
-	if (v0.position.x == v1.position.x && v0.position.x == v2.position.x)
+	if (v0x == v1x && v0x == v2x)
 		return true;
 	// y
-	if (v0.position.y == v1.position.y && v0.position.y == v2.position.y)
+	else if (v0y == v1y && v0y == v2y)
 		return true;
 	// not degenerate
 	return false;
@@ -217,9 +224,9 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 		diff = RSP_VectorSubtract(&v1.position, &v0.position);
 		diff2 = RSP_VectorSubtract(&v3.position, &v0.position);
 
-		if (diff.x != 0)
+		if (fpclassify(diff.x) != FP_ZERO)
 			ratioU = diff2.x / diff.x;
-		if (diff.y != 0)
+		if (fpclassify(diff.y) != FP_ZERO)
 			ratioV = diff2.y / diff.y;
 
 		// lerp 1/Z and UV for v3. For perspective texture mapping calculate u/z, v/z.

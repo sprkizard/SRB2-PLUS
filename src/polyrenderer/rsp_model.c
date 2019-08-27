@@ -346,8 +346,7 @@ static int PNG_Load(const char *filename, int *w, int *h, rsp_modeltexture_t *te
 void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 {
 	rsp_modeltexture_t *texture = model->texture;
-	INT32 i;
-	size_t size = 0;
+	size_t i, size = 0;
 
 	// get texture size
 	if (texture)
@@ -982,6 +981,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		}
 
 		//FIXME: this is not yet correct
+		if (frame < 0)
+			frame = 0;
 		frame = (mobj->frame & FF_FRAMEMASK) % md2->model->header.numFrames;
 		curr = &md2->model->frames[frame];
 		if (tics <= durs)
@@ -1014,12 +1015,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			rsp_triangle_t triangle;
 			model_triangleVertex_t *pvert;
 			model_triangleVertex_t *nvert;
-			int i, j;
+			UINT16 i, j;
 
 			memset(&triangle, 0x00, sizeof(rsp_triangle_t));
-
-			if ((frame < 0) || (frame > md2->model->header.numFrames - 1))
-				return true;
 
 			for (i = 0; i < md2->model->header.numTriangles; ++i)
 			{

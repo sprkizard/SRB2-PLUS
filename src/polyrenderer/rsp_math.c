@@ -1,5 +1,6 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
+// Copyright (C) 2019 by Vinícius "Arkus-Kotan" Telésforo.
 // Copyright (C) 2017 by Krzysztof Kondrak.
 //
 // This program is free software distributed under the
@@ -13,7 +14,9 @@
 
 static float FastInverseSquareRoot(float number)
 {
-	return FIXED_TO_FLOAT(FixedSqrt(FLOAT_TO_FIXED(number)));
+	fixed_t fnum = FLOAT_TO_FIXED(number);
+	fixed_t sqnum = FixedSqrt(fnum);
+	return FIXED_TO_FLOAT(sqnum);
 }
 
 fpvector4_t RSP_VectorCrossProduct(fpvector4_t *v1, fpvector4_t *v2)

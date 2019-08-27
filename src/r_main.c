@@ -71,8 +71,9 @@ size_t framecount;
 
 size_t loopcount;
 
-fixed_t focallength, fovtan;
+#ifdef ESLOPE
 float focallengthf;
+#endif // ESLOPE
 
 fixed_t viewx, viewy, viewz;
 angle_t viewangle, aimingangle;
@@ -468,6 +469,7 @@ static void R_InitTextureMapping(void)
 	INT32 i;
 	INT32 x;
 	INT32 t;
+	fixed_t focallength, fovtan;
 
 	// Use tangent table to generate viewangletox:
 	//  viewangletox will give the next greatest x
@@ -477,7 +479,9 @@ static void R_InitTextureMapping(void)
 	//  so FIELDOFVIEW angles covers SCREENWIDTH.
 	fovtan = FINETANGENT(FINEANGLES/4+FIELDOFVIEW/2);
 	focallength = FixedDiv(centerxfrac, fovtan);
+#ifdef ESLOPE
 	focallengthf = FIXED_TO_FLOAT(focallength);
+#endif // ESLOPE
 
 	for (i = 0; i < FINEANGLES/2; i++)
 	{

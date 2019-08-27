@@ -1,7 +1,7 @@
 // SONIC ROBO BLAST 2
 //-----------------------------------------------------------------------------
 // Copyright (C) 2019 by Jaime "Jimita" Passos.
-// Copyright (C) 2019 by Vinícius Telésforo.
+// Copyright (C) 2019 by Vinícius "Arkus-Kotan" Telésforo.
 // Copyright (C) 2017 by Krzysztof Kondrak.
 //
 // This program is free software distributed under the
@@ -19,7 +19,7 @@ static UINT8 *tex_translation;
 static UINT8 *tex_colormap;
 static UINT8 *tex_transmap;
 
-static inline void spanloop(rsp_triangle_t *triangle, fixed_t y, fixed_t startXPrestep, fixed_t endXPrestep, fixed_t startX, fixed_t startInvZ, fixed_t endInvZ, fixed_t startU, fixed_t endU, fixed_t startV, fixed_t endV, fixed_t invLineLength)
+static inline void spanloop(fixed_t y, fixed_t startXPrestep, fixed_t endXPrestep, fixed_t startX, fixed_t startInvZ, fixed_t endInvZ, fixed_t startU, fixed_t endU, fixed_t startV, fixed_t endV, fixed_t invLineLength)
 {
 	fixed_t x, r, z;
 	fixed_t lerpInvZ;
@@ -177,7 +177,7 @@ void RSP_TexturedMappedTriangle(rsp_triangle_t *triangle, rsp_trimode_t type)
 		if (lineLength > 0)
 		{
 			invLineLength = FixedDiv(FRACUNIT, lineLength);
-			spanloop(triangle, y, startXPrestep, endXPrestep, startX, startInvZ, endInvZ, startU, endU, startV, endV, invLineLength);
+			spanloop(y, startXPrestep, endXPrestep, startX, startInvZ, endInvZ, startU, endU, startV, endV, invLineLength);
 		}
 
 		startX += dxLeft;
