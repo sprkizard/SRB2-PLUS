@@ -77,6 +77,52 @@ void RSP_ModelView(void)
 	RSP_SetupFrame();
 }
 
+void RSP_StoreViewpoint(void)
+{
+	rsp_viewpoint.viewx = viewx;
+	rsp_viewpoint.viewy = viewy;
+	rsp_viewpoint.viewz = viewz;
+	rsp_viewpoint.viewangle = viewangle;
+	rsp_viewpoint.aimingangle = aimingangle;
+	rsp_viewpoint.viewcos = viewcos;
+	rsp_viewpoint.viewsin = viewsin;
+}
+
+void RSP_RestoreViewpoint(void)
+{
+	viewx = rsp_viewpoint.viewx;
+	viewy = rsp_viewpoint.viewy;
+	viewz = rsp_viewpoint.viewz;
+	viewangle = rsp_viewpoint.viewangle;
+	aimingangle = rsp_viewpoint.aimingangle;
+	viewcos = rsp_viewpoint.viewcos;
+	viewsin = rsp_viewpoint.viewsin;
+	RSP_ModelView();
+}
+
+void RSP_LoadSpriteViewpoint(vissprite_t *spr)
+{
+	viewx = spr->viewx;
+	viewy = spr->viewy;
+	viewz = spr->viewz;
+	viewangle = spr->viewangle;
+	aimingangle = spr->aimingangle;
+	viewcos = spr->viewcos;
+	viewsin = spr->viewsin;
+	RSP_ModelView();
+}
+
+void RSP_StoreSpriteViewpoint(vissprite_t *spr)
+{
+	spr->viewx = viewx;
+	spr->viewy = viewy;
+	spr->viewz = viewz;
+	spr->viewangle = viewangle;
+	spr->aimingangle = aimingangle;
+	spr->viewcos = viewcos;
+	spr->viewsin = viewsin;
+}
+
 void RSP_ClearDepthBuffer(void)
 {
 	memset(rsp_target.depthbuffer, 0, sizeof(fixed_t) * rsp_target.width * rsp_target.height);

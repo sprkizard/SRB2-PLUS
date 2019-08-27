@@ -864,6 +864,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	if (!mobj)
 		return false;
 
+	RSP_StoreViewpoint();
+	RSP_LoadSpriteViewpoint(spr);
+
 	// transform the origin point
 	tr_x = mobj->x - viewx;
 	tr_y = mobj->y - viewy;
@@ -892,7 +895,10 @@ boolean RSP_RenderModel(vissprite_t *spr)
 
 		md2 = RSP_ModelAvailable(spr);
 		if (!md2)
+		{
+			RSP_RestoreViewpoint();
 			return false;
+		}
 
 		// texture blending
 		skincolor = (skincolors_t)mobj->color;
@@ -965,7 +971,10 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			// get rsp_texture
 			sprtexp = &sprframe->rsp_texture[rot];
 			if (!sprtexp)
+			{
+				RSP_RestoreViewpoint();
 				return false;
+			}
 
 			sprtex.width = sprtexp->width;
 			sprtex.height = sprtexp->height;
@@ -1010,7 +1019,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		// SRB2CBTODO: MD2 scaling support
 		finalscale = md2->scale * FIXED_TO_FLOAT(mobj->scale);
 
-		// rsp
+		// Render individual triangles
 		{
 			rsp_triangle_t triangle;
 			model_triangleVertex_t *pvert;
@@ -1132,8 +1141,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 				RSP_TransformTriangle(&triangle);
 			}
 		}
-		// clear depth buffer
-		RSP_ClearDepthBuffer();
-		return true;
 	}
+
+	RSP_RestoreViewpoint();
+	RSP_ClearDepthBuffer();
+	return true;
 }

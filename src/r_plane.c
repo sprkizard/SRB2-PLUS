@@ -291,8 +291,8 @@ void R_MapPlane(INT32 y, INT32 x1, INT32 x2)
 			if (bigstretchy)
 			{
 				INT64 den = (INT64)FRACUNIT * FRACUNIT * span;
-				xstep = (fixed_t)((INT64)viewsin * planeheight * viewfocratio / den);
-				ystep = (fixed_t)((INT64)viewcos * planeheight * viewfocratio / den);
+				xstep = (fixed_t)((INT64)planesin * planeheight * viewfocratio / den);
+				ystep = (fixed_t)((INT64)planecos * planeheight * viewfocratio / den);
 			}
 			else
 #endif // SOFTPOLY

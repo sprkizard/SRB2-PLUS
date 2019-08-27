@@ -167,6 +167,12 @@ typedef struct vissprite_s
 	boolean vflip; // Flip vertically
 	boolean isScaled;
 	INT32 dispoffset; // copy of info->dispoffset, affects ordering but not drawing
+
+#ifdef SOFTPOLY
+	fixed_t viewx, viewy, viewz;
+	angle_t viewangle, aimingangle;
+	fixed_t viewcos, viewsin;
+#endif
 } vissprite_t;
 
 // A drawnode is something that points to a 3D floor, 3D side, or masked

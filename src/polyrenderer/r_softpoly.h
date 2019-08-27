@@ -159,6 +159,10 @@ void RSP_DrawTranslucentPixel(void);
 
 typedef struct
 {
+	fixed_t viewx, viewy, viewz;
+	angle_t viewangle, aimingangle;
+	fixed_t viewcos, viewsin;
+	// 3D math
 	fpvector4_t position;
 	fpvector4_t target;
 	fpvector4_t up;
@@ -175,6 +179,11 @@ extern fpmatrix4_t rsp_frustummatrix;
 void RSP_ModelView(void);
 void RSP_Viewport(INT32 width, INT32 height);
 void RSP_ClearDepthBuffer(void);
+
+void RSP_StoreViewpoint(void);
+void RSP_RestoreViewpoint(void);
+void RSP_LoadSpriteViewpoint(vissprite_t *spr);
+void RSP_StoreSpriteViewpoint(vissprite_t *spr);
 
 #include "../r_model.h"
 

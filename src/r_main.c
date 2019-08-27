@@ -1252,6 +1252,9 @@ void R_RenderPlayerView(player_t *player)
 {
 	portal_pair *portal;
 	const boolean skybox = (skyboxmo[0] && cv_skybox.value);
+#ifdef SOFTPOLY
+	boolean portalrendered = false;
+#endif // SOFTPOLY
 
 	if (cv_homremoval.value && player == &players[displayplayer]) // if this is display player 1
 	{
@@ -1332,6 +1335,11 @@ void R_RenderPlayerView(player_t *player)
 		CONS_Debug(DBG_RENDER, "Rendering portal from line %d to %d\n", portal->line1, portal->line2);
 		portalrender = portal->pass;
 
+#ifdef SOFTPOLY
+		RSP_StoreViewpoint();
+		portalrendered = true;
+#endif // SOFTPOLY
+
 		R_PortalFrame(&lines[portal->line1], &lines[portal->line2], portal);
 
 		R_PortalClearClipSegs(portal->start, portal->end);
@@ -1340,6 +1348,10 @@ void R_RenderPlayerView(player_t *player)
 
 		validcount++;
 
+#ifdef SOFTPOLY
+		if (cv_models.value)
+			RSP_ModelView();
+#endif
 		R_RenderBSPNode((INT32)numnodes - 1);
 		R_ClipSprites();
 		//R_DrawPlanes();
@@ -1354,6 +1366,11 @@ void R_RenderPlayerView(player_t *player)
 		Z_Free(portal);
 	}
 	// END PORTAL RENDERING
+
+#ifdef SOFTPOLY
+	if (portalrendered && cv_models.value)
+		RSP_RestoreViewpoint();
+#endif
 
 	R_DrawPlanes();
 #ifdef FLOORSPLATS
