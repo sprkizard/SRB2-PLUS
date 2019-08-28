@@ -1307,6 +1307,10 @@ static void R_ProjectSprite(mobj_t *thing)
 	vis->texturemid = vis->gzt - viewz;
 
 	vis->mobj = thing; // Easy access! Tails 06-07-2002
+#ifdef SOFTPOLY
+	vis->spritenum = thing->sprite;
+	vis->skin = thing->skin;
+#endif // SOFTPOLY
 
 	vis->x1 = x1 < 0 ? 0 : x1;
 	vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
@@ -2133,7 +2137,7 @@ void R_ClipSprites(void)
 #ifdef SOFTPOLY
 		// Arkus: Yes, clip against the ENTIRE viewport.
 		// You don't know how big the model is!
-		if (RSP_ModelAvailable(spr))
+		if (cv_models.value && RSP_ModelAvailable(spr))
 		{
 			model = true;
 			ox1 = spr->x1, ox2 = spr->x2;

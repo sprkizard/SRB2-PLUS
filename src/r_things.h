@@ -127,6 +127,10 @@ typedef struct vissprite_s
 	struct vissprite_s *next;
 
 	mobj_t *mobj; // for easy access
+#ifdef SOFTPOLY
+	spritenum_t spritenum;
+	void *skin;
+#endif
 
 	INT32 x1, x2;
 

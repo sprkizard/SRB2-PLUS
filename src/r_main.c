@@ -683,7 +683,8 @@ void R_ExecuteSetViewSize(void)
 
 	am_recalc = true;
 #ifdef SOFTPOLY
-	RSP_Viewport(viewwidth, viewheight);
+	if (cv_models.value)
+		RSP_Viewport(viewwidth, viewheight);
 #endif
 }
 
@@ -1336,8 +1337,11 @@ void R_RenderPlayerView(player_t *player)
 		portalrender = portal->pass;
 
 #ifdef SOFTPOLY
-		RSP_StoreViewpoint();
-		portalrendered = true;
+		if (cv_models.value)
+		{
+			RSP_StoreViewpoint();
+			portalrendered = true;
+		}
 #endif // SOFTPOLY
 
 		R_PortalFrame(&lines[portal->line1], &lines[portal->line2], portal);

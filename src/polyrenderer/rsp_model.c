@@ -820,17 +820,17 @@ rsp_md2_t *RSP_ModelAvailable(vissprite_t *spr)
 	char filename[64];
 	rsp_md2_t *md2;
 
-	mobj_t *mobj = spr->mobj;
-	if (!mobj)
+	// invalid sprite number
+	if ((unsigned)spr->spritenum >= NUMSPRITES || (unsigned)spr->spritenum == SPR_NULL)
 		return NULL;
 
-	if (mobj->skin && mobj->sprite == SPR_PLAY) // Use the player MD2 list if the mobj has a skin and is using the player sprites
+	if (spr->skin && spr->spritenum == SPR_PLAY) // Use the player MD2 list if the mobj has a skin and is using the player sprites
 	{
-		md2 = &rsp_md2_playermodels[(skin_t*)mobj->skin-skins];
-		md2->skin = (skin_t*)mobj->skin-skins;
+		md2 = &rsp_md2_playermodels[(skin_t*)spr->skin-skins];
+		md2->skin = (skin_t*)spr->skin-skins;
 	}
 	else
-		md2 = &rsp_md2_models[mobj->sprite];
+		md2 = &rsp_md2_models[spr->spritenum];
 
 	if (md2->error)
 		return NULL; // we already failed loading this before :(
