@@ -532,6 +532,9 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 			INT32 tempcolor;
 			INT16 tempmult, tempalpha;
 
+			if (!blendimage)
+				return;
+
 			if (blendimage[i].s.alpha == 0)
 			{
 				model->rsp_transtex[skincolor].data[i] = model->rsp_tex.data[i];
@@ -829,6 +832,11 @@ rsp_md2_t *RSP_ModelAvailable(vissprite_t *spr)
 		md2 = &rsp_md2_playermodels[(skin_t*)spr->skin-skins];
 		md2->skin = (skin_t*)spr->skin-skins;
 	}
+	else if (spr->spritenum == SPR_PLAY)	// use default model
+	{
+		md2 = &rsp_md2_playermodels[0];
+		md2->skin = 0;
+	}
 	else
 		md2 = &rsp_md2_models[spr->spritenum];
 
@@ -893,7 +901,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		spriteframe_t *sprframe;
 		float finalscale;
 
-		skincolors_t skincolor;
+		skincolors_t skincolor = SKINCOLOR_NONE;
 		UINT8 *translation = NULL;
 
 		md2 = RSP_ModelAvailable(spr);
@@ -905,9 +913,21 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		}
 
 		// texture blending
-		skincolor = (skincolors_t)mobj->color;
-		if (mobj->skin && mobj->sprite == SPR_PLAY && mobj->player)
-			skincolor = (skincolors_t)mobj->player->skincolor;
+		if (mobj->color)
+			skincolor = (skincolors_t)mobj->color;
+		else if (mobj->sprite == SPR_PLAY) // Looks like a player, but doesn't have a color? Get rid of green sonic syndrome.
+			skincolor = (skincolors_t)skins[0].prefcolor;
+
+		// set translation
+		if ((mobj->flags & MF_BOSS) && (mobj->flags2 & MF2_FRET) && (leveltime & 1)) // Bosses "flash"
+		{
+			if (mobj->type == MT_CYBRAKDEMON)
+				translation = R_GetTranslationColormap(TC_ALLWHITE, 0, GTC_CACHE);
+			else if (mobj->type == MT_METALSONIC_BATTLE)
+				translation = R_GetTranslationColormap(TC_METALSONIC, 0, GTC_CACHE);
+			else
+				translation = R_GetTranslationColormap(TC_BOSS, 0, GTC_CACHE);
+		}
 
 		// load normal texture
 		if (!md2->texture)
@@ -948,16 +968,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			else
 				rot = 0;	// use single rotation for all views
 
-			// skin translation
+			// sprite translation
 			if ((mobj->flags & MF_BOSS) && (mobj->flags2 & MF2_FRET) && (leveltime & 1)) // Bosses "flash"
-			{
-				if (mobj->type == MT_CYBRAKDEMON)
-					translation = R_GetTranslationColormap(TC_ALLWHITE, 0, GTC_CACHE);
-				else if (mobj->type == MT_METALSONIC_BATTLE)
-					translation = R_GetTranslationColormap(TC_METALSONIC, 0, GTC_CACHE);
-				else
-					translation = R_GetTranslationColormap(TC_BOSS, 0, GTC_CACHE);
-			}
+				;	// already set
 			else if (mobj->color)
 			{
 				// New colormap stuff for skins Tails 06-07-2002
@@ -969,8 +982,10 @@ boolean RSP_RenderModel(vissprite_t *spr)
 				else
 					translation = R_GetTranslationColormap(TC_DEFAULT, mobj->color ? mobj->color : SKINCOLOR_GREEN, GTC_CACHE);
 			}
-			else if (mobj->sprite == SPR_PLAY) // Looks like a player, but doesn't have a color? Get rid of Green Sonic Syndrome.
+			else if (mobj->sprite == SPR_PLAY) // Looks like a player, but doesn't have a color? Get rid of green sonic syndrome.
 				translation = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_BLUE, GTC_CACHE);
+			else
+				translation = NULL;
 
 			// get rsp_texture
 			sprtexp = &sprframe->rsp_texture[rot];
@@ -1031,23 +1046,28 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			model_triangleVertex_t *nvert;
 			UINT16 i, j;
 
+			// clear triangle struct
+			// avoid undefined behaviour.............
 			memset(&triangle, 0x00, sizeof(rsp_triangle_t));
 
+			// calculate model orientation
+			float theta, cs, sn;
+			fixed_t model_angle = AngleFixed(mobj->angle);
+			if (!sprframe->rotate)
+				model_angle = AngleFixed((R_PointToAngle(mobj->x, mobj->y))-ANGLE_180);
+
+			// model angle in radians
+			theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
+			cs = cos(theta);
+			sn = sin(theta);
+
+			// render every triangle
 			for (i = 0; i < md2->model->header.numTriangles; ++i)
 			{
 				for (j = 0; j < 3; ++j)
 				{
 					float x, y, z;
 					float s, t;
-					float theta, cs, sn;
-
-					float model_angle = AngleFixed(mobj->angle);
-					if (!sprframe->rotate)
-						model_angle = AngleFixed((R_PointToAngle(mobj->x, mobj->y))-ANGLE_180);
-
-					theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
-					cs = cos(theta);
-					sn = sin(theta);
 
 					x = FIXED_TO_FLOAT(mobj->x);
 					y = FIXED_TO_FLOAT(mobj->y) + md2->offset;
@@ -1071,8 +1091,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						float vz = (pvert->vertex[2] * finalscale/2.0f);
 
 						// QUICK MATHS
-						float mx = vx * cs - vy * sn;
-						float my = vx * sn + vy * cs;
+						float mx = (vx * cs) - (vy * sn);
+						float my = (vx * sn) + (vy * cs);
 						float mz = vz * (flip ? -1 : 1);
 
 						RSP_MakeVector4(triangle.vertices[j].position,
@@ -1093,13 +1113,13 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						float pol = 0.0f;
 
 						// QUICK MATHS
-						float mx1 = px1 * cs - py1 * sn;
-						float my1 = px1 * sn + py1 * cs;
+						float mx1 = (px1 * cs) - (py1 * sn);
+						float my1 = (px1 * sn) + (py1 * cs);
 						float mz1 = pz1 * (flip ? -1 : 1);
 
 						// QUICK MATHS
-						float mx2 = px2 * cs - py2 * sn;
-						float my2 = px2 * sn + py2 * cs;
+						float mx2 = (px2 * cs) - (py2 * sn);
+						float my2 = (px2 * sn) + (py2 * cs);
 						float mz2 = pz2 * (flip ? -1 : 1);
 
 						if (durs != 0 && durs != -1 && tics != -1) // don't interpolate if instantaneous or infinite in length
@@ -1122,8 +1142,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						);
 					}
 
-					triangle.vertices[j].uv.u = (s + 0.5) / md2->model->header.skinWidth;
-					triangle.vertices[j].uv.v = (t + 0.5) / md2->model->header.skinHeight;
+					triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
+					triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
 				}
 
 				triangle.texture = NULL;
