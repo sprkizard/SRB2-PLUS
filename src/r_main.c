@@ -1274,6 +1274,10 @@ void R_RenderPlayerView(player_t *player)
 	portalrender = 0;
 	portal_base = portal_cap = NULL;
 
+#ifdef SOFTPOLY
+	RSP_OnFrame();
+#endif // SOFTPOLY
+
 	if (skybox && skyVisible)
 	{
 		R_SkyboxFrame(player);

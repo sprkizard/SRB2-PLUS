@@ -163,27 +163,25 @@ typedef struct
 	angle_t viewangle, aimingangle;
 	fixed_t viewcos, viewsin;
 	// 3D math
-	fpvector4_t position;
-	fpvector4_t target;
-	fpvector4_t up;
-	fpvector4_t right;
-	fpmatrix4_t view;
-	fpmatrix4_t projection;
+	fpvector4_t position_vector;
+	fpvector4_t target_vector;
+	fpmatrix4_t view_matrix;
+	fpmatrix4_t projection_matrix;
 } viewpoint_t;
 
 extern rendertarget_t rsp_target;
 extern viewpoint_t rsp_viewpoint;
-extern fpmatrix4_t rsp_projectionmatrix;
-extern fpmatrix4_t rsp_frustummatrix;
+extern fpmatrix4_t *rsp_projectionmatrix;
 
-void RSP_ModelView(void);
 void RSP_Viewport(INT32 width, INT32 height);
+void RSP_OnFrame(void);
+void RSP_ModelView(void);
 void RSP_ClearDepthBuffer(void);
 
 void RSP_StoreViewpoint(void);
 void RSP_RestoreViewpoint(void);
-void RSP_LoadSpriteViewpoint(vissprite_t *spr);
 void RSP_StoreSpriteViewpoint(vissprite_t *spr);
+void RSP_RestoreSpriteViewpoint(vissprite_t *spr);
 
 #include "../r_model.h"
 

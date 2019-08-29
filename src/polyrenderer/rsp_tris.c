@@ -281,10 +281,13 @@ void RSP_DrawTriangleList(rsp_triangle_t *tri, rsp_triangle_t *list, INT32 count
 
 void RSP_TransformTriangle(rsp_triangle_t *tri)
 {
+	if (rsp_projectionmatrix == NULL)
+		I_Error("RSP_TransformTriangle: no projection matrix!");
+
 	// transform triangle to projection matrix
-	tri->vertices[0].position = RSP_MatrixMultiplyVector(&rsp_projectionmatrix, &tri->vertices[0].position);
-	tri->vertices[1].position = RSP_MatrixMultiplyVector(&rsp_projectionmatrix, &tri->vertices[1].position);
-	tri->vertices[2].position = RSP_MatrixMultiplyVector(&rsp_projectionmatrix, &tri->vertices[2].position);
+	tri->vertices[0].position = RSP_MatrixMultiplyVector(rsp_projectionmatrix, &tri->vertices[0].position);
+	tri->vertices[1].position = RSP_MatrixMultiplyVector(rsp_projectionmatrix, &tri->vertices[1].position);
+	tri->vertices[2].position = RSP_MatrixMultiplyVector(rsp_projectionmatrix, &tri->vertices[2].position);
 
 	// cull triangle by "normal" direction
 	if (rsp_target.cullmode != TRICULL_NONE)
