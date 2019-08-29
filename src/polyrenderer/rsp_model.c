@@ -864,8 +864,11 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	if (!mobj)
 		return false;
 
-	RSP_StoreViewpoint();
-	RSP_LoadSpriteViewpoint(spr);
+	if (portalrender)
+	{
+		RSP_StoreViewpoint();
+		RSP_LoadSpriteViewpoint(spr);
+	}
 
 	// transform the origin point
 	tr_x = mobj->x - viewx;
@@ -896,7 +899,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		md2 = RSP_ModelAvailable(spr);
 		if (!md2)
 		{
-			RSP_RestoreViewpoint();
+			if (portalrender)
+				RSP_RestoreViewpoint();
 			return false;
 		}
 
@@ -972,7 +976,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			sprtexp = &sprframe->rsp_texture[rot];
 			if (!sprtexp)
 			{
-				RSP_RestoreViewpoint();
+				if (portalrender)
+					RSP_RestoreViewpoint();
 				return false;
 			}
 
@@ -1143,7 +1148,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		}
 	}
 
-	RSP_RestoreViewpoint();
+	if (portalrender)
+		RSP_RestoreViewpoint();
 	RSP_ClearDepthBuffer();
 	return true;
 }
