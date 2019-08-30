@@ -139,17 +139,6 @@ void RSP_MatrixTranspose(fpmatrix16_t *input)
 			input->m[i * 4 + j] = matrix.m[i + j * 4];
 }
 
-void RSP_MatrixInverse(fpmatrix16_t *input)
-{
-	int i, j;
-	fpmatrix16_t matrix;
-	for (i = 0; i < 16; i++)
-		matrix.m[i] = input->m[i];
-	for (i = 0; i < 4; i++)
-		for (j = 0; j < 4; j++)
-			input->m[i * 4 + j] = matrix.m[i + j * 4];
-}
-
 void RSP_MakeIdentityMatrix(fpmatrix16_t *matrix)
 {
 	int i;

@@ -1047,15 +1047,16 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			rsp_triangle_t triangle;
 			model_triangleVertex_t *pvert;
 			model_triangleVertex_t *nvert;
+			float theta, cs, sn;
+			fixed_t model_angle;
 			UINT16 i, j;
 
 			// clear triangle struct
 			// avoid undefined behaviour.............
 			memset(&triangle, 0x00, sizeof(rsp_triangle_t));
 
-			// calculate model orientation
-			float theta, cs, sn;
-			fixed_t model_angle = AngleFixed(mobj->angle);
+			// set model angle
+			model_angle = AngleFixed(mobj->angle);
 			if (!sprframe->rotate)
 				model_angle = AngleFixed((R_PointToAngle(mobj->x, mobj->y))-ANGLE_180);
 
@@ -1256,6 +1257,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float mode
 	{
 		rsp_triangle_t triangle;
 		model_triangleVertex_t *vert;
+		float theta, cs, sn;
 		UINT16 i, j;
 
 		// clear triangle struct
@@ -1263,7 +1265,6 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float mode
 		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
 
 		// calculate model orientation
-		float theta, cs, sn;
 		theta = -(model_angle * M_PI / 180.0f);
 		cs = cos(theta);
 		sn = sin(theta);
