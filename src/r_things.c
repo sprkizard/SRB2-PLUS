@@ -2137,7 +2137,7 @@ void R_ClipSprites(void)
 #ifdef SOFTPOLY
 		// Arkus: Yes, clip against the ENTIRE viewport.
 		// You don't know how big the model is!
-		if (cv_models.value && RSP_ModelAvailable(spr))
+		if (cv_models.value && RSP_ModelAvailable(spr->spritenum, (skin_t *)spr->skin))
 		{
 			model = true;
 			ox1 = spr->x1, ox2 = spr->x2;

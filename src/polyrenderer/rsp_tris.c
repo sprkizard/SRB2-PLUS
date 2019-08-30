@@ -178,6 +178,10 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 	rsp_vertex_t v1 = tri->vertices[1];
 	rsp_vertex_t v2 = tri->vertices[2];
 
+	// avoid a crash here
+	if (!rsp_curtrifunc)
+		I_Error("RSP_DrawTriangle: no triangle drawer set!");
+
 	// transform x and y of each vertex to screen coordinates
 	#define TRANSFORM_VERTEX(vertex) \
 	{ \
@@ -256,7 +260,7 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 			tri->vertices[0] = v0;
 			tri->vertices[1] = v3;
 			tri->vertices[2] = v2;
-			RSP_TexturedMappedTriangle(tri, TRI_FLATBOTTOM);
+			rsp_curtrifunc(tri, TRI_FLATBOTTOM);
 		}
 
 		if (!is_degenerate_triangle(v1, v3, v2))
@@ -264,7 +268,7 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 			tri->vertices[0] = v1;
 			tri->vertices[1] = v3;
 			tri->vertices[2] = v2;
-			RSP_TexturedMappedTriangle(tri, TRI_FLATTOP);
+			rsp_curtrifunc(tri, TRI_FLATTOP);
 		}
 	}
 }

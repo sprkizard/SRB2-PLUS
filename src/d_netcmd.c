@@ -781,6 +781,9 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_renderview);
 
 	CV_RegisterVar(&cv_models);
+#ifdef SOFTPOLY
+	CV_RegisterVar(&cv_texturemapping);
+#endif // SOFTPOLY
 
 	CV_RegisterVar(&cv_soundtest);
 

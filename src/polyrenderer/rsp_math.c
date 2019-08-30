@@ -96,7 +96,7 @@ void RSP_VectorNormalize(fpvector4_t *v)
 	v->z *= n;
 }
 
-fpvector4_t RSP_MatrixMultiplyVector(fpmatrix4_t *m, fpvector4_t *v)
+fpvector4_t RSP_MatrixMultiplyVector(fpmatrix16_t *m, fpvector4_t *v)
 {
 	fpvector4_t vector;
 	vector.x = m->m[0] * v->x + m->m[4] * v->y + m->m[8] * v->z + m->m[12] * v->w;
@@ -106,9 +106,9 @@ fpvector4_t RSP_MatrixMultiplyVector(fpmatrix4_t *m, fpvector4_t *v)
 	return vector;
 }
 
-fpmatrix4_t RSP_MatrixMultiply(fpmatrix4_t *m1, fpmatrix4_t *m2)
+fpmatrix16_t RSP_MatrixMultiply(fpmatrix16_t *m1, fpmatrix16_t *m2)
 {
-	fpmatrix4_t matrix;
+	fpmatrix16_t matrix;
 	matrix.m[0] = m1->m[0] * m2->m[0] + m1->m[1] * m2->m[4] + m1->m[2] * m2->m[8]  + m1->m[3] * m2->m[12];
 	matrix.m[1] = m1->m[0] * m2->m[1] + m1->m[1] * m2->m[5] + m1->m[2] * m2->m[9]  + m1->m[3] * m2->m[13];
 	matrix.m[2] = m1->m[0] * m2->m[2] + m1->m[1] * m2->m[6] + m1->m[2] * m2->m[10] + m1->m[3] * m2->m[14];
@@ -128,18 +128,10 @@ fpmatrix4_t RSP_MatrixMultiply(fpmatrix4_t *m1, fpmatrix4_t *m2)
 	return matrix;
 }
 
-void RSP_MakeIdentityMatrix(fpmatrix4_t *matrix)
-{
-	int i;
-	for (i = 1; i < 16; ++i)
-		matrix->m[i] = 0.0f;
-	matrix->m[0] = matrix->m[5] = matrix->m[10] = matrix->m[15] = 1.0f;
-}
-
-void RSP_MatrixTranspose(fpmatrix4_t *input)
+void RSP_MatrixTranspose(fpmatrix16_t *input)
 {
 	int i, j;
-	fpmatrix4_t matrix;
+	fpmatrix16_t matrix;
 	for (i = 0; i < 16; i++)
 		matrix.m[i] = input->m[i];
 	for (i = 0; i < 4; i++)
@@ -147,7 +139,26 @@ void RSP_MatrixTranspose(fpmatrix4_t *input)
 			input->m[i * 4 + j] = matrix.m[i + j * 4];
 }
 
-void RSP_MakePerspectiveMatrix(fpmatrix4_t *m, float fov, float aspectratio, float np, float fp)
+void RSP_MatrixInverse(fpmatrix16_t *input)
+{
+	int i, j;
+	fpmatrix16_t matrix;
+	for (i = 0; i < 16; i++)
+		matrix.m[i] = input->m[i];
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 4; j++)
+			input->m[i * 4 + j] = matrix.m[i + j * 4];
+}
+
+void RSP_MakeIdentityMatrix(fpmatrix16_t *matrix)
+{
+	int i;
+	for (i = 1; i < 16; ++i)
+		matrix->m[i] = 0.0f;
+	matrix->m[0] = matrix->m[5] = matrix->m[10] = matrix->m[15] = 1.0f;
+}
+
+void RSP_MakePerspectiveMatrix(fpmatrix16_t *m, float fov, float aspectratio, float np, float fp)
 {
 	float tfov = tan(fov / 2.0f);
 	float deltaZ = (fp - np);
@@ -163,7 +174,7 @@ void RSP_MakePerspectiveMatrix(fpmatrix4_t *m, float fov, float aspectratio, flo
 	m->m[14] = -2.0f * fp * np / deltaZ;
 }
 
-void RSP_MakeViewMatrix(fpmatrix4_t *m, fpvector4_t *eye, fpvector4_t *target, fpvector4_t *up)
+void RSP_MakeViewMatrix(fpmatrix16_t *m, fpvector4_t *eye, fpvector4_t *target, fpvector4_t *up)
 {
 	fpvector4_t x,y,z;
 

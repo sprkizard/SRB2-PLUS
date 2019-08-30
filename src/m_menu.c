@@ -45,6 +45,10 @@
 #include "p_setup.h"
 #include "f_finale.h"
 
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
+#endif
+
 #ifdef HWRENDER
 #include "hardware/hw_main.h"
 #endif
@@ -259,6 +263,9 @@ menu_t OP_VideoOptionsDef, OP_VideoModeDef;
 #ifdef HWRENDER
 menu_t OP_OpenGLOptionsDef, OP_OpenGLFogDef, OP_OpenGLColorDef;
 #endif
+#ifdef HWRENDER
+menu_t OP_SoftPolyOptionsDef;
+#endif // HWRENDER
 menu_t OP_SoundOptionsDef;
 
 //Misc
@@ -295,6 +302,9 @@ static void M_DrawSetupChoosePlayerMenu(void);
 static void M_DrawControl(void);
 static void M_DrawVideoMode(void);
 static void M_DrawMonitorToggles(void);
+#ifdef SOFTPOLY
+static void M_SoftPoly_DrawOptionsMenu(void);
+#endif // SOFTPOLY
 #ifdef HWRENDER
 static void M_OGL_DrawFogMenu(void);
 static void M_OGL_DrawColorMenu(void);
@@ -1103,6 +1113,9 @@ static menuitem_t OP_VideoOptionsMenu[] =
 #ifdef HWRENDER
 	{IT_SUBMENU|IT_STRING, NULL,   "3D Card Options...",  &OP_OpenGLOptionsDef,    20},
 #endif
+#ifdef SOFTPOLY
+	{IT_SUBMENU|IT_STRING, NULL,   "Polygon Renderer Options...",  &OP_SoftPolyOptionsDef,    20},
+#endif
 
 #if (defined (__unix__) && !defined (MSDOS)) || defined (UNIXCOMMON) || defined (HAVE_SDL)
 	{IT_STRING|IT_CVAR,      NULL, "Fullscreen",          &cv_fullscreen,    30},
@@ -1167,6 +1180,14 @@ static menuitem_t OP_OpenGLColorMenu[] =
 	{IT_STRING|IT_CVAR|IT_CV_SLIDER, NULL, "blue",  &cv_grgammablue,  30},
 };
 #endif
+
+#ifdef SOFTPOLY
+static menuitem_t OP_SoftPolyOptionsMenu[] =
+{
+	{IT_STRING|IT_CVAR,         NULL, "3D Models",                    &cv_models,            10},
+	{IT_STRING|IT_CVAR,         NULL, "Texture mapping",              &cv_texturemapping,    20},
+};
+#endif // SOFTPOLY
 
 static menuitem_t OP_SoundOptionsMenu[] =
 {
@@ -1738,6 +1759,21 @@ menu_t OP_OpenGLColorDef =
 	NULL
 };
 #endif
+
+#ifdef SOFTPOLY
+menu_t OP_SoftPolyOptionsDef =
+{
+	"M_VIDEO",
+	sizeof (OP_SoftPolyOptionsMenu)/sizeof (menuitem_t),
+	&OP_VideoOptionsDef,
+	OP_SoftPolyOptionsMenu,
+	M_SoftPoly_DrawOptionsMenu,
+	30, 30,
+	0,
+	NULL
+};
+#endif // SOFTPOLY
+
 menu_t OP_DataOptionsDef = DEFAULTMENUSTYLE("M_DATA", OP_DataOptionsMenu, &OP_MainDef, 60, 30);
 menu_t OP_ScreenshotOptionsDef = DEFAULTMENUSTYLE("M_DATA", OP_ScreenshotOptionsMenu, &OP_DataOptionsDef, 30, 30);
 menu_t OP_AddonsOptionsDef = DEFAULTMENUSTYLE("M_ADDONS", OP_AddonsOptionsMenu, &OP_MainDef, 30, 30);
@@ -2769,11 +2805,15 @@ void M_Init(void)
 	quitmsg[QUIT3MSG5] = M_GetText("You'll be back to play soon, though...\n......right?\n\n(Press 'Y' to quit)");
 	quitmsg[QUIT3MSG6] = M_GetText("Aww, is Egg Rock Zone too\ndifficult for you?\n\n(Press 'Y' to quit)");
 
-#ifdef HWRENDER
 	// Permanently hide some options based on render mode
+#ifdef HWRENDER
 	if (rendermode == render_soft)
 		OP_VideoOptionsMenu[1].status = IT_DISABLED;
 #endif
+#ifdef SOFTPOLY
+	if (rendermode != render_soft)
+		OP_VideoOptionsMenu[2].status = IT_DISABLED;
+#endif // SOFTPOLY
 
 #ifndef NONET
 	CV_RegisterVar(&cv_serversort);
@@ -7918,6 +7958,14 @@ static void M_QuitSRB2(INT32 choice)
 	(void)choice;
 	M_StartMessage(quitmsg[M_RandomKey(NUM_QUITMESSAGES)], M_QuitResponse, MM_YESNO);
 }
+
+#ifdef SOFTPOLY
+static void M_SoftPoly_DrawOptionsMenu(void)
+{
+	M_DrawGenericMenu(); // use generic drawer for cursor, items and title
+	RSP_DebugRender(0, -128*FRACUNIT, 32*FRACUNIT, 0, (40 * vid.dupy));
+}
+#endif // SOFTPOLY
 
 #ifdef HWRENDER
 // =====================================================================

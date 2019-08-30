@@ -23,6 +23,7 @@
 #include "../p_local.h"
 #include "../v_video.h"
 #include "../z_zone.h"
+#include "../w_wad.h"
 
 #define FixedLerp(start, end, r) ( FixedMul(start, (FRACUNIT - (r))) + FixedMul(end, r) )
 #define LERP(start, end, r) ( (start) * (1.0 - (r)) + (end) * (r) )
@@ -53,7 +54,7 @@ typedef struct
 typedef struct
 {
 	float m[16];
-} fpmatrix4_t;
+} fpmatrix16_t;
 
 #define RSP_MakeVector4(vec, vx, vy, vz) { vec.x = vx; vec.y = vy; vec.z = vz; vec.w = 1.0; }
 #define RSP_MakeVector3(vec, vx, vy, vz) { vec.x = vx; vec.y = vy; vec.z = vz; }
@@ -70,13 +71,13 @@ float RSP_VectorDistance(fpvector4_t p, fpvector4_t pn, fpvector4_t pp);
 void RSP_VectorNormalize(fpvector4_t *v);
 void RSP_VectorRotate(fpvector4_t *v, float angle, float x, float y, float z);
 
-fpvector4_t RSP_MatrixMultiplyVector(fpmatrix4_t *m, fpvector4_t *v);
-fpmatrix4_t RSP_MatrixMultiply(fpmatrix4_t *m1, fpmatrix4_t *m2);
-void RSP_MatrixTranspose(fpmatrix4_t *m);
+fpvector4_t RSP_MatrixMultiplyVector(fpmatrix16_t *m, fpvector4_t *v);
+fpmatrix16_t RSP_MatrixMultiply(fpmatrix16_t *m1, fpmatrix16_t *m2);
+void RSP_MatrixTranspose(fpmatrix16_t *m);
 
-void RSP_MakeIdentityMatrix(fpmatrix4_t *m);
-void RSP_MakePerspectiveMatrix(fpmatrix4_t *m, float fov, float aspectratio, float np, float fp);
-void RSP_MakeViewMatrix(fpmatrix4_t *m, fpvector4_t *eye, fpvector4_t *target, fpvector4_t *up);
+void RSP_MakeIdentityMatrix(fpmatrix16_t *m);
+void RSP_MakePerspectiveMatrix(fpmatrix16_t *m, float fov, float aspectratio, float np, float fp);
+void RSP_MakeViewMatrix(fpmatrix16_t *m, fpvector4_t *eye, fpvector4_t *target, fpvector4_t *up);
 
 fpquaternion_t RSP_QuaternionMultiply(fpquaternion_t *q1, fpquaternion_t *q2);
 fpquaternion_t RSP_QuaternionConjugate(fpquaternion_t *q);
@@ -134,6 +135,7 @@ typedef struct
 	rsp_mode_t mode;
 	rsp_trimode_t trianglemode;
 	rsp_cullmode_t cullmode;
+	boolean aiming;
 
 	fixed_t *depthbuffer;
 } rendertarget_t;
@@ -142,8 +144,8 @@ void RSP_TransformTriangle(rsp_triangle_t *tri);
 void RSP_ClipTriangle(rsp_triangle_t *tri);
 void RSP_DrawTriangle(rsp_triangle_t *tri);
 void RSP_DrawTriangleList(rsp_triangle_t *tri, rsp_triangle_t *list, INT32 count);
-void RSP_TexturedMappedTriangle(rsp_triangle_t *tri, rsp_trimode_t type);
 
+// pixel drawer functions
 extern void (*rsp_curpixelfunc)(void);
 extern void (*rsp_basepixelfunc)(void);
 extern void (*rsp_transpixelfunc)(void);
@@ -154,8 +156,18 @@ extern UINT8 rsp_cpix;
 extern fixed_t rsp_zpix;
 extern UINT8 *rsp_tpix;
 
+extern INT32 rsp_viewwindowx, rsp_viewwindowy;
+
 void RSP_DrawPixel(void);
 void RSP_DrawTranslucentPixel(void);
+
+// triangle drawer functions
+extern void (*rsp_curtrifunc)(rsp_triangle_t *tri, rsp_trimode_t type);
+extern void (*rsp_fixedtrifunc)(rsp_triangle_t *tri, rsp_trimode_t type);
+extern void (*rsp_floattrifunc)(rsp_triangle_t *tri, rsp_trimode_t type);
+
+void RSP_TexturedMappedTriangle(rsp_triangle_t *tri, rsp_trimode_t type);
+void RSP_TexturedMappedTriangleFP(rsp_triangle_t *tri, rsp_trimode_t type);
 
 typedef struct
 {
@@ -165,17 +177,18 @@ typedef struct
 	// 3D math
 	fpvector4_t position_vector;
 	fpvector4_t target_vector;
-	fpmatrix4_t view_matrix;
-	fpmatrix4_t projection_matrix;
+	fpmatrix16_t view_matrix;
+	fpmatrix16_t projection_matrix;
 } viewpoint_t;
 
 extern rendertarget_t rsp_target;
 extern viewpoint_t rsp_viewpoint;
-extern fpmatrix4_t *rsp_projectionmatrix;
+extern fpmatrix16_t *rsp_projectionmatrix;
 
 void RSP_Viewport(INT32 width, INT32 height);
 void RSP_OnFrame(void);
 void RSP_ModelView(void);
+void RSP_DebugRender(fixed_t vx, fixed_t vy, fixed_t vz, INT32 wx, INT32 wy);
 void RSP_ClearDepthBuffer(void);
 
 void RSP_StoreViewpoint(void);
@@ -206,8 +219,9 @@ extern rsp_md2_t rsp_md2_playermodels[MAXSKINS];
 
 void RSP_InitModels(void);
 model_t *RSP_LoadModel(const char *filename);
-rsp_md2_t *RSP_ModelAvailable(vissprite_t *spr);
+rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin);
 boolean RSP_RenderModel(vissprite_t *spr);
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip);
 
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);

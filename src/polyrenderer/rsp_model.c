@@ -818,27 +818,27 @@ spritemd2found:
 	fclose(f);
 }
 
-rsp_md2_t *RSP_ModelAvailable(vissprite_t *spr)
+rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 {
 	char filename[64];
 	rsp_md2_t *md2;
 
 	// invalid sprite number
-	if ((unsigned)spr->spritenum >= NUMSPRITES || (unsigned)spr->spritenum == SPR_NULL)
+	if ((unsigned)spritenum >= NUMSPRITES || (unsigned)spritenum == SPR_NULL)
 		return NULL;
 
-	if (spr->skin && spr->spritenum == SPR_PLAY) // Use the player MD2 list if the mobj has a skin and is using the player sprites
+	if (skin && spritenum == SPR_PLAY) // Use the player MD2 list if the mobj has a skin and is using the player sprites
 	{
-		md2 = &rsp_md2_playermodels[(skin_t*)spr->skin-skins];
-		md2->skin = (skin_t*)spr->skin-skins;
+		md2 = &rsp_md2_playermodels[skin-skins];
+		md2->skin = skin-skins;
 	}
-	else if (spr->spritenum == SPR_PLAY)	// use default model
+	else if (spritenum == SPR_PLAY)	// use default model
 	{
 		md2 = &rsp_md2_playermodels[0];
 		md2->skin = 0;
 	}
 	else
-		md2 = &rsp_md2_models[spr->spritenum];
+		md2 = &rsp_md2_models[spritenum];
 
 	if (md2->error)
 		return NULL; // we already failed loading this before :(
@@ -905,7 +905,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		skincolors_t skincolor = SKINCOLOR_NONE;
 		UINT8 *translation = NULL;
 
-		md2 = RSP_ModelAvailable(spr);
+		md2 = RSP_ModelAvailable(spr->spritenum, (skin_t *)spr->skin);
 		if (!md2)
 		{
 			// restore previous viewpoint
@@ -985,7 +985,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					translation = R_GetTranslationColormap(TC_DEFAULT, mobj->color ? mobj->color : SKINCOLOR_GREEN, GTC_CACHE);
 			}
 			else if (mobj->sprite == SPR_PLAY) // Looks like a player, but doesn't have a color? Get rid of green sonic syndrome.
-				translation = R_GetTranslationColormap(TC_DEFAULT, SKINCOLOR_BLUE, GTC_CACHE);
+				translation = R_GetTranslationColormap(TC_DEFAULT, skins[0].prefcolor, GTC_CACHE);
 			else
 				translation = NULL;
 
@@ -1174,6 +1174,143 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	// restore previous viewpoint
 	if (portalrender)
 		RSP_RestoreViewpoint();
+	RSP_ClearDepthBuffer();
+	return true;
+}
+
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip)
+{
+	rsp_md2_t *md2;
+	rsp_texture_t *texture, sprtex;
+	rsp_spritetexture_t *sprtexp;
+	model_frame_t *curr;
+	spritedef_t *sprdef;
+	spriteframe_t *sprframe;
+	float finalscale;
+
+	UINT8 *translation = NULL;
+	md2 = RSP_ModelAvailable(spritenum, skin);
+	if (!md2)
+		return false;
+
+	// load normal texture
+	if (!md2->texture)
+		RSP_LoadModelTexture(md2);
+
+	// load blend texture
+	if (!md2->blendtexture)
+		RSP_LoadModelBlendTexture(md2);
+
+	// load translated texture
+	if ((skincolor > 0) && (md2->rsp_transtex[skincolor].data == NULL))
+		RSP_CreateModelTexture(md2, skincolor);
+
+	// use corresponding texture for this model
+	if (md2->rsp_transtex[skincolor].data != NULL)
+		texture = &md2->rsp_transtex[skincolor];
+	else
+		texture = &md2->rsp_tex;
+
+	if (skin && spritenum == SPR_PLAY)
+		sprdef = &skin->spritedef;
+	else
+		sprdef = &sprites[spritenum];
+
+	sprframe = &sprdef->spriteframes[framenum];
+
+	if (!texture->data)
+	{
+		// sprite translation
+		if (skincolor)
+		{
+			// New colormap stuff for skins Tails 06-07-2002
+			if (skin && spritenum == SPR_PLAY) // This thing is a player!
+			{
+				size_t skinnum = skin-skins;
+				translation = R_GetTranslationColormap((INT32)skinnum, skincolor, GTC_CACHE);
+			}
+			else
+				translation = R_GetTranslationColormap(TC_DEFAULT, skincolor ? skincolor : SKINCOLOR_GREEN, GTC_CACHE);
+		}
+		else
+			translation = NULL;
+
+		// get rsp_texture
+		sprtexp = &sprframe->rsp_texture[0];
+		if (!sprtexp)
+			return false;
+
+		sprtex.width = sprtexp->width;
+		sprtex.height = sprtexp->height;
+		sprtex.data = sprtexp->data;
+		texture = &sprtex;
+	}
+
+	//FIXME: this is not yet correct
+	curr = &md2->model->frames[framenum];
+
+	// SRB2CBTODO: MD2 scaling support
+	finalscale = md2->scale;
+
+	// Render individual triangles
+	{
+		rsp_triangle_t triangle;
+		model_triangleVertex_t *vert;
+		UINT16 i, j;
+
+		// clear triangle struct
+		// avoid undefined behaviour.............
+		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
+
+		// calculate model orientation
+		float theta, cs, sn;
+		theta = -(model_angle * M_PI / 180.0f);
+		cs = cos(theta);
+		sn = sin(theta);
+
+		// render every triangle
+		for (i = 0; i < md2->model->header.numTriangles; ++i)
+		{
+			for (j = 0; j < 3; ++j)
+			{
+				float vx, vy, vz;
+				float mx, my, mz;
+				float s = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].s;
+				float t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
+
+				vert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
+				vx = (vert->vertex[0] * finalscale/2.0f);
+				vy = (vert->vertex[1] * finalscale/2.0f);
+				vz = (vert->vertex[2] * finalscale/2.0f);
+
+				// QUICK MATHS
+				mx = (vx * cs) - (vy * sn);
+				my = (vx * sn) + (vy * cs);
+				mz = vz * (flip ? -1 : 1);
+
+				RSP_MakeVector4(triangle.vertices[j].position,
+					mx,
+					mz,
+					-md2->offset + my
+				);
+
+				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
+				triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
+			}
+
+			triangle.texture = NULL;
+			if (texture->data)
+				triangle.texture = texture;
+
+			triangle.colormap = NULL;
+			triangle.translation = translation;
+			triangle.transmap = NULL;
+			triangle.flipped = flip;
+
+			RSP_TransformTriangle(&triangle);
+		}
+	}
+
 	RSP_ClearDepthBuffer();
 	return true;
 }

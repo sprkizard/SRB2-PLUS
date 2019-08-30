@@ -22,6 +22,8 @@ UINT8 rsp_cpix = 0;
 fixed_t rsp_zpix = 0;
 UINT8 *rsp_tpix = NULL;
 
+INT32 rsp_viewwindowx = 0, rsp_viewwindowy = 0;
+
 void RSP_DrawPixel(void)
 {
 	INT16 xpix = 0, ypix = 0;
@@ -37,8 +39,8 @@ void RSP_DrawPixel(void)
 	if (*depth >= rsp_zpix)
 		return;
 
-	xpix = (rsp_xpix + viewwindowx);
-	ypix = (rsp_ypix + viewwindowy);
+	xpix = (rsp_xpix + rsp_viewwindowx);
+	ypix = (rsp_ypix + rsp_viewwindowy);
 	if (ypix >= vid.width || ypix < 0 || ypix >= vid.height || ypix < 0)
 		return;
 
@@ -54,11 +56,14 @@ void RSP_DrawTranslucentPixel(void)
 	UINT8 *dest;
 	UINT8 pixel = rsp_cpix;
 
+	if (!rsp_tpix)
+		I_Error("RSP_DrawTranslucentPixel: NULL transmap");
+
 	if (rsp_xpix >= rsp_target.width || rsp_xpix < 0 || rsp_ypix >= rsp_target.height || rsp_ypix < 0)
 		return;
 
-	xpix = (rsp_xpix + viewwindowx);
-	ypix = (rsp_ypix + viewwindowy);
+	xpix = (rsp_xpix + rsp_viewwindowx);
+	ypix = (rsp_ypix + rsp_viewwindowy);
 	if (ypix >= vid.width || ypix < 0 || ypix >= vid.height || ypix < 0)
 		return;
 
