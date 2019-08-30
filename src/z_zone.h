@@ -43,6 +43,7 @@
 #define PU_HWRPATCHINFO        21 // Hardware GLPatch_t struct for OpenGL texture cache
 #define PU_HWRPATCHCOLMIPMAP   22 // Hardware GLMipmap_t struct colromap variation of patch
 
+#define PU_SOFTPOLY            47 // static until unlocked
 #define PU_HWRCACHE            48 // static until unlocked
 #define PU_CACHE               49 // static until unlocked
 

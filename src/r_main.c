@@ -695,28 +695,27 @@ void R_ExecuteSetViewSize(void)
 void R_Init(void)
 {
 	// screensize independent
-	CONS_Printf("R_InitData()...\n");
+	//I_OutputMsg("\nR_InitData");
 	R_InitData();
 
-	CONS_Printf("R_InitViewBorder()...\n");
+	//I_OutputMsg("\nR_InitViewBorder");
 	R_InitViewBorder();
-	R_SetViewSize();
+	R_SetViewSize(); // setsizeneeded is set true
 
-	CONS_Printf("R_InitPlanes()...\n");
+	//I_OutputMsg("\nR_InitPlanes");
 	R_InitPlanes();
 
-	CONS_Printf("R_InitLightTables()...\n");
+	// this is now done by SCR_Recalc() at the first mode set
+	//I_OutputMsg("\nR_InitLightTables");
 	R_InitLightTables();
 
-	CONS_Printf("R_InitTranslationTables()...\n");
+	//I_OutputMsg("\nR_InitTranslationTables\n");
 	R_InitTranslationTables();
 
-	CONS_Printf("R_InitDrawNodes()...\n");
 	R_InitDrawNodes();
 
 #ifdef SOFTPOLY
-	CONS_Printf("RSP_InitModels()...\n");
-	RSP_InitModels();
+	RSP_Init();
 #endif
 
 	framecount = 0;

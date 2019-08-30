@@ -185,9 +185,11 @@ extern rendertarget_t rsp_target;
 extern viewpoint_t rsp_viewpoint;
 extern fpmatrix16_t *rsp_projectionmatrix;
 
+void RSP_Init(void);
 void RSP_Viewport(INT32 width, INT32 height);
 void RSP_OnFrame(void);
 void RSP_ModelView(void);
+void RSP_SetDrawerFunctions(void);
 void RSP_DebugRender(fixed_t vx, fixed_t vy, fixed_t vz, INT32 wx, INT32 wy);
 void RSP_ClearDepthBuffer(void);
 

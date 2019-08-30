@@ -252,7 +252,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	UINT8 buffer[MD2_MAX_FRAMESIZE];
 	size_t i;
 
-	model = calloc(1, sizeof (*model));
+	model = Z_Calloc(sizeof (*model), PU_STATIC, NULL);
 	if (model == NULL)
 		return 0;
 
@@ -260,7 +260,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	file = fopen(va("%s"PATHSEP"%s", srb2home, filename), "rb");
 	if (!file)
 	{
-		free(model);
+		Z_Free(model);
 		return 0;
 	}
 
@@ -271,7 +271,7 @@ static md2_model_t *md2_readModel(const char *filename)
 		|| model->header.version != MD2_VERSION)
 	{
 		fclose(file);
-		free(model);
+		Z_Free(model);
 		return 0;
 	}
 
@@ -299,7 +299,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	fseek(file, model->header.offsetSkins, SEEK_SET);
 	if (model->header.numSkins > 0)
 	{
-		model->skins = calloc(sizeof (md2_skin_t), model->header.numSkins);
+		model->skins = Z_Calloc(sizeof (md2_skin_t) * model->header.numSkins, PU_STATIC, NULL);
 		if (!model->skins || model->header.numSkins !=
 			fread(model->skins, sizeof (md2_skin_t), model->header.numSkins, file))
 		{
@@ -313,7 +313,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	fseek(file, model->header.offsetTexCoords, SEEK_SET);
 	if (model->header.numTexCoords > 0)
 	{
-		model->texCoords = calloc(sizeof (md2_textureCoordinate_t), model->header.numTexCoords);
+		model->texCoords = Z_Calloc(sizeof (md2_textureCoordinate_t) * model->header.numTexCoords, PU_STATIC, NULL);
 		if (!model->texCoords || model->header.numTexCoords !=
 			fread(model->texCoords, sizeof (md2_textureCoordinate_t), model->header.numTexCoords, file))
 		{
@@ -327,7 +327,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	fseek(file, model->header.offsetTriangles, SEEK_SET);
 	if (model->header.numTriangles > 0)
 	{
-		model->triangles = calloc(sizeof (md2_triangle_t), model->header.numTriangles);
+		model->triangles = Z_Calloc(sizeof (md2_triangle_t) * model->header.numTriangles, PU_STATIC, NULL);
 		if (!model->triangles || model->header.numTriangles !=
 			fread(model->triangles, sizeof (md2_triangle_t), model->header.numTriangles, file))
 		{
@@ -341,7 +341,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	fseek(file, model->header.offsetFrames, SEEK_SET);
 	if (model->header.numFrames > 0)
 	{
-		model->frames = calloc(sizeof (md2_frame_t), model->header.numFrames);
+		model->frames = Z_Calloc(sizeof (md2_frame_t) * model->header.numFrames, PU_STATIC, NULL);
 		if (!model->frames)
 		{
 			model_freeModel (model);
@@ -354,7 +354,7 @@ static md2_model_t *md2_readModel(const char *filename)
 			md2_alias_frame_t *frame = (md2_alias_frame_t *)(void *)buffer;
 			size_t j;
 
-			model->frames[i].vertices = calloc(sizeof (md2_triangleVertex_t), model->header.numVertices);
+			model->frames[i].vertices = Z_Calloc(sizeof (md2_triangleVertex_t) * model->header.numVertices, PU_STATIC, NULL);
 			if (!model->frames[i].vertices || model->header.frameSize !=
 				fread(frame, 1, model->header.frameSize, file))
 			{
@@ -380,7 +380,7 @@ static md2_model_t *md2_readModel(const char *filename)
 	fseek(file, model->header.offsetGlCommands, SEEK_SET);
 	if (model->header.numGlCommands)
 	{
-		model->glCommandBuffer = calloc(sizeof (INT32), model->header.numGlCommands);
+		model->glCommandBuffer = Z_Calloc(sizeof (INT32) * model->header.numGlCommands, PU_STATIC, NULL);
 		if (!model->glCommandBuffer || model->header.numGlCommands !=
 			fread(model->glCommandBuffer, sizeof (INT32), model->header.numGlCommands, file))
 		{

@@ -81,7 +81,7 @@ model_t *RSP_LoadModel(const char *filename)
 	size_t i;
 	const float model_rotate = 0.707f;
 
-	model = calloc(1, sizeof (*model));
+	model = Z_Calloc(sizeof (*model), PU_SOFTPOLY, NULL);
 	if (model == NULL)
 		return 0;
 
@@ -89,7 +89,7 @@ model_t *RSP_LoadModel(const char *filename)
 	file = fopen(va("%s"PATHSEP"%s", srb2home, filename), "rb");
 	if (!file)
 	{
-		free(model);
+		Z_Free(model);
 		return 0;
 	}
 
@@ -100,7 +100,7 @@ model_t *RSP_LoadModel(const char *filename)
 		|| model->header.version != MD2_VERSION)
 	{
 		fclose(file);
-		free(model);
+		Z_Free(model);
 		return 0;
 	}
 
@@ -128,7 +128,7 @@ model_t *RSP_LoadModel(const char *filename)
 	fseek(file, model->header.offsetSkins, SEEK_SET);
 	if (model->header.numSkins > 0)
 	{
-		model->skins = calloc(sizeof (model_skin_t), model->header.numSkins);
+		model->skins = Z_Calloc(sizeof (model_skin_t) * model->header.numSkins, PU_SOFTPOLY, NULL);
 		if (!model->skins || model->header.numSkins !=
 			fread(model->skins, sizeof (model_skin_t), model->header.numSkins, file))
 		{
@@ -142,7 +142,7 @@ model_t *RSP_LoadModel(const char *filename)
 	fseek(file, model->header.offsetTexCoords, SEEK_SET);
 	if (model->header.numTexCoords > 0)
 	{
-		model->texCoords = calloc(sizeof (model_textureCoordinate_t), model->header.numTexCoords);
+		model->texCoords = Z_Calloc(sizeof (model_textureCoordinate_t) * model->header.numTexCoords, PU_SOFTPOLY, NULL);
 		if (!model->texCoords || model->header.numTexCoords !=
 			fread(model->texCoords, sizeof (model_textureCoordinate_t), model->header.numTexCoords, file))
 		{
@@ -156,7 +156,7 @@ model_t *RSP_LoadModel(const char *filename)
 	fseek(file, model->header.offsetTriangles, SEEK_SET);
 	if (model->header.numTriangles > 0)
 	{
-		model->triangles = calloc(sizeof (model_triangle_t), model->header.numTriangles);
+		model->triangles = Z_Calloc(sizeof (model_triangle_t) * model->header.numTriangles, PU_SOFTPOLY, NULL);
 		if (!model->triangles || model->header.numTriangles !=
 			fread(model->triangles, sizeof (model_triangle_t), model->header.numTriangles, file))
 		{
@@ -170,7 +170,7 @@ model_t *RSP_LoadModel(const char *filename)
 	fseek(file, model->header.offsetFrames, SEEK_SET);
 	if (model->header.numFrames > 0)
 	{
-		model->frames = calloc(sizeof (model_frame_t), model->header.numFrames);
+		model->frames = Z_Calloc(sizeof (model_frame_t) * model->header.numFrames, PU_SOFTPOLY, NULL);
 		if (!model->frames)
 		{
 			model_freeModel (model);
@@ -183,7 +183,7 @@ model_t *RSP_LoadModel(const char *filename)
 			model_alias_frame_t *frame = (model_alias_frame_t *)(void *)buffer;
 			size_t j;
 
-			model->frames[i].vertices = calloc(sizeof (model_triangleVertex_t), model->header.numVertices);
+			model->frames[i].vertices = Z_Calloc(sizeof (model_triangleVertex_t) * model->header.numVertices, PU_SOFTPOLY, NULL);
 			if (!model->frames[i].vertices || model->header.frameSize !=
 				fread(frame, 1, model->header.frameSize, file))
 			{
@@ -364,7 +364,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 
 		if (model->rsp_tex.data)
 			Z_Free(model->rsp_tex.data);
-		model->rsp_tex.data = Z_Malloc(size, PU_STATIC, NULL);
+		model->rsp_tex.data = Z_Malloc(size, PU_SOFTPOLY, NULL);
 
 		for (i = 0; i < size; i++)
 		{
@@ -391,7 +391,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 
 		model->rsp_transtex[skincolor].width = texture->width;
 		model->rsp_transtex[skincolor].height = texture->height;
-		model->rsp_transtex[skincolor].data = Z_Malloc(size, PU_STATIC, NULL);
+		model->rsp_transtex[skincolor].data = Z_Malloc(size, PU_SOFTPOLY, NULL);
 
 		switch (skincolor)		// color
 		{
@@ -626,7 +626,7 @@ void RSP_LoadModelTexture(rsp_md2_t *model)
 void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 {
 	rsp_modeltexture_t *blendtexture;
-	char *filename = Z_Malloc(strlen(model->filename)+7, PU_STATIC, NULL);
+	char *filename = Z_Malloc(strlen(model->filename)+7, PU_SOFTPOLY, NULL);
 	int w = 1, h = 1;
 
 	strcpy(filename, model->filename);
@@ -844,7 +844,7 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 		return NULL; // we already failed loading this before :(
 	if (!md2->model)
 	{
-		//CONS_Printf("Loading MD2... (%s, %s)\n", sprnames[mobj->sprite], md2->filename);
+		//CONS_Debug(DBG_RENDER, "Loading MD2... (%s)", sprnames[spritenum]);
 		sprintf(filename, "md2/%s", md2->filename);
 		md2->model = RSP_LoadModel(filename);
 

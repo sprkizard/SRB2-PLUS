@@ -630,6 +630,11 @@ void Command_Memfree_f(void)
 	CONS_Printf(M_GetText("All purgable      : %7s KB\n"),
 		sizeu1(Z_TagsUsage(PU_PURGELEVEL, INT32_MAX)>>10));
 
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		CONS_Printf(M_GetText("Softpoly data     : %7s KB\n"), sizeu1(Z_TagUsage(PU_SOFTPOLY)>>10));
+#endif
+
 #ifdef HWRENDER
 	if (rendermode != render_soft && rendermode != render_none)
 	{

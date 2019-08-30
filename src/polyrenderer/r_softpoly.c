@@ -16,7 +16,15 @@ rendertarget_t rsp_target;
 viewpoint_t rsp_viewpoint;
 fpmatrix16_t *rsp_projectionmatrix = NULL;
 
-// init the polygon renderer, after resolution change
+// init the polygon renderer
+void RSP_Init(void)
+{
+	CONS_Printf("Polygon renderer init\n");
+	RSP_SetDrawerFunctions();
+	RSP_InitModels();
+}
+
+// make the viewport, after resolution change
 void RSP_Viewport(INT32 width, INT32 height)
 {
 	const float den = 1.7f;
@@ -40,7 +48,7 @@ void RSP_Viewport(INT32 width, INT32 height)
 	// make fixed-point depth buffer
 	if (rsp_target.depthbuffer)
 		Z_Free(rsp_target.depthbuffer);
-	rsp_target.depthbuffer = (fixed_t *)Z_Malloc(sizeof(fixed_t) * (rsp_target.width * rsp_target.height), PU_STATIC, NULL);
+	rsp_target.depthbuffer = (fixed_t *)Z_Malloc(sizeof(fixed_t) * (rsp_target.width * rsp_target.height), PU_SOFTPOLY, NULL);
 
 	// renderer modes
 	rsp_target.mode = (RENDERMODE_COLOR|RENDERMODE_DEPTH);
@@ -85,12 +93,20 @@ static void RSP_SetupFrame(fixed_t vx, fixed_t vy, fixed_t vz, angle_t vangle)
 	// in reality, there is no model matrix
 	modelview = RSP_MatrixMultiply(&rsp_viewpoint.view_matrix, &rsp_viewpoint.projection_matrix);
 	if (rsp_projectionmatrix == NULL)
-		rsp_projectionmatrix = Z_Malloc(sizeof(fpmatrix16_t), PU_STATIC, NULL);
+		rsp_projectionmatrix = Z_Malloc(sizeof(fpmatrix16_t), PU_SOFTPOLY, NULL);
 	M_Memcpy(rsp_projectionmatrix, &modelview, sizeof(fpmatrix16_t));
 }
 
-// setup frame
 void RSP_ModelView(void)
+{
+	RSP_SetDrawerFunctions();
+
+	// Clear the depth buffer, and setup the matrixes.
+	RSP_ClearDepthBuffer();
+	RSP_SetupFrame(viewx, viewy, viewz, viewangle);
+}
+
+void RSP_SetDrawerFunctions(void)
 {
 	// Arkus: Set pixel drawer.
 	rsp_curpixelfunc = rsp_basepixelfunc;
@@ -102,10 +118,6 @@ void RSP_ModelView(void)
 		rsp_curtrifunc = rsp_floattrifunc;
 	else
 		rsp_curtrifunc = NULL;
-
-	// Clear the depth buffer, and setup the matrixes.
-	RSP_ClearDepthBuffer();
-	RSP_SetupFrame(viewx, viewy, viewz, viewangle);
 }
 
 // on frame start

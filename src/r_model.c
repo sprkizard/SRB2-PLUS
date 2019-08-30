@@ -20,6 +20,8 @@
 
 #include "r_model.h"
 
+#include "z_zone.h"
+
 /*
  * free model
  */
@@ -28,13 +30,13 @@ void model_freeModel (model_t *model)
 	if (model)
 	{
 		if (model->skins)
-			free(model->skins);
+			Z_Free(model->skins);
 
 		if (model->texCoords)
-			free(model->texCoords);
+			Z_Free(model->texCoords);
 
 		if (model->triangles)
-			free(model->triangles);
+			Z_Free(model->triangles);
 
 		if (model->frames)
 		{
@@ -43,15 +45,15 @@ void model_freeModel (model_t *model)
 			for (i = 0; i < model->header.numFrames; i++)
 			{
 				if (model->frames[i].vertices)
-					free(model->frames[i].vertices);
+					Z_Free(model->frames[i].vertices);
 			}
-			free(model->frames);
+			Z_Free(model->frames);
 		}
 
 		if (model->glCommandBuffer)
-			free(model->glCommandBuffer);
+			Z_Free(model->glCommandBuffer);
 
-		free(model);
+		Z_Free(model);
 	}
 }
 
