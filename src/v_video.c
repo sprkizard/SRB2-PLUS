@@ -52,9 +52,9 @@ static CV_PossibleValue_t constextsize_cons_t[] = {
 static void CV_constextsize_OnChange(void);
 consvar_t cv_constextsize = {"con_textsize", "Medium", CV_SAVE|CV_CALL, constextsize_cons_t, CV_constextsize_OnChange, 0, NULL, NULL, 0, 0, NULL};
 
-static CV_PossibleValue_t CV_Models[] = {{0, "Off"}, {1, "On"}, {2, "Old"}, {0, NULL}};
 static void CV_Models_OnChange(void);
-consvar_t cv_models = {"models", "On", CV_SAVE|CV_CALL, CV_Models, CV_Models_OnChange, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_models = {"models", "On", CV_SAVE|CV_CALL, CV_OnOff, CV_Models_OnChange, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_modelinterpolation = {"modelinterpolation", "On", CV_SAVE, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
 
 #ifdef SOFTPOLY
 static CV_PossibleValue_t CV_TextureMapping[] = {{TEXMAP_FIXED, "Fixed-Point"}, {TEXMAP_FLOAT, "Floating-Point"}, {0, NULL}};

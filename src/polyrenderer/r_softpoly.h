@@ -190,7 +190,7 @@ void RSP_Viewport(INT32 width, INT32 height);
 void RSP_OnFrame(void);
 void RSP_ModelView(void);
 void RSP_SetDrawerFunctions(void);
-void RSP_DebugRender(fixed_t vx, fixed_t vy, fixed_t vz, INT32 wx, INT32 wy);
+void RSP_DebugRender(void);
 void RSP_ClearDepthBuffer(void);
 
 void RSP_StoreViewpoint(void);
@@ -223,7 +223,7 @@ void RSP_InitModels(void);
 model_t *RSP_LoadModel(const char *filename);
 rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin);
 boolean RSP_RenderModel(vissprite_t *spr);
-boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip);
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip);
 
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);

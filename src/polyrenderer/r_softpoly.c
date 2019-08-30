@@ -20,6 +20,16 @@ fpmatrix16_t *rsp_projectionmatrix = NULL;
 void RSP_Init(void)
 {
 	CONS_Printf("Polygon renderer init\n");
+
+	// set pixel functions
+	rsp_basepixelfunc = RSP_DrawPixel;
+	rsp_transpixelfunc = RSP_DrawTranslucentPixel;
+
+	// set triangle functions
+	rsp_fixedtrifunc = RSP_TexturedMappedTriangle;
+	rsp_floattrifunc = RSP_TexturedMappedTriangleFP;
+
+	// run other initialisation code
 	RSP_SetDrawerFunctions();
 	RSP_InitModels();
 }
@@ -60,14 +70,6 @@ void RSP_Viewport(INT32 width, INT32 height)
 
 	// make projection matrix
 	RSP_MakePerspectiveMatrix(&rsp_viewpoint.projection_matrix, fov, rsp_target.aspectratio, 0.1f, rsp_target.far_plane);
-
-	// set pixel functions
-	rsp_basepixelfunc = RSP_DrawPixel;
-	rsp_transpixelfunc = RSP_DrawTranslucentPixel;
-
-	// set triangle functions
-	rsp_fixedtrifunc = RSP_TexturedMappedTriangle;
-	rsp_floattrifunc = RSP_TexturedMappedTriangleFP;
 }
 
 // up vector
@@ -99,6 +101,7 @@ static void RSP_SetupFrame(fixed_t vx, fixed_t vy, fixed_t vz, angle_t vangle)
 
 void RSP_ModelView(void)
 {
+	// set drawer functions
 	RSP_SetDrawerFunctions();
 
 	// Clear the depth buffer, and setup the matrixes.
@@ -123,6 +126,9 @@ void RSP_SetDrawerFunctions(void)
 // on frame start
 void RSP_OnFrame(void)
 {
+	if (!cv_models.value)
+		return;
+
 	RSP_ModelView();
 	rsp_viewwindowx = viewwindowx;
 	rsp_viewwindowy = viewwindowy;
@@ -188,21 +194,24 @@ void RSP_ClearDepthBuffer(void)
 }
 
 // Arkus: Debug rendering.
-void RSP_DebugRender(fixed_t vx, fixed_t vy, fixed_t vz, INT32 wx, INT32 wy)
+void RSP_DebugRender(void)
 {
-	fixed_t z = vz;
-	static float angle;
-	angle -= 2.0f;
+	fixed_t vx = 0;
+	fixed_t vy = -128*FRACUNIT;
+	fixed_t vz = 32*FRACUNIT;
+	static float angle;		// model rotate
 
+	if (!cv_models.value)
+		return;
+
+	RSP_SetupFrame(vx, vy, vz, ANGLE_90);
 	RSP_ClearDepthBuffer();
-	rsp_viewwindowx = wx;
-	rsp_viewwindowy = wy;
+	rsp_viewwindowx = 0;
+	rsp_viewwindowy = (40 * vid.dupy);
 	rsp_target.aiming = false;
 
-	//RSP_RenderModelSimple(SPR_PLAY, 0, angle, SKINCOLOR_BLUE, NULL, false);
+	RSP_RenderModelSimple(SPR_SIGN, Color_Opposite[SKINCOLOR_BLUE*2+1], 0, 0, 0, angle, Color_Opposite[SKINCOLOR_BLUE*2], NULL, false);
+	RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, 0, 0, 24.0f, angle, SKINCOLOR_BLUE, &skins[0], false);
 
-	RSP_SetupFrame(vx, vy, z, ANGLE_90);
-	RSP_RenderModelSimple(SPR_SIGN, Color_Opposite[SKINCOLOR_BLUE*2+1], angle, Color_Opposite[SKINCOLOR_BLUE*2], NULL, false);
-	RSP_SetupFrame(vx, vy, z - 24*FRACUNIT, ANGLE_90);
-	RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, angle, SKINCOLOR_BLUE, &skins[0], false);
+	angle -= 2.0f;
 }

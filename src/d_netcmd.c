@@ -781,6 +781,7 @@ void D_RegisterClientCommands(void)
 	CV_RegisterVar(&cv_renderview);
 
 	CV_RegisterVar(&cv_models);
+	CV_RegisterVar(&cv_modelinterpolation);
 #ifdef SOFTPOLY
 	CV_RegisterVar(&cv_texturemapping);
 #endif // SOFTPOLY

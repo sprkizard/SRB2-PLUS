@@ -1017,7 +1017,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			frame = 0;
 		frame = (mobj->frame & FF_FRAMEMASK) % md2->model->header.numFrames;
 		curr = &md2->model->frames[frame];
-		if (tics <= durs)
+		if (cv_modelinterpolation.value && tics <= durs)
 		{
 			// frames are handled differently for states with FF_ANIMATE, so get the next frame differently for the interpolation
 			if (mobj->frame & FF_ANIMATE)
@@ -1088,7 +1088,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					if (next)
 						nvert = &next->vertices[md2->model->triangles[i].vertexIndices[j]];
 
-					if (!next || (cv_models.value == 2))
+					if (!next)
 					{
 						float vx = (pvert->vertex[0] * finalscale/2.0f);
 						float vy = (pvert->vertex[1] * finalscale/2.0f);
@@ -1179,7 +1179,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	return true;
 }
 
-boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip)
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip)
 {
 	rsp_md2_t *md2;
 	rsp_texture_t *texture, sprtex;
@@ -1269,6 +1269,8 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float mode
 		cs = cos(theta);
 		sn = sin(theta);
 
+		y += md2->offset;
+
 		// render every triangle
 		for (i = 0; i < md2->model->header.numTriangles; ++i)
 		{
@@ -1290,9 +1292,9 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float mode
 				mz = vz * (flip ? -1 : 1);
 
 				RSP_MakeVector4(triangle.vertices[j].position,
-					mx,
-					mz,
-					-md2->offset + my
+					 x + mx,
+					-z + mz,
+					-y + my
 				);
 
 				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;

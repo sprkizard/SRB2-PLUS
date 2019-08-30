@@ -1185,7 +1185,8 @@ static menuitem_t OP_OpenGLColorMenu[] =
 static menuitem_t OP_SoftPolyOptionsMenu[] =
 {
 	{IT_STRING|IT_CVAR,         NULL, "3D Models",                    &cv_models,            10},
-	{IT_STRING|IT_CVAR,         NULL, "Texture mapping",              &cv_texturemapping,    20},
+	{IT_STRING|IT_CVAR,         NULL, "Model interpolation",          &cv_modelinterpolation,20},
+	{IT_STRING|IT_CVAR,         NULL, "Texture mapping",              &cv_texturemapping,    30},
 };
 #endif // SOFTPOLY
 
@@ -7963,7 +7964,7 @@ static void M_QuitSRB2(INT32 choice)
 static void M_SoftPoly_DrawOptionsMenu(void)
 {
 	M_DrawGenericMenu(); // use generic drawer for cursor, items and title
-	RSP_DebugRender(0, -128*FRACUNIT, 32*FRACUNIT, 0, (40 * vid.dupy));
+	RSP_DebugRender();
 }
 #endif // SOFTPOLY
 
