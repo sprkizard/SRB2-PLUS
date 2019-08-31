@@ -1124,13 +1124,13 @@ void P_RestoreMusic(player_t *player)
 		if (mapheaderinfo[gamemap-1]->levelflags & LF_SPEEDMUSIC)
 		{
 			S_SpeedMusic(1.4f);
-			S_ChangeMusic(mapmusname, mapmusflags, true);
+			S_ChangeMusicEx(mapmusname, mapmusflags, true, mapmusposition, 0, 0);
 		}
 		else
 			S_ChangeMusicInternal("shoes", true);
 	}
 	else
-		S_ChangeMusic(mapmusname, mapmusflags, true);
+		S_ChangeMusicEx(mapmusname, mapmusflags, true, mapmusposition, 0, 0);
 }
 
 //
@@ -8688,8 +8688,11 @@ void P_PlayerThink(player_t *player)
 
 	if (player->bot)
 	{
-		if (player->playerstate == PST_LIVE && B_CheckRespawn(player))
-			player->playerstate = PST_REBORN;
+		if (player->playerstate == PST_LIVE || player->playerstate == PST_DEAD)
+		{
+			if (B_CheckRespawn(player))
+				player->playerstate = PST_REBORN;
+		}
 		if (player->playerstate == PST_REBORN)
 			return;
 	}
@@ -8738,14 +8741,8 @@ void P_PlayerThink(player_t *player)
 	if (player->flashcount)
 		player->flashcount--;
 
-	// Re-fixed by Jimita (11-12-2018)
-	if (player->awayviewtics)
-	{
+	if (player->awayviewtics && player->awayviewtics != -1)
 		player->awayviewtics--;
-		if (!player->awayviewtics)
-			player->awayviewtics = -1;
-		// The timer might've reached zero, but we'll run the remote view camera anyway by setting it to -1.
-	}
 
 	/// \note do this in the cheat code
 	if (player->pflags & PF_NOCLIP)
@@ -8820,6 +8817,48 @@ void P_PlayerThink(player_t *player)
 
 	if (player->exiting && countdown2)
 		player->exiting = 5;
+
+	// The following code is disabled for now as this causes the game to freeze sometimes
+	// Monster Iestyn -- 16/08/19
+#if 0
+	// Same check as below, just at 1 second before
+	// so we can fade music
+	if (!exitfadestarted &&
+		player->exiting > 0 && player->exiting <= 1*TICRATE &&
+		(!multiplayer || gametype == GT_COOP ? !mapheaderinfo[gamemap-1]->musinterfadeout : true) &&
+			// don't fade if we're fading during intermission. follows Y_StartIntermission intertype = int_coop
+		(gametype == GT_RACE || gametype == GT_COMPETITION ? countdown2 == 0 : true) && // don't fade on timeout
+		player->lives > 0 && // don't fade on game over (competition)
+		P_IsLocalPlayer(player))
+	{
+		if (cv_playersforexit.value)
+		{
+			INT32 i;
+
+			for (i = 0; i < MAXPLAYERS; i++)
+			{
+				if (!playeringame[i] || players[i].spectator || players[i].bot)
+					continue;
+				if (players[i].lives <= 0)
+					continue;
+
+				if (!players[i].exiting || players[i].exiting > 1*TICRATE)
+					break;
+			}
+
+			if (i == MAXPLAYERS)
+			{
+				exitfadestarted = true;
+				S_FadeOutStopMusic(1*MUSICRATE);
+			}
+		}
+		else
+		{
+			exitfadestarted = true;
+			S_FadeOutStopMusic(1*MUSICRATE);
+		}
+	}
+#endif
 
 	if (player->exiting == 2 || countdown2 == 2)
 	{
@@ -9522,9 +9561,6 @@ void P_PlayerAfterThink(player_t *player)
 				P_MoveChaseCamera(player, thiscam, false); // calculate the camera movement
 		}
 	}
-
-	if (player->awayviewtics < 0)
-		player->awayviewtics = 0;
 
 	// spectator invisibility and nogravity.
 	if ((netgame || multiplayer) && player->spectator)

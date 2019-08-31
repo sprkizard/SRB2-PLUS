@@ -15,6 +15,7 @@
 #include "console.h"
 #include "d_main.h"
 #include "d_player.h"
+#include "d_clisrv.h"
 #include "f_finale.h"
 #include "p_setup.h"
 #include "p_saveg.h"
@@ -71,6 +72,7 @@ static void G_DoWorldDone(void);
 
 char   mapmusname[7]; // Music name
 UINT16 mapmusflags; // Track and reset bit
+UINT32 mapmusposition; // Position to jump to
 
 INT16 gamemap = 1;
 INT16 maptol;
@@ -129,6 +131,7 @@ UINT8 skincolor_bluering = SKINCOLOR_STEELBLUE;
 
 tic_t countdowntimer = 0;
 boolean countdowntimeup = false;
+boolean exitfadestarted = false;
 
 cutscene_t *cutscenes[128];
 
@@ -1873,7 +1876,9 @@ boolean G_Responder(event_t *ev)
 
 		if (F_CreditResponder(ev))
 		{
-			F_StartGameEvaluation();
+			// Skip credits for everyone
+			if (!netgame || server || IsPlayerAdmin(consoleplayer))
+				SendNetXCmd(XD_EXITLEVEL, NULL, 0);
 			return true;
 		}
 	}
@@ -2268,9 +2273,14 @@ void G_PlayerReborn(INT32 player)
 		{
 			strncpy(mapmusname, mapheaderinfo[gamemap-1]->musname, 7);
 			mapmusname[6] = 0;
-			mapmusflags = mapheaderinfo[gamemap-1]->mustrack & MUSIC_TRACKMASK;
+			mapmusflags = (mapheaderinfo[gamemap-1]->mustrack & MUSIC_TRACKMASK);
+			mapmusposition = mapheaderinfo[gamemap-1]->muspos;
 		}
-		S_ChangeMusic(mapmusname, mapmusflags, true);
+
+		// This is in S_Start, but this was not here previously.
+		// if (cv_resetmusic.value)
+		// 	S_StopMusic();
+		S_ChangeMusicEx(mapmusname, mapmusflags, true, mapmusposition, 0, 0);
 	}
 
 	if (gametype == GT_COOP)
@@ -2690,6 +2700,42 @@ void G_ExitLevel(void)
 		// Remove CEcho text on round end.
 		HU_ClearCEcho();
 	}
+	else if (gamestate == GS_CREDITS)
+	{
+		F_StartGameEvaluation();
+	}
+}
+
+// See also the enum GameType in doomstat.h
+const char *Gametype_Names[NUMGAMETYPES] =
+{
+	"Co-op", // GT_COOP
+	"Competition", // GT_COMPETITION
+	"Race", // GT_RACE
+
+	"Match", // GT_MATCH
+	"Team Match", // GT_TEAMMATCH
+
+	"Tag", // GT_TAG
+	"Hide and Seek", // GT_HIDEANDSEEK
+
+	"CTF" // GT_CTF
+};
+
+//
+// G_GetGametypeByName
+//
+// Returns the number for the given gametype name string, or -1 if not valid.
+//
+INT32 G_GetGametypeByName(const char *gametypestr)
+{
+	INT32 i;
+
+	for (i = 0; i < NUMGAMETYPES; i++)
+		if (!stricmp(gametypestr, Gametype_Names[i]))
+			return i;
+
+	return -1; // unknown gametype
 }
 
 //
@@ -3656,7 +3702,7 @@ void G_InitNew(UINT8 pultmode, const char *mapname, boolean resetplayer, boolean
 	{
 		// Clear a bunch of variables
 		tokenlist = token = sstimer = redscore = bluescore = lastmap = 0;
-		countdown = countdown2 = 0;
+		countdown = countdown2 = exitfadestarted = 0;
 
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
