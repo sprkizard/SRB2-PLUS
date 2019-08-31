@@ -369,7 +369,6 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 
 		for (i = 0; i < size; i++)
 		{
-			RGBA_t *image = texture->data;
 			if (image[i].s.alpha < 1)
 				model->rsp_tex.data[i] = TRANSPARENTPIXEL;
 			else
@@ -1540,12 +1539,15 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 				float px1, px2;
 				float py1, py2;
 				float pz1, pz2;
+				float mx1, mx2;
+				float my1, my2;
+				float mz1, mz2;
 				float s, t;
 
+				// Interpolate
 				pvert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
 				nvert = &next->vertices[md2->model->triangles[i].vertexIndices[j]];
 
-				// Interpolate
 				px1 = (pvert->vertex[0] * finalscale/2.0f);
 				px2 = (nvert->vertex[0] * finalscale/2.0f);
 				py1 = (pvert->vertex[1] * finalscale/2.0f);
@@ -1556,13 +1558,13 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 				t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
 
 				// QUICK MATHS
-				float mx1 = (px1 * cs) - (py1 * sn);
-				float my1 = (px1 * sn) + (py1 * cs);
-				float mz1 = pz1 * (flip ? -1 : 1);
+				mx1 = (px1 * cs) - (py1 * sn);
+				my1 = (px1 * sn) + (py1 * cs);
+				mz1 = pz1 * (flip ? -1 : 1);
 
-				float mx2 = (px2 * cs) - (py2 * sn);
-				float my2 = (px2 * sn) + (py2 * cs);
-				float mz2 = pz2 * (flip ? -1 : 1);
+				mx2 = (px2 * cs) - (py2 * sn);
+				my2 = (px2 * sn) + (py2 * cs);
+				mz2 = pz2 * (flip ? -1 : 1);
 
 				RSP_MakeVector4(triangle.vertices[j].position,
 					 x + (mx1 + pol * (mx2 - mx1)),
