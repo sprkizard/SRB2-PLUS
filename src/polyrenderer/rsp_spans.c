@@ -64,7 +64,7 @@ static inline void texspanloop(fixed_t y, fixed_t startXPrestep, fixed_t endXPre
 			v = FixedMul(z, FixedLerp(startV, endV, r))>>FRACBITS;
 			u %= tex_width;
 			v %= tex_height;
-			pixel = tex_data[((UINT16)u + (UINT16)v * tex_width)];
+			pixel = tex_data[(v * tex_width) + u];
 			if (pixel != TRANSPARENTPIXEL)
 			{
 				if (tex_translation)
@@ -231,7 +231,7 @@ static inline void texspanloop_fp(float y, float startXPrestep, float endXPreste
 			v = FLOAT_TO_FIXED(z * LERP(startV, endV, r))>>FRACBITS;
 			u %= tex_width;
 			v %= tex_height;
-			pixel = tex_data[((UINT16)u + (UINT16)v * tex_width)];
+			pixel = tex_data[(v * tex_width) + u];
 			if (pixel != TRANSPARENTPIXEL)
 			{
 				if (tex_translation)

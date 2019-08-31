@@ -57,7 +57,16 @@ consvar_t cv_models = {"models", "On", CV_SAVE|CV_CALL, CV_OnOff, CV_Models_OnCh
 consvar_t cv_modelinterpolation = {"modelinterpolation", "On", CV_SAVE, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
 
 #ifdef SOFTPOLY
-static CV_PossibleValue_t CV_TextureMapping[] = {{TEXMAP_FIXED, "Fixed-Point"}, {TEXMAP_FLOAT, "Floating-Point"}, {0, NULL}};
+static CV_PossibleValue_t CV_ModelBillboarding[] = {
+	{BILLBOARD_SCREEN, "Screen"},
+	{BILLBOARD_CAMERA, "Camera"},
+	{0, NULL}};
+consvar_t cv_modelbillboarding = {"modelbillboarding", "Screen", CV_SAVE, CV_ModelBillboarding, NULL, 0, NULL, NULL, 0, 0, NULL};
+
+static CV_PossibleValue_t CV_TextureMapping[] = {
+	{TEXMAP_FIXED, "Fixed-Point"},
+	{TEXMAP_FLOAT, "Floating-Point"},
+	{0, NULL}};
 static void CV_TextureMapping_OnChange(void);
 consvar_t cv_texturemapping = {"texturemapping", "Fixed-Point", CV_SAVE|CV_CALL, CV_TextureMapping, CV_TextureMapping_OnChange, 0, NULL, NULL, 0, 0, NULL};
 #endif // SOFTPOLY

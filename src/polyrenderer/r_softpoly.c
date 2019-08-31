@@ -35,7 +35,7 @@ void RSP_Init(void)
 }
 
 // make the viewport, after resolution change
-void RSP_Viewport(INT32 width, INT32 height)
+void RSP_Viewport(INT32 width, INT32 height, boolean sscreen)
 {
 	const float den = 1.7f;
 	float fov = 90.0f - (48.0f / den);
@@ -46,7 +46,7 @@ void RSP_Viewport(INT32 width, INT32 height)
 	rsp_target.height = height;
 
 	// viewport aspect ratio and fov
-	if (splitscreen)
+	if (sscreen)
 	{
 		fov /= den;
 		aspecty /= 2.0f;
@@ -194,24 +194,109 @@ void RSP_ClearDepthBuffer(void)
 }
 
 // Arkus: Debug rendering.
-void RSP_DebugRender(void)
+void RSP_DebugRender(INT32 model)
 {
-	fixed_t vx = 0;
-	fixed_t vy = -128*FRACUNIT;
-	fixed_t vz = 32*FRACUNIT;
-	static float angle;		// model rotate
+	fixed_t vx = 0, vy = 0, vz = 0;
+	angle_t va = ANGLE_90;
+	INT32 skinnum = R_SkinAvailable(cv_skin.string);
+	UINT8 skincolour = cv_playercolor.value;
+	static float angle;
+	static fixed_t frame;
 
 	if (!cv_models.value)
 		return;
 
-	RSP_SetupFrame(vx, vy, vz, ANGLE_90);
+	if (!netgame && gamestate == GS_LEVEL && players[consoleplayer].mo)
+	{
+		skinnum = ((skin_t*)players[0].mo->skin)-skins;
+		skincolour = (players[consoleplayer].mo)->color;
+	}
+
+	if (skinnum < 0)
+		skinnum = 0;
+	if (skinnum > MAXSKINS)
+		skinnum = 0;
+	if (skincolour >= MAXTRANSLATIONS)
+		skincolour = MAXTRANSLATIONS-1;
+
+	if (model < 2)
+	{
+		vz = 32*FRACUNIT;
+		vy = -128*FRACUNIT;
+	}
+	else if (model == 2)
+	{
+		vz = 48*FRACUNIT;
+		vy = -256*FRACUNIT;
+	}
+	else if (model == 3)
+	{
+		vz = 40*FRACUNIT;
+		vy = -128*FRACUNIT;
+	}
+
+	// store viewpoint
+	rsp_viewpoint.viewx = vx;
+	rsp_viewpoint.viewy = vy;
+	rsp_viewpoint.viewz = vz;
+	rsp_viewpoint.viewangle = va;
+	rsp_viewpoint.aimingangle = 0;
+	rsp_viewpoint.viewcos = FINECOSINE(va>>ANGLETOFINESHIFT);
+	rsp_viewpoint.viewsin = FINESINE(va>>ANGLETOFINESHIFT);
+
+	// set viewpoint
+	RSP_Viewport(vid.width, vid.height, false);
+	RSP_SetupFrame(vx, vy, vz, va);
 	RSP_ClearDepthBuffer();
 	rsp_viewwindowx = 0;
 	rsp_viewwindowy = (40 * vid.dupy);
 	rsp_target.aiming = false;
 
-	RSP_RenderModelSimple(SPR_SIGN, Color_Opposite[SKINCOLOR_BLUE*2+1], 0, 0, 0, angle, Color_Opposite[SKINCOLOR_BLUE*2], NULL, false);
-	RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, 0, 0, 24.0f, angle, SKINCOLOR_BLUE, &skins[0], false);
+	// standing player
+	if (model == 0)
+	{
+		RSP_RenderModelSimple(SPR_PLAY, 0, 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);
+		angle -= 2.0f;
+	}
+	// walking player
+	else if (model == 1)
+	{
+		const INT32 numframes = 8;
+		INT32 curframe = FixedInt(frame) % numframes;
+		INT32 curframenum = states[S_PLAY_RUN1+curframe].frame;
+		INT32 nextframe, nextframenum;
+		float pol = 0.0f;
 
-	angle -= 2.0f;
+		if (cv_modelinterpolation.value)
+		{
+			nextframe = FixedInt(frame+FRACUNIT) % numframes;
+			nextframenum = states[S_PLAY_RUN1+nextframe].frame;
+			pol = FIXED_TO_FLOAT(frame % FRACUNIT);
+			RSP_RenderInterpolatedModelSimple(SPR_PLAY, curframenum, nextframenum, pol, 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);
+		}
+		else
+			RSP_RenderModelSimple(SPR_PLAY, curframenum, 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);
+
+		angle -= 1.0f;
+		frame += ((FRACUNIT*2) / 10);
+	}
+	// monitors
+	else if (model == 2)
+	{
+		INT32 i;
+		const INT32 nummonitors = 10;
+		const float distance = 40.0f;
+		for (i = 0; i < nummonitors; i++)
+			RSP_RenderModelSimple(SPR_YLTV+i, 0, ((-nummonitors/2 + i) * distance) + (distance / 2.0f), 0, 0, 0.0f, 0, NULL, false, true);
+	}
+	// sign post
+	else if (model == 3)
+	{
+		RSP_RenderModelSimple(SPR_SIGN, states[S_SIGN53].frame + Color_Opposite[skincolour*2+1], 0, 0, 0, angle, Color_Opposite[skincolour*2], NULL, false, false);
+		RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, 0, 0, 24.0f, angle, skincolour, &skins[skinnum], false, false);
+		angle -= 2.0f;
+	}
+
+	// restore the viewport!!!!!!!!!
+	RSP_Viewport(viewwidth, viewheight, splitscreen);
 }

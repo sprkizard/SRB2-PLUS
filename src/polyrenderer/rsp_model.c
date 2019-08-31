@@ -199,7 +199,7 @@ model_t *RSP_LoadModel(const char *filename)
 				fpquaternion_t quaternion;
 
 				model->frames[i].vertices[j].vertex[0] = (float) ((INT32) frame->alias_vertices[j].vertex[0]) * frame->scale[0] + frame->translate[0];
-				model->frames[i].vertices[j].vertex[2] = -1* ((float) ((INT32) frame->alias_vertices[j].vertex[1]) * frame->scale[1] + frame->translate[1]);
+				model->frames[i].vertices[j].vertex[2] = -1.0f * ((float) ((INT32) frame->alias_vertices[j].vertex[1]) * frame->scale[1] + frame->translate[1]);
 				model->frames[i].vertices[j].vertex[1] = (float) ((INT32) frame->alias_vertices[j].vertex[2]) * frame->scale[2] + frame->translate[2];
 
 				RSP_MakeVector4(vec, model->frames[i].vertices[j].vertex[0], model->frames[i].vertices[j].vertex[1], model->frames[i].vertices[j].vertex[2]);
@@ -1058,7 +1058,15 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			// set model angle
 			model_angle = AngleFixed(mobj->angle);
 			if (!sprframe->rotate)
-				model_angle = AngleFixed((R_PointToAngle(mobj->x, mobj->y))-ANGLE_180);
+			{
+				model_angle = AngleFixed(viewangle - ANGLE_180);
+				if (cv_modelbillboarding.value == BILLBOARD_CAMERA)
+				{
+					INT32 mid = spr->x1;
+					mid += (spr->x2 - spr->x1) / 2;
+					model_angle += AngleFixed(xtoviewangle[mid]);
+				}
+			}
 
 			// model angle in radians
 			theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
@@ -1121,20 +1129,17 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						float my1 = (px1 * sn) + (py1 * cs);
 						float mz1 = pz1 * (flip ? -1 : 1);
 
-						// QUICK MATHS
 						float mx2 = (px2 * cs) - (py2 * sn);
 						float my2 = (px2 * sn) + (py2 * cs);
 						float mz2 = pz2 * (flip ? -1 : 1);
 
-						if (durs != 0 && durs != -1 && tics != -1) // don't interpolate if instantaneous or infinite in length
+						// don't interpolate if instantaneous or infinite in length
+						if (durs != 0 && durs != -1 && tics != -1)
 						{
-							UINT32 newtime = (durs - tics); // + 1;
-
+							UINT32 newtime = (durs - tics);
 							pol = (newtime)/(float)durs;
-
 							if (pol > 1.0f)
 								pol = 1.0f;
-
 							if (pol < 0.0f)
 								pol = 0.0f;
 						}
@@ -1179,7 +1184,69 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	return true;
 }
 
-boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip)
+// fml
+static INT32 project_sprite(fixed_t x, fixed_t y, spriteframe_t *sprframe, boolean flip)
+{
+	fixed_t tr_x, tr_y;
+	fixed_t gxt, gyt;
+	fixed_t tx, tz;
+	fixed_t xscale; //added : 02-02-98 : aaargll..if I were a math-guy!!!
+
+	INT32 x1, x2;
+	INT32 mid;
+
+	// transform the origin point
+	tr_x = x - rsp_viewpoint.viewx;
+	tr_y = y - rsp_viewpoint.viewy;
+
+	gxt = FixedMul(tr_x, rsp_viewpoint.viewcos);
+	gyt = -FixedMul(tr_y, rsp_viewpoint.viewsin);
+
+	tz = gxt - gyt;
+
+	// thing is behind view plane?
+	if (tz < (FRACUNIT*4))
+		return -1;
+
+	gxt = -FixedMul(tr_x, rsp_viewpoint.viewsin);
+	gyt = FixedMul(tr_y, rsp_viewpoint.viewcos);
+	tx = -(gyt + gxt);
+
+	// too far off the side?
+	if (abs(tx) > tz<<2)
+		return -1;
+
+	// aspect ratio stuff
+	xscale = FixedDiv(projection, tz);
+
+	// calculate edges of the shape
+	if (flip)
+		tx -= spritecachedinfo[sprframe->lumpid[0]].width-spritecachedinfo[sprframe->lumpid[0]].offset;
+	else
+		tx -= spritecachedinfo[sprframe->lumpid[0]].offset;
+	x1 = (centerxfrac + FixedMul (tx,xscale)) >>FRACBITS;
+
+	// off the right side?
+	if (x1 > viewwidth)
+		return -1;
+
+	tx += spritecachedinfo[sprframe->lumpid[0]].width;
+	x2 = ((centerxfrac + FixedMul (tx,xscale)) >>FRACBITS) - 1;
+
+	// off the left side
+	if (x2 < 0)
+		return -1;
+
+	x1 = x1 < 0 ? 0 : x1;
+	x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+
+	mid = x1;
+	mid += (x2 - x1) / 2;
+
+	return mid;
+}
+
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
 {
 	rsp_md2_t *md2;
 	rsp_texture_t *texture, sprtex;
@@ -1193,6 +1260,8 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 	md2 = RSP_ModelAvailable(spritenum, skin);
 	if (!md2)
 		return false;
+
+	framenum %= md2->model->header.numFrames;
 
 	// load normal texture
 	if (!md2->texture)
@@ -1264,7 +1333,27 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 		// avoid undefined behaviour.............
 		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
 
-		// calculate model orientation
+		if (billboard && !sprframe->rotate)
+		{
+			fixed_t mdlang = AngleFixed(rsp_viewpoint.viewangle - ANGLE_180);
+			if (cv_modelbillboarding.value == BILLBOARD_CAMERA)
+			{
+				// Now I could have been lazy and done
+				// --> AngleFixed((R_PointToAngleEx(viewx, viewy, x, y))-ANGLE_180) <--
+				// but it actually looks worse, so, uhhh.....
+				// Here's my own function that projects the
+				// "model" to screen coordinates that will then
+				// get mapped to xtoviewangle[]
+				// (135 degrees -> 45 degrees)
+				INT32 mid = project_sprite(FLOAT_TO_FIXED(x), FLOAT_TO_FIXED(y), sprframe, flip);
+				if (mid < 0)
+					return false;
+				mdlang += AngleFixed(xtoviewangle[mid]);
+			}
+			model_angle = FIXED_TO_FLOAT(mdlang);
+		}
+
+		// model angle in radians
 		theta = -(model_angle * M_PI / 180.0f);
 		cs = cos(theta);
 		sn = sin(theta);
@@ -1295,6 +1384,186 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 					 x + mx,
 					-z + mz,
 					-y + my
+				);
+
+				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
+				triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
+			}
+
+			triangle.texture = NULL;
+			if (texture->data)
+				triangle.texture = texture;
+
+			triangle.colormap = NULL;
+			triangle.translation = translation;
+			triangle.transmap = NULL;
+			triangle.flipped = flip;
+
+			RSP_TransformTriangle(&triangle);
+		}
+	}
+
+	RSP_ClearDepthBuffer();
+	return true;
+}
+
+boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum, UINT32 nextframenum, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
+{
+	rsp_md2_t *md2;
+	rsp_texture_t *texture, sprtex;
+	rsp_spritetexture_t *sprtexp;
+	model_frame_t *curr, *next;
+	spritedef_t *sprdef;
+	spriteframe_t *sprframe;
+	float finalscale;
+
+	UINT8 *translation = NULL;
+	md2 = RSP_ModelAvailable(spritenum, skin);
+	if (!md2)
+		return false;
+
+	framenum %= md2->model->header.numFrames;
+	nextframenum %= md2->model->header.numFrames;
+
+	if (pol > 1.0f)
+		pol = 1.0f;
+	if (pol < 0.0f)
+		pol = 0.0f;
+
+	// load normal texture
+	if (!md2->texture)
+		RSP_LoadModelTexture(md2);
+
+	// load blend texture
+	if (!md2->blendtexture)
+		RSP_LoadModelBlendTexture(md2);
+
+	// load translated texture
+	if ((skincolor > 0) && (md2->rsp_transtex[skincolor].data == NULL))
+		RSP_CreateModelTexture(md2, skincolor);
+
+	// use corresponding texture for this model
+	if (md2->rsp_transtex[skincolor].data != NULL)
+		texture = &md2->rsp_transtex[skincolor];
+	else
+		texture = &md2->rsp_tex;
+
+	if (skin && spritenum == SPR_PLAY)
+		sprdef = &skin->spritedef;
+	else
+		sprdef = &sprites[spritenum];
+
+	sprframe = &sprdef->spriteframes[framenum];
+
+	if (!texture->data)
+	{
+		// sprite translation
+		if (skincolor)
+		{
+			// New colormap stuff for skins Tails 06-07-2002
+			if (skin && spritenum == SPR_PLAY) // This thing is a player!
+			{
+				size_t skinnum = skin-skins;
+				translation = R_GetTranslationColormap((INT32)skinnum, skincolor, GTC_CACHE);
+			}
+			else
+				translation = R_GetTranslationColormap(TC_DEFAULT, skincolor ? skincolor : SKINCOLOR_GREEN, GTC_CACHE);
+		}
+		else
+			translation = NULL;
+
+		// get rsp_texture
+		sprtexp = &sprframe->rsp_texture[0];
+		if (!sprtexp)
+			return false;
+
+		sprtex.width = sprtexp->width;
+		sprtex.height = sprtexp->height;
+		sprtex.data = sprtexp->data;
+		texture = &sprtex;
+	}
+
+	//FIXME: this is not yet correct
+	curr = &md2->model->frames[framenum];
+	next = &md2->model->frames[nextframenum];
+
+	// SRB2CBTODO: MD2 scaling support
+	finalscale = md2->scale;
+
+	// Render individual triangles
+	{
+		rsp_triangle_t triangle;
+		model_triangleVertex_t *pvert, *nvert;
+		float theta, cs, sn;
+		UINT16 i, j;
+
+		// clear triangle struct
+		// avoid undefined behaviour.............
+		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
+
+		if (billboard && !sprframe->rotate)
+		{
+			fixed_t mdlang = AngleFixed(rsp_viewpoint.viewangle - ANGLE_180);
+			if (cv_modelbillboarding.value == BILLBOARD_CAMERA)
+			{
+				// Now I could have been lazy and done
+				// --> AngleFixed((R_PointToAngleEx(viewx, viewy, x, y))-ANGLE_180) <--
+				// but it actually looks worse, so, uhhh.....
+				// Here's my own function that projects the
+				// "model" to screen coordinates that will then
+				// get mapped to xtoviewangle[]
+				// (135 degrees -> 45 degrees)
+				INT32 mid = project_sprite(FLOAT_TO_FIXED(x), FLOAT_TO_FIXED(y), sprframe, flip);
+				if (mid < 0)
+					return false;
+				mdlang += AngleFixed(xtoviewangle[mid]);
+			}
+			model_angle = FIXED_TO_FLOAT(mdlang);
+		}
+
+		// model angle in radians
+		theta = -(model_angle * M_PI / 180.0f);
+		cs = cos(theta);
+		sn = sin(theta);
+
+		y += md2->offset;
+
+		// render every triangle
+		for (i = 0; i < md2->model->header.numTriangles; ++i)
+		{
+			for (j = 0; j < 3; ++j)
+			{
+				float px1, px2;
+				float py1, py2;
+				float pz1, pz2;
+				float s, t;
+
+				pvert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
+				nvert = &next->vertices[md2->model->triangles[i].vertexIndices[j]];
+
+				// Interpolate
+				px1 = (pvert->vertex[0] * finalscale/2.0f);
+				px2 = (nvert->vertex[0] * finalscale/2.0f);
+				py1 = (pvert->vertex[1] * finalscale/2.0f);
+				py2 = (nvert->vertex[1] * finalscale/2.0f);
+				pz1 = (pvert->vertex[2] * finalscale/2.0f);
+				pz2 = (nvert->vertex[2] * finalscale/2.0f);
+				s = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].s;
+				t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
+
+				// QUICK MATHS
+				float mx1 = (px1 * cs) - (py1 * sn);
+				float my1 = (px1 * sn) + (py1 * cs);
+				float mz1 = pz1 * (flip ? -1 : 1);
+
+				float mx2 = (px2 * cs) - (py2 * sn);
+				float my2 = (px2 * sn) + (py2 * cs);
+				float mz2 = pz2 * (flip ? -1 : 1);
+
+				RSP_MakeVector4(triangle.vertices[j].position,
+					 x + (mx1 + pol * (mx2 - mx1)),
+					-z + (mz1 + pol * (mz2 - mz1)),
+					-y + (my1 + pol * (my2 - my1))
 				);
 
 				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;

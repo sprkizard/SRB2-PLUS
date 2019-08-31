@@ -16,6 +16,7 @@
 
 #include "../doomtype.h"
 #include "../doomstat.h"
+#include "../g_game.h"
 #include "../r_data.h"
 #include "../r_defs.h"
 #include "../r_main.h"
@@ -186,11 +187,11 @@ extern viewpoint_t rsp_viewpoint;
 extern fpmatrix16_t *rsp_projectionmatrix;
 
 void RSP_Init(void);
-void RSP_Viewport(INT32 width, INT32 height);
+void RSP_Viewport(INT32 width, INT32 height, boolean sscreen);
 void RSP_OnFrame(void);
 void RSP_ModelView(void);
 void RSP_SetDrawerFunctions(void);
-void RSP_DebugRender(void);
+void RSP_DebugRender(INT32 model);
 void RSP_ClearDepthBuffer(void);
 
 void RSP_StoreViewpoint(void);
@@ -223,7 +224,8 @@ void RSP_InitModels(void);
 model_t *RSP_LoadModel(const char *filename);
 rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin);
 boolean RSP_RenderModel(vissprite_t *spr);
-boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip);
+boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard);
+boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum, UINT32 nextframenum, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard);
 
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);

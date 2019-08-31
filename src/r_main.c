@@ -684,7 +684,7 @@ void R_ExecuteSetViewSize(void)
 	am_recalc = true;
 #ifdef SOFTPOLY
 	if (cv_models.value)
-		RSP_Viewport(viewwidth, viewheight);
+		RSP_Viewport(viewwidth, viewheight, splitscreen);
 #endif
 }
 
