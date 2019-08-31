@@ -198,7 +198,7 @@ model_t *RSP_LoadModel(const char *filename)
 				fpvector4_t vec;
 				fpquaternion_t quaternion;
 
-				model->frames[i].vertices[j].vertex[0] = (float) ((INT32) frame->alias_vertices[j].vertex[0]) * frame->scale[0] + frame->translate[0];
+				model->frames[i].vertices[j].vertex[0] = -1.0f * ((float) ((INT32) frame->alias_vertices[j].vertex[0]) * frame->scale[0] + frame->translate[0]);
 				model->frames[i].vertices[j].vertex[2] = -1.0f * ((float) ((INT32) frame->alias_vertices[j].vertex[1]) * frame->scale[1] + frame->translate[1]);
 				model->frames[i].vertices[j].vertex[1] = (float) ((INT32) frame->alias_vertices[j].vertex[2]) * frame->scale[2] + frame->translate[2];
 
@@ -355,8 +355,9 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 	// base texture
 	if (!skincolor)
 	{
+		RGBA_t *image = texture->data;
 		// doesn't exist?
-		if (!texture->data)
+		if (!image)
 			return;
 
 		model->rsp_tex.width = texture->width;
@@ -364,7 +365,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 
 		if (model->rsp_tex.data)
 			Z_Free(model->rsp_tex.data);
-		model->rsp_tex.data = Z_Malloc(size, PU_SOFTPOLY, NULL);
+		model->rsp_tex.data = Z_Calloc(size, PU_SOFTPOLY, NULL);
 
 		for (i = 0; i < size; i++)
 		{
@@ -391,7 +392,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 
 		model->rsp_transtex[skincolor].width = texture->width;
 		model->rsp_transtex[skincolor].height = texture->height;
-		model->rsp_transtex[skincolor].data = Z_Malloc(size, PU_SOFTPOLY, NULL);
+		model->rsp_transtex[skincolor].data = Z_Calloc(size, PU_SOFTPOLY, NULL);
 
 		switch (skincolor)		// color
 		{
@@ -1067,6 +1068,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					model_angle += AngleFixed(xtoviewangle[mid]);
 				}
 			}
+			model_angle += 180*FRACUNIT;
 
 			// model angle in radians
 			theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
@@ -1352,6 +1354,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 			}
 			model_angle = FIXED_TO_FLOAT(mdlang);
 		}
+		model_angle += 180.0f;
 
 		// model angle in radians
 		theta = -(model_angle * M_PI / 180.0f);
@@ -1520,6 +1523,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 			}
 			model_angle = FIXED_TO_FLOAT(mdlang);
 		}
+		model_angle += 180.0f;
 
 		// model angle in radians
 		theta = -(model_angle * M_PI / 180.0f);

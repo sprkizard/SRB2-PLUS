@@ -300,8 +300,9 @@ void RSP_TransformTriangle(rsp_triangle_t *tri)
 		fpvector4_t d2 = RSP_VectorSubtract(&tri->vertices[2].position, &tri->vertices[0].position);
 		fpvector4_t n = RSP_VectorCrossProduct(&d1, &d2);
 		float dot = RSP_VectorDotProduct(&tri->vertices[0].position, &n);
+		dot *= -1.0f;
 		if (tri->flipped)
-			dot = -dot;
+			dot *= -1.0f;
 		// backside cull
 		if (rsp_target.cullmode == TRICULL_BACK && (dot >= 0))
 			return;
