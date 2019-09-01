@@ -28,7 +28,8 @@ extern fixed_t centerxfrac, centeryfrac;
 extern fixed_t projection, projectiony;
 
 #ifdef SOFTPOLY
-extern fixed_t viewfocratio;
+extern fixed_t planeaspectratio;
+extern float slopeaspectratio;
 extern boolean bigstretchy;
 #endif
 

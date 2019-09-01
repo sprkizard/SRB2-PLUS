@@ -289,8 +289,8 @@ void R_MapPlane(INT32 y, INT32 x1, INT32 x2)
 #ifdef SOFTPOLY
 			if (bigstretchy)
 			{
-				ds_xstep = cachedxstep[y] = FixedMul(FixedMul(planesin, planeheight), viewfocratio) / span;
-				ds_ystep = cachedystep[y] = FixedMul(FixedMul(planecos, planeheight), viewfocratio) / span;
+				ds_xstep = cachedxstep[y] = FixedMul(FixedMul(planesin, planeheight), planeaspectratio) / span;
+				ds_ystep = cachedystep[y] = FixedMul(FixedMul(planecos, planeheight), planeaspectratio) / span;
 			}
 			else
 #endif // SOFTPOLY
@@ -1031,6 +1031,10 @@ void R_DrawSinglePlane(visplane_t *pl)
 		ds_su.z *= focallengthf;
 		ds_sv.z *= focallengthf;
 		ds_sz.z *= focallengthf;
+
+		ds_su.y *= slopeaspectratio;
+		ds_sv.y *= slopeaspectratio;
+		ds_sz.y *= slopeaspectratio;
 
 		// Premultiply the texture vectors with the scale factors
 #define SFMULT 65536.f*(1<<nflatshiftup)

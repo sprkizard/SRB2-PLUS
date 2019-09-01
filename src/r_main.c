@@ -62,7 +62,8 @@ fixed_t projection;
 fixed_t projectiony; // aspect ratio
 
 #ifdef SOFTPOLY
-fixed_t viewfocratio;
+fixed_t planeaspectratio;
+float slopeaspectratio;
 boolean bigstretchy;
 #endif // SOFTPOLY
 
@@ -619,7 +620,8 @@ void R_ExecuteSetViewSize(void)
 	if (bigstretchy)
 	{
 		projectiony = (((vid.height*centerx*BASEVIDWIDTH)/BASEVIDHEIGHT)/vid.width)<<FRACBITS;
-		viewfocratio = (projectiony / centerx);
+		planeaspectratio = (projectiony / centerx);
+		slopeaspectratio = (float)vid.width * BASEVIDHEIGHT / BASEVIDWIDTH / vid.height;
 	}
 	else
 #endif // SOFTPOLY
