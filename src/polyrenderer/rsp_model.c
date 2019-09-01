@@ -711,12 +711,20 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 	return md2;
 }
 
+// Macros to improve code readability
+#define MD3_XYZ_SCALE   (1.0f / 64.0f)
+#define VERTEX_OFFSET   ((i * 9) + (j * 3))		/* (i * 9) = (XYZ coords * vertex count) */
+#define UV_OFFSET       ((i * 6) + (j * 2))		/* (i * 6) = (UV coords * vertex count) */
+
 boolean RSP_RenderModel(vissprite_t *spr)
 {
 	INT32 frameIndex;
 	INT32 nextFrameIndex = -1;
 	rsp_md2_t *md2;
 	INT32 meshnum;
+
+	// Not funny iD Software, didn't laugh.
+	unsigned short idx;
 	boolean useTinyFrames;
 
 	float tr_x, tr_y;
@@ -750,7 +758,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		rsp_spritetexture_t *sprtexp;
 		INT32 durs = mobj->state->tics;
 		INT32 tics = mobj->tics;
-		const UINT8 flip = (UINT8)((mobj->eflags & MFE_VERTICALFLIP) == MFE_VERTICALFLIP);
+		const boolean flip = (UINT8)((mobj->eflags & MFE_VERTICALFLIP) == MFE_VERTICALFLIP);
 		spritedef_t *sprdef;
 		spriteframe_t *sprframe;
 		float finalscale;
@@ -909,29 +917,46 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			UINT16 i, j;
 			float scale = finalscale;
 
-			mdlframe_t *frame = NULL;
-			mdlframe_t *nextframe = NULL;
-
-			tinyframe_t *tinyframe = NULL;
-			tinyframe_t *tinynextframe = NULL;
+			mdlframe_t *frame = NULL, *nextframe = NULL;
+			tinyframe_t *tinyframe = NULL, *tinynextframe = NULL;
 
 			useTinyFrames = md2->model->meshes[meshnum].tinyframes != NULL;
-			if (useTinyFrames)
-				scale *= (1.0f / 64.0f);
-
-			if (nextFrameIndex != -1)
-				nextframe = &mesh->frames[nextFrameIndex % mesh->numFrames];
-
 			if (useTinyFrames)
 			{
 				tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
 				if (nextFrameIndex != -1)
 					tinynextframe = &mesh->tinyframes[nextFrameIndex % mesh->numFrames];
+				scale *= MD3_XYZ_SCALE;
+			}
+			else
+			{
+				frame = &mesh->frames[frameIndex % mesh->numFrames];
+				if (nextFrameIndex != -1)
+					nextframe = &mesh->frames[nextFrameIndex % mesh->numFrames];
 			}
 
 			// clear triangle struct
 			// avoid undefined behaviour.............
 			memset(&triangle, 0x00, sizeof(rsp_triangle_t));
+
+			// set triangle texture
+			if (texture->data)
+				triangle.texture = texture;
+
+			// set colormap, translation and transmap
+			triangle.colormap = spr->colormap;
+			if (spr->extra_colormap)
+			{
+				if (!triangle.colormap)
+					triangle.colormap = spr->extra_colormap->colormap;
+				else
+					triangle.colormap = &spr->extra_colormap->colormap[triangle.colormap - colormaps];
+			}
+			triangle.translation = translation;
+			triangle.transmap = spr->transmap;
+
+			// vertical flip
+			triangle.flipped = flip;
 
 			// set model angle
 			// \todo adapt for 2.2 directionchar? The below code is from Kart
@@ -974,16 +999,16 @@ boolean RSP_RenderModel(vissprite_t *spr)
 
 				for (j = 0; j < 3; j++)
 				{
-					unsigned short idx = mesh->indices[(i * 3) + j];
 					if (useTinyFrames)
 					{
+						idx = mesh->indices[(i * 3) + j];
 						s = *(uv + (idx * 2));
 						t = *(uv + (idx * 2) + 1);
 					}
 					else
 					{
-						s = uv[((i * 6) + (j * 2))];
-						t = uv[((i * 6) + (j * 2)) + 1];
+						s = uv[UV_OFFSET];
+						t = uv[UV_OFFSET+1];
 					}
 
 					if (!nextframe || fpclassify(pol) == FP_ZERO)
@@ -1000,9 +1025,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						}
 						else
 						{
-							vx = frame->vertices[((i * 9) + (j * 3))	] * scale;
-							vy = frame->vertices[((i * 9) + (j * 3)) + 1] * scale;
-							vz = frame->vertices[((i * 9) + (j * 3)) + 2] * scale;
+							vx = frame->vertices[VERTEX_OFFSET] * scale;
+							vy = frame->vertices[VERTEX_OFFSET+1] * scale;
+							vz = frame->vertices[VERTEX_OFFSET+2] * scale;
 						}
 
 						// QUICK MATHS
@@ -1037,12 +1062,12 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						}
 						else
 						{
-							px1 = frame->vertices		[((i * 9) + (j * 3))	] * scale;
-							py1 = frame->vertices		[((i * 9) + (j * 3)) + 1] * scale;
-							pz1 = frame->vertices		[((i * 9) + (j * 3)) + 2] * scale;
-							px2 = nextframe->vertices	[((i * 9) + (j * 3))	] * scale;
-							py2 = nextframe->vertices	[((i * 9) + (j * 3)) + 1] * scale;
-							pz2 = nextframe->vertices	[((i * 9) + (j * 3)) + 2] * scale;
+							px1 = frame->vertices[VERTEX_OFFSET] * scale;
+							py1 = frame->vertices[VERTEX_OFFSET+1] * scale;
+							pz1 = frame->vertices[VERTEX_OFFSET+2] * scale;
+							px2 = nextframe->vertices[VERTEX_OFFSET] * scale;
+							py2 = nextframe->vertices[VERTEX_OFFSET+1] * scale;
+							pz2 = nextframe->vertices[VERTEX_OFFSET+2] * scale;
 						}
 
 						// QUICK MATHS
@@ -1064,23 +1089,6 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					triangle.vertices[j].uv.u = s;
 					triangle.vertices[j].uv.v = t;
 				}
-
-				triangle.texture = NULL;
-				if (texture->data)
-					triangle.texture = texture;
-
-				triangle.colormap = spr->colormap;
-				if (spr->extra_colormap)
-				{
-					if (!dc_colormap)
-						triangle.colormap = spr->extra_colormap->colormap;
-					else
-						triangle.colormap = &spr->extra_colormap->colormap[triangle.colormap - colormaps];
-				}
-
-				triangle.translation = translation;
-				triangle.transmap = spr->transmap;
-				triangle.flipped = flip;
 
 				RSP_TransformTriangle(&triangle);
 			}
@@ -1160,12 +1168,15 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 {
 	rsp_md2_t *md2;
 	INT32 meshnum;
-	boolean useTinyFrames;
 	rsp_texture_t *texture, sprtex;
 	rsp_spritetexture_t *sprtexp;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
+
+	// Not funny iD Software, didn't laugh.
+	unsigned short idx;
+	boolean useTinyFrames;
 
 	UINT8 *translation = NULL;
 	md2 = RSP_ModelAvailable(spritenum, skin);
@@ -1243,7 +1254,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 		if (useTinyFrames)
 		{
 			tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
-			scale *= (1.0f / 64.0f);
+			scale *= MD3_XYZ_SCALE;
 		}
 		else
 			frame = &mesh->frames[frameIndex % mesh->numFrames];
@@ -1251,6 +1262,10 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 		// clear triangle struct
 		// avoid undefined behaviour.............
 		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
+		if (texture->data)
+			triangle.texture = texture;
+		triangle.translation = translation;
+		triangle.flipped = flip;
 
 		if (billboard && !sprframe->rotate)
 		{
@@ -1284,7 +1299,6 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 		{
 			for (j = 0; j < 3; j++)
 			{
-				unsigned short idx = mesh->indices[(i * 3) + j];
 				float vx, vy, vz;
 				float mx, my, mz;
 				float s, t;
@@ -1292,13 +1306,14 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 
 				if (useTinyFrames)
 				{
+					idx = mesh->indices[(i * 3) + j];
 					s = *(uv + (idx * 2));
 					t = *(uv + (idx * 2) + 1);
 				}
 				else
 				{
-					s = uv[((i * 6) + (j * 2))];
-					t = uv[((i * 6) + (j * 2)) + 1];
+					s = uv[UV_OFFSET];
+					t = uv[UV_OFFSET+1];
 				}
 
 				if (useTinyFrames)
@@ -1310,9 +1325,9 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 				}
 				else
 				{
-					vx = frame->vertices[((i * 9) + (j * 3))	] * scale;
-					vy = frame->vertices[((i * 9) + (j * 3)) + 1] * scale;
-					vz = frame->vertices[((i * 9) + (j * 3)) + 2] * scale;
+					vx = frame->vertices[VERTEX_OFFSET] * scale;
+					vy = frame->vertices[VERTEX_OFFSET+1] * scale;
+					vz = frame->vertices[VERTEX_OFFSET+2] * scale;
 				}
 
 				// QUICK MATHS
@@ -1330,15 +1345,6 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 				triangle.vertices[j].uv.v = t;
 			}
 
-			triangle.texture = NULL;
-			if (texture->data)
-				triangle.texture = texture;
-
-			triangle.colormap = NULL;
-			triangle.translation = translation;
-			triangle.transmap = NULL;
-			triangle.flipped = flip;
-
 			RSP_TransformTriangle(&triangle);
 		}
 	}
@@ -1350,12 +1356,15 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 {
 	rsp_md2_t *md2;
 	INT32 meshnum;
-	boolean useTinyFrames;
 	rsp_texture_t *texture, sprtex;
 	rsp_spritetexture_t *sprtexp;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
+
+	// Not funny iD Software, didn't laugh.
+	unsigned short idx;
+	boolean useTinyFrames;
 
 	UINT8 *translation = NULL;
 	md2 = RSP_ModelAvailable(spritenum, skin);
@@ -1439,7 +1448,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 		{
 			tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
 			tinynextframe = &mesh->tinyframes[nextFrameIndex % mesh->numFrames];
-			scale *= (1.0f / 64.0f);
+			scale *= MD3_XYZ_SCALE;
 			if (!tinynextframe)
 				continue;
 		}
@@ -1454,6 +1463,10 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 		// clear triangle struct
 		// avoid undefined behaviour.............
 		memset(&triangle, 0x00, sizeof(rsp_triangle_t));
+		if (texture->data)
+			triangle.texture = texture;
+		triangle.translation = translation;
+		triangle.flipped = flip;
 
 		if (billboard && !sprframe->rotate)
 		{
@@ -1487,7 +1500,6 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 		{
 			for (j = 0; j < 3; j++)
 			{
-				unsigned short idx = mesh->indices[(i * 3) + j];
 				float px1, py1, pz1;
 				float px2, py2, pz2;
 				float mx1, my1, mz1;
@@ -1497,13 +1509,14 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 
 				if (useTinyFrames)
 				{
+					idx = mesh->indices[(i * 3) + j];
 					s = *(uv + (idx * 2));
 					t = *(uv + (idx * 2) + 1);
 				}
 				else
 				{
-					s = uv[((i * 6) + (j * 2))];
-					t = uv[((i * 6) + (j * 2)) + 1];
+					s = uv[UV_OFFSET];
+					t = uv[UV_OFFSET+1];
 				}
 
 				// Interpolate
@@ -1520,12 +1533,12 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 				}
 				else
 				{
-					px1 = frame->vertices		[((i * 9) + (j * 3))	] * scale;
-					py1 = frame->vertices		[((i * 9) + (j * 3)) + 1] * scale;
-					pz1 = frame->vertices		[((i * 9) + (j * 3)) + 2] * scale;
-					px2 = nextframe->vertices	[((i * 9) + (j * 3))	] * scale;
-					py2 = nextframe->vertices	[((i * 9) + (j * 3)) + 1] * scale;
-					pz2 = nextframe->vertices	[((i * 9) + (j * 3)) + 2] * scale;
+					px1 = frame->vertices[VERTEX_OFFSET] * scale;
+					py1 = frame->vertices[VERTEX_OFFSET+1] * scale;
+					pz1 = frame->vertices[VERTEX_OFFSET+2] * scale;
+					px2 = nextframe->vertices[VERTEX_OFFSET] * scale;
+					py2 = nextframe->vertices[VERTEX_OFFSET+1] * scale;
+					pz2 = nextframe->vertices[VERTEX_OFFSET+2] * scale;
 				}
 
 				// QUICK MATHS
@@ -1546,15 +1559,6 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 				triangle.vertices[j].uv.u = s;
 				triangle.vertices[j].uv.v = t;
 			}
-
-			triangle.texture = NULL;
-			if (texture->data)
-				triangle.texture = texture;
-
-			triangle.colormap = NULL;
-			triangle.translation = translation;
-			triangle.transmap = NULL;
-			triangle.flipped = flip;
 
 			RSP_TransformTriangle(&triangle);
 		}

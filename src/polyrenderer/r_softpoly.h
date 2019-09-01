@@ -26,11 +26,10 @@
 #include "../z_zone.h"
 #include "../w_wad.h"
 
-#define FixedLerp(start, end, r) ( FixedMul(start, (FRACUNIT - (r))) + FixedMul(end, r) )
-#define LERP(start, end, r) ( (start) * (1.0 - (r)) + (end) * (r) )
-#define VERTEX_SWAP(v1, v2) { rsp_vertex_t s = v2; v2 = v1; v1 = s; }
+//#define RSP_CLIPTRIANGLES
 
-#define SOFTWARE_AIMING (centery - (viewheight/2))
+#define FixedLerp(start, end, r) ( FixedMul(start, (FRACUNIT - (r))) + FixedMul(end, r) )
+#define FloatLerp(start, end, r) ( (start) * (1.0 - (r)) + (end) * (r) )
 
 typedef struct
 {
@@ -79,6 +78,7 @@ void RSP_MatrixTranspose(fpmatrix16_t *m);
 void RSP_MakeIdentityMatrix(fpmatrix16_t *m);
 void RSP_MakePerspectiveMatrix(fpmatrix16_t *m, float fov, float aspectratio, float np, float fp);
 void RSP_MakeViewMatrix(fpmatrix16_t *m, fpvector4_t *eye, fpvector4_t *target, fpvector4_t *up);
+fpvector4_t RSP_IntersectPlane(fpvector4_t pp, fpvector4_t pn, fpvector4_t start, fpvector4_t end, float *t);
 
 fpquaternion_t RSP_QuaternionMultiply(fpquaternion_t *q1, fpquaternion_t *q2);
 fpquaternion_t RSP_QuaternionConjugate(fpquaternion_t *q);
@@ -86,7 +86,7 @@ fpvector4_t RSP_QuaternionMultiplyVector(fpquaternion_t *q, fpvector4_t *v);
 void RSP_QuaternionNormalize(fpquaternion_t *q);
 void RSP_QuaternionRotateVector(fpvector4_t *v, fpquaternion_t *q);
 
-fpvector4_t RSP_IntersectPlane(fpvector4_t pp, fpvector4_t pn, fpvector4_t start, fpvector4_t end, float *t);
+#define RSP_SwapVertex(v1, v2) { rsp_vertex_t s = v2; v2 = v1; v1 = s; }
 
 // =======================
 //      Render target
@@ -158,6 +158,7 @@ extern fixed_t rsp_zpix;
 extern UINT8 *rsp_tpix;
 
 extern INT32 rsp_viewwindowx, rsp_viewwindowy;
+#define SOFTWARE_AIMING (centery - (viewheight/2))
 
 void RSP_DrawPixel(void);
 void RSP_DrawTranslucentPixel(void);

@@ -48,6 +48,7 @@ static boolean is_behind_view_frustum(rsp_vertex_t v0, rsp_vertex_t v1, rsp_vert
 	return false;
 }
 
+#ifdef RSP_CLIPTRIANGLES
 typedef struct tpoint_s
 {
 	fpvector4_t *coord[3];
@@ -171,6 +172,7 @@ void RSP_ClipTriangle(rsp_triangle_t *tri)
 	// draw one or more triangles
 	RSP_DrawTriangleList(tri, clipped, tricount);
 }
+#endif
 
 void RSP_DrawTriangle(rsp_triangle_t *tri)
 {
@@ -202,11 +204,11 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 
 	// sort vertices so that v0 is topmost, then v2, then v1
 	if (v2.position.y > v1.position.y)
-		VERTEX_SWAP(v1, v2)
+		RSP_SwapVertex(v1, v2)
 	if (v0.position.y > v1.position.y)
-		VERTEX_SWAP(v0, v1)
+		RSP_SwapVertex(v0, v1)
 	if (v0.position.y > v2.position.y)
-		VERTEX_SWAP(v0, v2)
+		RSP_SwapVertex(v0, v2)
 
 	// discard degenerate triangle
 	if (is_degenerate_triangle(v0, v1, v2))
@@ -242,17 +244,17 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 
 			// get v3.z value by interpolating 1/z (it's lerp-able)
 			if (v0x - v1x)
-				v3.position.z = 1.0f / LERP(invV1Z, invV0Z, (v3.position.x - v1.position.x) / (v0.position.x - v1.position.x));
+				v3.position.z = 1.0f / FloatLerp(invV1Z, invV0Z, (v3.position.x - v1.position.x) / (v0.position.x - v1.position.x));
 			else
 				v3.position.z = v0.position.z;
 
-			v3.uv.u = v3.position.z * LERP(v0.uv.u * invV0Z, v1.uv.u * invV1Z, ratioU);
-			v3.uv.v = v3.position.z * LERP(v0.uv.v * invV0Z, v1.uv.v * invV1Z, ratioV);
+			v3.uv.u = v3.position.z * FloatLerp(v0.uv.u * invV0Z, v1.uv.u * invV1Z, ratioU);
+			v3.uv.v = v3.position.z * FloatLerp(v0.uv.v * invV0Z, v1.uv.v * invV1Z, ratioV);
 		}
 
 		// this swap is done to maintain consistent renderer behavior
 		if (v3.position.x < v2.position.x)
-			VERTEX_SWAP(v3, v2)
+			RSP_SwapVertex(v3, v2)
 
 		// draw the composition of both triangles to form the desired shape
 		if (!is_degenerate_triangle(v0, v3, v2))
@@ -311,6 +313,11 @@ void RSP_TransformTriangle(rsp_triangle_t *tri)
 			return;
 	}
 
+#ifdef RSP_CLIPTRIANGLES
 	// clip transformed triangle
 	RSP_ClipTriangle(tri);
+#else
+	// draw triangle
+	RSP_DrawTriangle(tri);
+#endif // RSP_CLIPTRIANGLES
 }

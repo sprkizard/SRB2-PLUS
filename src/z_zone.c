@@ -632,7 +632,7 @@ void Command_Memfree_f(void)
 
 #ifdef SOFTPOLY
 	if (rendermode == render_soft)
-		CONS_Printf(M_GetText("Softpoly data     : %7s KB\n"), sizeu1(Z_TagUsage(PU_SOFTPOLY)>>10));
+		CONS_Printf(M_GetText("Softpoly memory   : %7s KB\n"), sizeu1(Z_TagUsage(PU_SOFTPOLY)>>10));
 #endif
 
 #ifdef HWRENDER

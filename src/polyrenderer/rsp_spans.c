@@ -222,13 +222,13 @@ static inline void texspanloop_fp(float y, float startXPrestep, float endXPreste
 		// interpolate 1/z for each pixel in the scanline
 		r = ((x - startX) * invLineLength);
 		rsp_xpix = ix;
-		z2 = LERP(startInvZ, endInvZ, r);
+		z2 = FloatLerp(startInvZ, endInvZ, r);
 		z = 1.0f / z2;
-		rsp_zpix = FLOAT_TO_FIXED(LERP(startInvZ, endInvZ, r));
+		rsp_zpix = FLOAT_TO_FIXED(FloatLerp(startInvZ, endInvZ, r));
 		if (!depth_only)
 		{
-			u = FLOAT_TO_FIXED(z * LERP(startU, endU, r))>>FRACBITS;
-			v = FLOAT_TO_FIXED(z * LERP(startV, endV, r))>>FRACBITS;
+			u = FLOAT_TO_FIXED(z * FloatLerp(startU, endU, r))>>FRACBITS;
+			v = FLOAT_TO_FIXED(z * FloatLerp(startV, endV, r))>>FRACBITS;
 			u %= tex_width;
 			v %= tex_height;
 			pixel = tex_data[(v * tex_width) + u];
@@ -335,13 +335,13 @@ void RSP_TexturedMappedTriangleFP(rsp_triangle_t *triangle, rsp_trimode_t type)
 		if (lineLength > 0)
 		{
 			r1 = (v0y - y) * invY02;
-			startInvZ = LERP(invZ0, invZ2, r1);
-			endInvZ = LERP(invZ0, invZ1, r1);
+			startInvZ = FloatLerp(invZ0, invZ2, r1);
+			endInvZ = FloatLerp(invZ0, invZ1, r1);
 
-			startU = texW * LERP((v0u * invZ0), (v2u * invZ2), r1);
-			startV = texH * LERP((v0v * invZ0), (v2v * invZ2), r1);
-			endU = texW * LERP((v0u * invZ0), (v1u * invZ1), r1);
-			endV = texH * LERP((v0v * invZ0), (v1v * invZ1), r1);
+			startU = texW * FloatLerp((v0u * invZ0), (v2u * invZ2), r1);
+			startV = texH * FloatLerp((v0v * invZ0), (v2v * invZ2), r1);
+			endU = texW * FloatLerp((v0u * invZ0), (v1u * invZ1), r1);
+			endV = texH * FloatLerp((v0v * invZ0), (v1v * invZ1), r1);
 
 			invLineLength = 1.0f / lineLength;
 			texspanloop_fp(y, startXPrestep, endXPrestep, startX, startInvZ, endInvZ, startU, endU, startV, endV, invLineLength);

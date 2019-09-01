@@ -1310,6 +1310,7 @@ static void R_ProjectSprite(mobj_t *thing)
 #ifdef SOFTPOLY
 	vis->spritenum = thing->sprite;
 	vis->skin = thing->skin;
+	vis->model = (cv_models.value && RSP_ModelAvailable(vis->spritenum, (skin_t *)vis->skin));
 #endif // SOFTPOLY
 
 	vis->x1 = x1 < 0 ? 0 : x1;
@@ -1394,11 +1395,13 @@ static void R_ProjectSprite(mobj_t *thing)
 	vis->isScaled = false;
 
 #ifdef SOFTPOLY
-	RSP_StoreSpriteViewpoint(vis);
-#endif // SOFTPOLY
+	if (portalrender)
+		RSP_StoreSpriteViewpoint(vis);
 
-	if (thing->subsector->sector->numlights)
-		R_SplitSprite(vis, thing);
+	if (!vis->model)		// not needed
+#endif // SOFTPOLY
+		if (thing->subsector->sector->numlights)
+			R_SplitSprite(vis, thing);
 
 	// Debug
 	++objectsdrawn;
@@ -2137,7 +2140,7 @@ void R_ClipSprites(void)
 #ifdef SOFTPOLY
 		// Arkus: Yes, clip against the ENTIRE viewport.
 		// You don't know how big the model is!
-		if (cv_models.value && RSP_ModelAvailable(spr->spritenum, (skin_t *)spr->skin))
+		if (cv_models.value && spr->model)
 		{
 			model = true;
 			ox1 = spr->x1, ox2 = spr->x2;

@@ -431,6 +431,7 @@ model_t *MD2_LoadModel(const char *fileName, int ztag, boolean useFloat, boolean
 		retModel->meshes[0].tinyframes = (tinyframe_t*)Z_Calloc(sizeof(tinyframe_t)*header->numFrames, ztag, 0);
 		retModel->meshes[0].numVertices = header->numXYZ;
 		retModel->meshes[0].uvs = (float*)Z_Malloc(sizeof(float) * 2 * retModel->meshes[0].numVertices, ztag, 0);
+		retModel->meshes[0].indices = (unsigned short*)Z_Malloc(sizeof(unsigned short) * 3 * header->numTris, ztag, 0);
 
 		ptr = (char*)frames;
 		for (i = 0; i < header->numFrames; i++, ptr += header->framesize)
@@ -447,7 +448,6 @@ model_t *MD2_LoadModel(const char *fileName, int ztag, boolean useFloat, boolean
 
 			//			if (retModel->materials[0].lightmap)
 			//				retModel->meshes[0].tinyframes[i].tangents = (char*)malloc(sizeof(char));//(char*)Z_Malloc(sizeof(char)*3*header->numVerts, ztag);
-			retModel->meshes[0].indices = (unsigned short*)Z_Malloc(sizeof(unsigned short) * 3 * header->numTris, ztag, 0);
 
 			vertptr = retModel->meshes[0].tinyframes[i].vertices;
 			normptr = retModel->meshes[0].tinyframes[i].normals;

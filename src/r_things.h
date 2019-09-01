@@ -130,6 +130,7 @@ typedef struct vissprite_s
 #ifdef SOFTPOLY
 	spritenum_t spritenum;
 	void *skin;
+	boolean model;
 #endif
 
 	INT32 x1, x2;

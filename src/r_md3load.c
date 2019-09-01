@@ -309,6 +309,8 @@ model_t *MD3_LoadModel(const char *fileName, int ztag, boolean useFloat, boolean
 			retModel->meshes[i].tinyframes = (tinyframe_t*)Z_Calloc(sizeof(tinyframe_t)*mdS->numFrames, ztag, 0);
 			retModel->meshes[i].numVertices = mdS->numVerts;
 			retModel->meshes[i].uvs = (float*)Z_Malloc(sizeof(float)*2*mdS->numVerts, ztag, 0);
+			retModel->meshes[i].indices = (unsigned short*)Z_Malloc(sizeof(unsigned short) * 3 * mdS->numTriangles, ztag, 0);
+
 			for (j = 0; j < mdS->numFrames; j++)
 			{
 				short *vertptr;
@@ -321,7 +323,6 @@ model_t *MD3_LoadModel(const char *fileName, int ztag, boolean useFloat, boolean
 
 //				if (retModel->materials[0].lightmap)
 //					retModel->meshes[i].tinyframes[j].tangents = (char*)malloc(sizeof(char));//(char*)Z_Malloc(sizeof(char)*3*mdS->numVerts, ztag);
-				retModel->meshes[i].indices = (unsigned short*)Z_Malloc(sizeof(unsigned short) * 3 * mdS->numTriangles, ztag, 0);
 				vertptr = retModel->meshes[i].tinyframes[j].vertices;
 				normptr = retModel->meshes[i].tinyframes[j].normals;
 
