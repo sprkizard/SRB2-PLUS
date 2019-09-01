@@ -1394,12 +1394,12 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	vis->isScaled = false;
 
+	if (thing->subsector->sector->numlights)
+		R_SplitSprite(vis, thing);
+
 #ifdef SOFTPOLY
 	RSP_StoreSpriteViewpoint(vis);
-	if (!vis->model)		// not needed
 #endif // SOFTPOLY
-		if (thing->subsector->sector->numlights)
-			R_SplitSprite(vis, thing);
 
 	// Debug
 	++objectsdrawn;
