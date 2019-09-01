@@ -24,23 +24,16 @@
 #include "hw_glob.h"
 #include "../r_model.h"
 
-typedef model_header_t md2_header_t;
-typedef model_alias_triangleVertex_t md2_alias_triangleVertex_t;
-typedef model_triangleVertex_t md2_triangleVertex_t;
-typedef model_triangle_t md2_triangle_t;
-typedef model_textureCoordinate_t md2_textureCoordinate_t;
-typedef model_alias_frame_t md2_alias_frame_t;
-typedef model_frame_t md2_frame_t;
-typedef model_skin_t md2_skin_t;
-typedef model_glCommandVertex_t md2_glCommandVertex_t;
-typedef model_t md2_model_t;
+#if defined(_MSC_VER)
+#pragma pack()
+#endif
 
 typedef struct
 {
 	char        filename[32];
 	float       scale;
 	float       offset;
-	md2_model_t *model;
+	model_t     *model;
 	void        *grpatch;
 	void        *blendgrpatch;
 	boolean     notfound;

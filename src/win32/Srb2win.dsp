@@ -881,14 +881,6 @@ SOURCE=..\r_main.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\r_model.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\r_model.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\r_plane.c
 # End Source File
 # Begin Source File

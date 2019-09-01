@@ -30,13 +30,11 @@
 #include "../m_misc.h"
 #include "../w_wad.h"
 #include "../z_zone.h"
-#include "../r_draw.h"
 #include "../r_things.h"
 #include "../v_video.h"
-#include "../r_data.h"
-#ifdef ESLOPE
-#include "../p_slopes.h"
-#endif // ESLOPE
+#include "../r_draw.h"
+#include "../p_tick.h"
+#include "../r_model.h"
 
 #ifdef HAVE_PNG
 
@@ -75,152 +73,7 @@ rsp_md2_t rsp_md2_playermodels[MAXSKINS];
 //
 model_t *RSP_LoadModel(const char *filename)
 {
-	FILE *file;
-	model_t *model;
-	UINT8 buffer[MD2_MAX_FRAMESIZE];
-	size_t i;
-	const float model_rotate = 0.707f;
-
-	model = Z_Calloc(sizeof (*model), PU_SOFTPOLY, NULL);
-	if (model == NULL)
-		return 0;
-
-	//Filename checking fixed ~Monster Iestyn and Golden
-	file = fopen(va("%s"PATHSEP"%s", srb2home, filename), "rb");
-	if (!file)
-	{
-		Z_Free(model);
-		return 0;
-	}
-
-	// initialize model and read header
-
-	if (fread(&model->header, sizeof (model->header), 1, file) != 1
-		|| model->header.magic != MD2_IDENT
-		|| model->header.version != MD2_VERSION)
-	{
-		fclose(file);
-		Z_Free(model);
-		return 0;
-	}
-
-	model->header.numSkins = 1;
-
-#define MD2LIMITCHECK(field, max, msgname) \
-	if (field > max) \
-	{ \
-		CONS_Alert(CONS_ERROR, "RSP_LoadModel: %s has too many " msgname " (# found: %d, maximum: %d)\n", filename, field, max); \
-		model_freeModel (model); \
-		fclose(file); \
-		return 0; \
-	}
-
-	// Uncomment if these are actually needed
-//	MD2LIMITCHECK(model->header.numSkins,     MD2_MAX_SKINS,     "skins")
-//	MD2LIMITCHECK(model->header.numTexCoords, MD2_MAX_TEXCOORDS, "texture coordinates")
-	MD2LIMITCHECK(model->header.numTriangles, MD2_MAX_TRIANGLES, "triangles")
-	MD2LIMITCHECK(model->header.numFrames,    MD2_MAX_FRAMES,    "frames")
-	MD2LIMITCHECK(model->header.numVertices,  MD2_MAX_VERTICES,  "vertices")
-
-#undef MD2LIMITCHECK
-
-	// read skins
-	fseek(file, model->header.offsetSkins, SEEK_SET);
-	if (model->header.numSkins > 0)
-	{
-		model->skins = Z_Calloc(sizeof (model_skin_t) * model->header.numSkins, PU_SOFTPOLY, NULL);
-		if (!model->skins || model->header.numSkins !=
-			fread(model->skins, sizeof (model_skin_t), model->header.numSkins, file))
-		{
-			model_freeModel (model);
-			fclose(file);
-			return 0;
-		}
-	}
-
-	// read texture coordinates
-	fseek(file, model->header.offsetTexCoords, SEEK_SET);
-	if (model->header.numTexCoords > 0)
-	{
-		model->texCoords = Z_Calloc(sizeof (model_textureCoordinate_t) * model->header.numTexCoords, PU_SOFTPOLY, NULL);
-		if (!model->texCoords || model->header.numTexCoords !=
-			fread(model->texCoords, sizeof (model_textureCoordinate_t), model->header.numTexCoords, file))
-		{
-			model_freeModel (model);
-			fclose(file);
-			return 0;
-		}
-	}
-
-	// read triangles
-	fseek(file, model->header.offsetTriangles, SEEK_SET);
-	if (model->header.numTriangles > 0)
-	{
-		model->triangles = Z_Calloc(sizeof (model_triangle_t) * model->header.numTriangles, PU_SOFTPOLY, NULL);
-		if (!model->triangles || model->header.numTriangles !=
-			fread(model->triangles, sizeof (model_triangle_t), model->header.numTriangles, file))
-		{
-			model_freeModel (model);
-			fclose(file);
-			return 0;
-		}
-	}
-
-	// read alias frames
-	fseek(file, model->header.offsetFrames, SEEK_SET);
-	if (model->header.numFrames > 0)
-	{
-		model->frames = Z_Calloc(sizeof (model_frame_t) * model->header.numFrames, PU_SOFTPOLY, NULL);
-		if (!model->frames)
-		{
-			model_freeModel (model);
-			fclose(file);
-			return 0;
-		}
-
-		for (i = 0; i < model->header.numFrames; i++)
-		{
-			model_alias_frame_t *frame = (model_alias_frame_t *)(void *)buffer;
-			size_t j;
-
-			model->frames[i].vertices = Z_Calloc(sizeof (model_triangleVertex_t) * model->header.numVertices, PU_SOFTPOLY, NULL);
-			if (!model->frames[i].vertices || model->header.frameSize !=
-				fread(frame, 1, model->header.frameSize, file))
-			{
-				model_freeModel (model);
-				fclose(file);
-				return 0;
-			}
-
-			strcpy(model->frames[i].name, frame->name);
-			for (j = 0; j < model->header.numVertices; j++)
-			{
-				fpvector4_t vec;
-				fpquaternion_t quaternion;
-
-				model->frames[i].vertices[j].vertex[0] = -1.0f * ((float) ((INT32) frame->alias_vertices[j].vertex[0]) * frame->scale[0] + frame->translate[0]);
-				model->frames[i].vertices[j].vertex[2] = -1.0f * ((float) ((INT32) frame->alias_vertices[j].vertex[1]) * frame->scale[1] + frame->translate[1]);
-				model->frames[i].vertices[j].vertex[1] = (float) ((INT32) frame->alias_vertices[j].vertex[2]) * frame->scale[2] + frame->translate[2];
-
-				RSP_MakeVector4(vec, model->frames[i].vertices[j].vertex[0], model->frames[i].vertices[j].vertex[1], model->frames[i].vertices[j].vertex[2]);
-
-				// Rotate model
-				quaternion.x = model_rotate;
-				quaternion.y = 0;
-				quaternion.z = 0;
-				quaternion.w = -model_rotate;
-				RSP_QuaternionRotateVector(&vec, &quaternion);
-
-				model->frames[i].vertices[j].vertex[0] = vec.x;
-				model->frames[i].vertices[j].vertex[1] = vec.y;
-				model->frames[i].vertices[j].vertex[2] = vec.z;
-			}
-		}
-	}
-
-	fclose(file);
-
-	return model;
+	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_SOFTPOLY);
 }
 
 #ifdef HAVE_PNG
@@ -848,9 +701,7 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 		sprintf(filename, "md2/%s", md2->filename);
 		md2->model = RSP_LoadModel(filename);
 
-		if (md2->model)
-			model_printModelInfo(md2->model);
-		else
+		if (!md2->model)
 		{
 			md2->error = true;
 			return NULL;
@@ -862,8 +713,11 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 
 boolean RSP_RenderModel(vissprite_t *spr)
 {
-	INT32 frame;
+	INT32 frameIndex;
+	INT32 nextFrameIndex = -1;
 	rsp_md2_t *md2;
+	INT32 meshnum;
+	boolean useTinyFrames;
 
 	float tr_x, tr_y;
 	float tz;
@@ -896,11 +750,11 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		rsp_spritetexture_t *sprtexp;
 		INT32 durs = mobj->state->tics;
 		INT32 tics = mobj->tics;
-		model_frame_t *curr, *next = NULL;
 		const UINT8 flip = (UINT8)((mobj->eflags & MFE_VERTICALFLIP) == MFE_VERTICALFLIP);
 		spritedef_t *sprdef;
 		spriteframe_t *sprframe;
 		float finalscale;
+		float pol = 0.0f;
 
 		skincolors_t skincolor = SKINCOLOR_NONE;
 		UINT8 *translation = NULL;
@@ -1005,57 +859,87 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			texture = &sprtex;
 		}
 
-		if (mobj->frame & FF_ANIMATE)
-		{
-			// set duration and tics to be the correct values for FF_ANIMATE states
-			durs = mobj->state->var2;
-			tics = mobj->anim_duration;
-		}
-
 		//FIXME: this is not yet correct
-		if (frame < 0)
-			frame = 0;
-		frame = (mobj->frame & FF_FRAMEMASK) % md2->model->header.numFrames;
-		curr = &md2->model->frames[frame];
+		frameIndex = (mobj->frame & FF_FRAMEMASK) % md2->model->meshes[0].numFrames;
+
 		if (cv_modelinterpolation.value && tics <= durs)
 		{
 			// frames are handled differently for states with FF_ANIMATE, so get the next frame differently for the interpolation
 			if (mobj->frame & FF_ANIMATE)
 			{
-				UINT32 nextframe = (mobj->frame & FF_FRAMEMASK) + 1;
-				if (nextframe >= (UINT32)mobj->state->var1)
-					nextframe = (mobj->state->frame & FF_FRAMEMASK);
-				nextframe %= md2->model->header.numFrames;
-				next = &md2->model->frames[nextframe];
+				nextFrameIndex = (mobj->frame & FF_FRAMEMASK) + 1;
+				if (nextFrameIndex >= mobj->state->var1)
+					nextFrameIndex = (mobj->state->frame & FF_FRAMEMASK);
+				nextFrameIndex %= md2->model->meshes[0].numFrames;
+				//next = &md2->model->meshes[0].frames[nextFrame];
 			}
 			else
 			{
 				if (mobj->state->nextstate != S_NULL && states[mobj->state->nextstate].sprite != SPR_NULL
 					&& !(mobj->player && (mobj->state->nextstate == S_PLAY_TAP1 || mobj->state->nextstate == S_PLAY_TAP2) && mobj->state == &states[S_PLAY_STND]))
 				{
-					const UINT32 nextframe = (states[mobj->state->nextstate].frame & FF_FRAMEMASK) % md2->model->header.numFrames;
-					next = &md2->model->frames[nextframe];
+					nextFrameIndex = (states[mobj->state->nextstate].frame & FF_FRAMEMASK) % md2->model->meshes[0].numFrames;
+					//next = &md2->model->meshes[0].frames[nextFrame];
 				}
 			}
 		}
 
 		// SRB2CBTODO: MD2 scaling support
 		finalscale = md2->scale * FIXED_TO_FLOAT(mobj->scale);
+		finalscale *= 0.5f;
 
-		// Render individual triangles
+		// don't interpolate if instantaneous or infinite in length
+		if (durs != 0 && durs != -1 && tics != -1)
 		{
+			UINT32 newtime = (durs - tics);
+			pol = (newtime)/(float)durs;
+			if (pol > 1.0f)
+				pol = 1.0f;
+			if (pol < 0.0f)
+				pol = 0.0f;
+		}
+
+		// Render every mesh
+		for (meshnum = 0; meshnum < md2->model->numMeshes; meshnum++)
+		{
+			mesh_t *mesh = &md2->model->meshes[meshnum];
 			rsp_triangle_t triangle;
-			model_triangleVertex_t *pvert;
-			model_triangleVertex_t *nvert;
 			float theta, cs, sn;
 			fixed_t model_angle;
 			UINT16 i, j;
+			float scale = finalscale;
+
+			mdlframe_t *frame = NULL;
+			mdlframe_t *nextframe = NULL;
+
+			tinyframe_t *tinyframe = NULL;
+			tinyframe_t *tinynextframe = NULL;
+
+			useTinyFrames = md2->model->meshes[meshnum].tinyframes != NULL;
+			if (useTinyFrames)
+				scale *= (1.0f / 64.0f);
+
+			if (nextFrameIndex != -1)
+				nextframe = &mesh->frames[nextFrameIndex % mesh->numFrames];
+
+			if (useTinyFrames)
+			{
+				tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
+				if (nextFrameIndex != -1)
+					tinynextframe = &mesh->tinyframes[nextFrameIndex % mesh->numFrames];
+			}
 
 			// clear triangle struct
 			// avoid undefined behaviour.............
 			memset(&triangle, 0x00, sizeof(rsp_triangle_t));
 
 			// set model angle
+			// \todo adapt for 2.2 directionchar? The below code is from Kart
+#if 0
+			if (mobj->player)
+				model_angle = AngleFixed(mobj->player->frameangle);
+			else
+#endif
 			model_angle = AngleFixed(mobj->angle);
 			if (!sprframe->rotate)
 			{
@@ -1067,7 +951,6 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					model_angle += AngleFixed(xtoviewangle[mid]);
 				}
 			}
-			model_angle += 180*FRACUNIT;
 
 			// model angle in radians
 			theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
@@ -1075,38 +958,57 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			sn = sin(theta);
 
 			// render every triangle
-			for (i = 0; i < md2->model->header.numTriangles; ++i)
+			for (i = 0; i < mesh->numTriangles; i++)
 			{
-				for (j = 0; j < 3; ++j)
+				float x, y, z;
+				float s, t;
+				float *uv = mesh->uvs;
+
+				x = FIXED_TO_FLOAT(mobj->x);
+				y = FIXED_TO_FLOAT(mobj->y) + md2->offset;
+
+				if (mobj->eflags & MFE_VERTICALFLIP)
+					z = FIXED_TO_FLOAT(mobj->z + mobj->height);
+				else
+					z = FIXED_TO_FLOAT(mobj->z);
+
+				for (j = 0; j < 3; j++)
 				{
-					float x, y, z;
-					float s, t;
-
-					x = FIXED_TO_FLOAT(mobj->x);
-					y = FIXED_TO_FLOAT(mobj->y) + md2->offset;
-
-					if (mobj->eflags & MFE_VERTICALFLIP)
-						z = FIXED_TO_FLOAT(mobj->z + mobj->height);
-					else
-						z = FIXED_TO_FLOAT(mobj->z);
-
-					s = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].s;
-					t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
-
-					pvert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
-					if (next)
-						nvert = &next->vertices[md2->model->triangles[i].vertexIndices[j]];
-
-					if (!next)
+					unsigned short idx = mesh->indices[(i * 3) + j];
+					if (useTinyFrames)
 					{
-						float vx = (pvert->vertex[0] * finalscale/2.0f);
-						float vy = (pvert->vertex[1] * finalscale/2.0f);
-						float vz = (pvert->vertex[2] * finalscale/2.0f);
+						s = *(uv + (idx * 2));
+						t = *(uv + (idx * 2) + 1);
+					}
+					else
+					{
+						s = uv[((i * 6) + (j * 2))];
+						t = uv[((i * 6) + (j * 2)) + 1];
+					}
+
+					if (!nextframe || fpclassify(pol) == FP_ZERO)
+					{
+						float vx, vy, vz;
+						float mx, my, mz;
+
+						if (useTinyFrames)
+						{
+							short *vert = tinyframe->vertices;
+							vx = *(vert + (idx * 3)) * scale;
+							vy = *(vert + (idx * 3) + 1) * scale;
+							vz = *(vert + (idx * 3) + 2) * scale;
+						}
+						else
+						{
+							vx = frame->vertices[((i * 9) + (j * 3))	] * scale;
+							vy = frame->vertices[((i * 9) + (j * 3)) + 1] * scale;
+							vz = frame->vertices[((i * 9) + (j * 3)) + 2] * scale;
+						}
 
 						// QUICK MATHS
-						float mx = (vx * cs) - (vy * sn);
-						float my = (vx * sn) + (vy * cs);
-						float mz = vz * (flip ? -1 : 1);
+						mx = (vx * cs) - (vy * sn);
+						my = (vx * sn) + (vy * cs);
+						mz = vz * (flip ? -1 : 1);
 
 						RSP_MakeVector4(triangle.vertices[j].position,
 							 x + mx,
@@ -1116,34 +1018,41 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					}
 					else
 					{
+						float px1, py1, pz1;
+						float px2, py2, pz2;
+						float mx1, my1, mz1;
+						float mx2, my2, mz2;
+
 						// Interpolate
-						float px1 = (pvert->vertex[0] * finalscale/2.0f);
-						float px2 = (nvert->vertex[0] * finalscale/2.0f);
-						float py1 = (pvert->vertex[1] * finalscale/2.0f);
-						float py2 = (nvert->vertex[1] * finalscale/2.0f);
-						float pz1 = (pvert->vertex[2] * finalscale/2.0f);
-						float pz2 = (nvert->vertex[2] * finalscale/2.0f);
-						float pol = 0.0f;
+						if (useTinyFrames)
+						{
+							short *vert = tinyframe->vertices;
+							short *nvert = tinynextframe->vertices;
+							px1 = *(vert + (idx * 3)) * scale;
+							py1 = *(vert + (idx * 3) + 1) * scale;
+							pz1 = *(vert + (idx * 3) + 2) * scale;
+							px2 = *(nvert + (idx * 3)) * scale;
+							py2 = *(nvert + (idx * 3) + 1) * scale;
+							pz2 = *(nvert + (idx * 3) + 2) * scale;
+						}
+						else
+						{
+							px1 = frame->vertices		[((i * 9) + (j * 3))	] * scale;
+							py1 = frame->vertices		[((i * 9) + (j * 3)) + 1] * scale;
+							pz1 = frame->vertices		[((i * 9) + (j * 3)) + 2] * scale;
+							px2 = nextframe->vertices	[((i * 9) + (j * 3))	] * scale;
+							py2 = nextframe->vertices	[((i * 9) + (j * 3)) + 1] * scale;
+							pz2 = nextframe->vertices	[((i * 9) + (j * 3)) + 2] * scale;
+						}
 
 						// QUICK MATHS
-						float mx1 = (px1 * cs) - (py1 * sn);
-						float my1 = (px1 * sn) + (py1 * cs);
-						float mz1 = pz1 * (flip ? -1 : 1);
+						mx1 = (px1 * cs) - (py1 * sn);
+						my1 = (px1 * sn) + (py1 * cs);
+						mz1 = pz1 * (flip ? -1 : 1);
 
-						float mx2 = (px2 * cs) - (py2 * sn);
-						float my2 = (px2 * sn) + (py2 * cs);
-						float mz2 = pz2 * (flip ? -1 : 1);
-
-						// don't interpolate if instantaneous or infinite in length
-						if (durs != 0 && durs != -1 && tics != -1)
-						{
-							UINT32 newtime = (durs - tics);
-							pol = (newtime)/(float)durs;
-							if (pol > 1.0f)
-								pol = 1.0f;
-							if (pol < 0.0f)
-								pol = 0.0f;
-						}
+						mx2 = (px2 * cs) - (py2 * sn);
+						my2 = (px2 * sn) + (py2 * cs);
+						mz2 = pz2 * (flip ? -1 : 1);
 
 						RSP_MakeVector4(triangle.vertices[j].position,
 							 x + (mx1 + pol * (mx2 - mx1)),
@@ -1152,8 +1061,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						);
 					}
 
-					triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
-					triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
+					triangle.vertices[j].uv.u = s;
+					triangle.vertices[j].uv.v = t;
 				}
 
 				triangle.texture = NULL;
@@ -1247,12 +1156,13 @@ static INT32 project_sprite(fixed_t x, fixed_t y, spriteframe_t *sprframe, boole
 	return mid;
 }
 
-boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
+boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
 {
 	rsp_md2_t *md2;
+	INT32 meshnum;
+	boolean useTinyFrames;
 	rsp_texture_t *texture, sprtex;
 	rsp_spritetexture_t *sprtexp;
-	model_frame_t *curr;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
@@ -1261,8 +1171,6 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 	md2 = RSP_ModelAvailable(spritenum, skin);
 	if (!md2)
 		return false;
-
-	framenum %= md2->model->header.numFrames;
 
 	// load normal texture
 	if (!md2->texture)
@@ -1287,7 +1195,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 	else
 		sprdef = &sprites[spritenum];
 
-	sprframe = &sprdef->spriteframes[framenum];
+	sprframe = &sprdef->spriteframes[frameIndex];
 
 	if (!texture->data)
 	{
@@ -1317,18 +1225,28 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 		texture = &sprtex;
 	}
 
-	//FIXME: this is not yet correct
-	curr = &md2->model->frames[framenum];
-
 	// SRB2CBTODO: MD2 scaling support
-	finalscale = md2->scale;
+	finalscale = md2->scale * 0.5f;
 
-	// Render individual triangles
+	// Render every mesh
+	for (meshnum = 0; meshnum < md2->model->numMeshes; meshnum++)
 	{
+		mesh_t *mesh = &md2->model->meshes[meshnum];
+		mdlframe_t *frame;
+		tinyframe_t *tinyframe;
 		rsp_triangle_t triangle;
-		model_triangleVertex_t *vert;
 		float theta, cs, sn;
 		UINT16 i, j;
+		float scale = finalscale;
+
+		useTinyFrames = md2->model->meshes[meshnum].tinyframes != NULL;
+		if (useTinyFrames)
+		{
+			tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
+			scale *= (1.0f / 64.0f);
+		}
+		else
+			frame = &mesh->frames[frameIndex % mesh->numFrames];
 
 		// clear triangle struct
 		// avoid undefined behaviour.............
@@ -1353,7 +1271,6 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 			}
 			model_angle = FIXED_TO_FLOAT(mdlang);
 		}
-		model_angle += 180.0f;
 
 		// model angle in radians
 		theta = -(model_angle * M_PI / 180.0f);
@@ -1363,19 +1280,40 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 		y += md2->offset;
 
 		// render every triangle
-		for (i = 0; i < md2->model->header.numTriangles; ++i)
+		for (i = 0; i < mesh->numTriangles; i++)
 		{
-			for (j = 0; j < 3; ++j)
+			for (j = 0; j < 3; j++)
 			{
+				unsigned short idx = mesh->indices[(i * 3) + j];
 				float vx, vy, vz;
 				float mx, my, mz;
-				float s = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].s;
-				float t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
+				float s, t;
+				float *uv = mesh->uvs;
 
-				vert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
-				vx = (vert->vertex[0] * finalscale/2.0f);
-				vy = (vert->vertex[1] * finalscale/2.0f);
-				vz = (vert->vertex[2] * finalscale/2.0f);
+				if (useTinyFrames)
+				{
+					s = *(uv + (idx * 2));
+					t = *(uv + (idx * 2) + 1);
+				}
+				else
+				{
+					s = uv[((i * 6) + (j * 2))];
+					t = uv[((i * 6) + (j * 2)) + 1];
+				}
+
+				if (useTinyFrames)
+				{
+					short *vert = tinyframe->vertices;
+					vx = *(vert + (idx * 3)) * scale;
+					vy = *(vert + (idx * 3) + 1) * scale;
+					vz = *(vert + (idx * 3) + 2) * scale;
+				}
+				else
+				{
+					vx = frame->vertices[((i * 9) + (j * 3))	] * scale;
+					vy = frame->vertices[((i * 9) + (j * 3)) + 1] * scale;
+					vz = frame->vertices[((i * 9) + (j * 3)) + 2] * scale;
+				}
 
 				// QUICK MATHS
 				mx = (vx * cs) - (vy * sn);
@@ -1388,8 +1326,8 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 					-y + my
 				);
 
-				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
-				triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
+				triangle.vertices[j].uv.u = s;
+				triangle.vertices[j].uv.v = t;
 			}
 
 			triangle.texture = NULL;
@@ -1405,16 +1343,16 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, UINT32 framenum, float x, f
 		}
 	}
 
-	RSP_ClearDepthBuffer();
 	return true;
 }
 
-boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum, UINT32 nextframenum, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
+boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameIndex, INT32 nextFrameIndex, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
 {
 	rsp_md2_t *md2;
+	INT32 meshnum;
+	boolean useTinyFrames;
 	rsp_texture_t *texture, sprtex;
 	rsp_spritetexture_t *sprtexp;
-	model_frame_t *curr, *next;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
@@ -1423,9 +1361,6 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 	md2 = RSP_ModelAvailable(spritenum, skin);
 	if (!md2)
 		return false;
-
-	framenum %= md2->model->header.numFrames;
-	nextframenum %= md2->model->header.numFrames;
 
 	if (pol > 1.0f)
 		pol = 1.0f;
@@ -1455,7 +1390,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 	else
 		sprdef = &sprites[spritenum];
 
-	sprframe = &sprdef->spriteframes[framenum];
+	sprframe = &sprdef->spriteframes[frameIndex];
 
 	if (!texture->data)
 	{
@@ -1485,19 +1420,36 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 		texture = &sprtex;
 	}
 
-	//FIXME: this is not yet correct
-	curr = &md2->model->frames[framenum];
-	next = &md2->model->frames[nextframenum];
-
 	// SRB2CBTODO: MD2 scaling support
-	finalscale = md2->scale;
+	finalscale = md2->scale * 0.5f;
 
-	// Render individual triangles
+	// Render every mesh
+	for (meshnum = 0; meshnum < md2->model->numMeshes; meshnum++)
 	{
+		mesh_t *mesh = &md2->model->meshes[meshnum];
+		mdlframe_t *frame, *nextframe;
+		tinyframe_t *tinyframe, *tinynextframe;
 		rsp_triangle_t triangle;
-		model_triangleVertex_t *pvert, *nvert;
 		float theta, cs, sn;
 		UINT16 i, j;
+		float scale = finalscale;
+
+		useTinyFrames = md2->model->meshes[meshnum].tinyframes != NULL;
+		if (useTinyFrames)
+		{
+			tinyframe = &mesh->tinyframes[frameIndex % mesh->numFrames];
+			tinynextframe = &mesh->tinyframes[nextFrameIndex % mesh->numFrames];
+			scale *= (1.0f / 64.0f);
+			if (!tinynextframe)
+				continue;
+		}
+		else
+		{
+			frame = &mesh->frames[frameIndex % mesh->numFrames];
+			nextframe = &mesh->frames[nextFrameIndex % mesh->numFrames];
+			if (!nextframe)
+				continue;
+		}
 
 		// clear triangle struct
 		// avoid undefined behaviour.............
@@ -1522,7 +1474,6 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 			}
 			model_angle = FIXED_TO_FLOAT(mdlang);
 		}
-		model_angle += 180.0f;
 
 		// model angle in radians
 		theta = -(model_angle * M_PI / 180.0f);
@@ -1532,30 +1483,50 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 		y += md2->offset;
 
 		// render every triangle
-		for (i = 0; i < md2->model->header.numTriangles; ++i)
+		for (i = 0; i < mesh->numTriangles; i++)
 		{
-			for (j = 0; j < 3; ++j)
+			for (j = 0; j < 3; j++)
 			{
-				float px1, px2;
-				float py1, py2;
-				float pz1, pz2;
-				float mx1, mx2;
-				float my1, my2;
-				float mz1, mz2;
+				unsigned short idx = mesh->indices[(i * 3) + j];
+				float px1, py1, pz1;
+				float px2, py2, pz2;
+				float mx1, my1, mz1;
+				float mx2, my2, mz2;
 				float s, t;
+				float *uv = mesh->uvs;
+
+				if (useTinyFrames)
+				{
+					s = *(uv + (idx * 2));
+					t = *(uv + (idx * 2) + 1);
+				}
+				else
+				{
+					s = uv[((i * 6) + (j * 2))];
+					t = uv[((i * 6) + (j * 2)) + 1];
+				}
 
 				// Interpolate
-				pvert = &curr->vertices[md2->model->triangles[i].vertexIndices[j]];
-				nvert = &next->vertices[md2->model->triangles[i].vertexIndices[j]];
-
-				px1 = (pvert->vertex[0] * finalscale/2.0f);
-				px2 = (nvert->vertex[0] * finalscale/2.0f);
-				py1 = (pvert->vertex[1] * finalscale/2.0f);
-				py2 = (nvert->vertex[1] * finalscale/2.0f);
-				pz1 = (pvert->vertex[2] * finalscale/2.0f);
-				pz2 = (nvert->vertex[2] * finalscale/2.0f);
-				s = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].s;
-				t = (float)md2->model->texCoords[md2->model->triangles[i].textureIndices[j]].t;
+				if (useTinyFrames)
+				{
+					short *vert = tinyframe->vertices;
+					short *nvert = tinynextframe->vertices;
+					px1 = *(vert + (idx * 3)) * scale;
+					py1 = *(vert + (idx * 3) + 1) * scale;
+					pz1 = *(vert + (idx * 3) + 2) * scale;
+					px2 = *(nvert + (idx * 3)) * scale;
+					py2 = *(nvert + (idx * 3) + 1) * scale;
+					pz2 = *(nvert + (idx * 3) + 2) * scale;
+				}
+				else
+				{
+					px1 = frame->vertices		[((i * 9) + (j * 3))	] * scale;
+					py1 = frame->vertices		[((i * 9) + (j * 3)) + 1] * scale;
+					pz1 = frame->vertices		[((i * 9) + (j * 3)) + 2] * scale;
+					px2 = nextframe->vertices	[((i * 9) + (j * 3))	] * scale;
+					py2 = nextframe->vertices	[((i * 9) + (j * 3)) + 1] * scale;
+					pz2 = nextframe->vertices	[((i * 9) + (j * 3)) + 2] * scale;
+				}
 
 				// QUICK MATHS
 				mx1 = (px1 * cs) - (py1 * sn);
@@ -1572,8 +1543,8 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 					-y + (my1 + pol * (my2 - my1))
 				);
 
-				triangle.vertices[j].uv.u = (s + 0.5f) / md2->model->header.skinWidth;
-				triangle.vertices[j].uv.v = (t + 0.5f) / md2->model->header.skinHeight;
+				triangle.vertices[j].uv.u = s;
+				triangle.vertices[j].uv.v = t;
 			}
 
 			triangle.texture = NULL;
@@ -1589,6 +1560,5 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, UINT32 framenum
 		}
 	}
 
-	RSP_ClearDepthBuffer();
 	return true;
 }

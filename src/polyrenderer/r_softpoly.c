@@ -287,14 +287,13 @@ void RSP_DebugRender(INT32 model)
 		const INT32 nummonitors = 10;
 		const float distance = 40.0f;
 		for (i = 0; i < nummonitors; i++)
-			RSP_RenderModelSimple(SPR_YLTV+i, 0, ((-nummonitors/2 + i) * distance) + (distance / 2.0f), 0, 0, 0.0f, 0, NULL, false, true);
+			RSP_RenderModelSimple(SPR_YLTV+i, 0, ((-nummonitors/2 + i) * distance) + (distance / 2.0f), 0, 0, 0, 0, NULL, false, true);
 	}
 	// sign post
 	else if (model == 3)
 	{
-		RSP_RenderModelSimple(SPR_SIGN, states[S_SIGN53].frame + Color_Opposite[skincolour*2+1], 0, 0, 0, angle, Color_Opposite[skincolour*2], NULL, false, false);
-		RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, 0, 0, 24.0f, angle, skincolour, &skins[skinnum], false, false);
-		angle -= 2.0f;
+		RSP_RenderModelSimple(SPR_SIGN, states[S_SIGN53].frame + Color_Opposite[skincolour*2+1], 0, 0, 0, -90.0f, Color_Opposite[skincolour*2], NULL, false, false);
+		RSP_RenderModelSimple(SPR_PLAY, states[S_PLAY_SIGN].frame, 0, 0, 24.0f, -90.0f, skincolour, &skins[skinnum], false, false);
 	}
 
 	// restore the viewport!!!!!!!!!

@@ -118,11 +118,15 @@ set(SRB2_CORE_RENDER_SOURCES
 	r_data.c
 	r_draw.c
 	r_main.c
+	r_md2load.c
+	r_md3load.c
+	r_model.c
 	r_plane.c
 	r_segs.c
 	r_sky.c
 	r_splats.c
 	r_things.c
+	u_list.c
 
 	r_bsp.h
 	r_data.h
@@ -130,12 +134,16 @@ set(SRB2_CORE_RENDER_SOURCES
 	r_draw.h
 	r_local.h
 	r_main.h
+	r_md2load.h
+	r_md3load.h
+	r_model.h
 	r_plane.h
 	r_segs.h
 	r_sky.h
 	r_splats.h
 	r_state.h
 	r_things.h
+	u_list.h
 )
 
 set(SRB2_CORE_GAME_SOURCES
@@ -220,6 +228,8 @@ set(SRB2_CONFIG_HAVE_GME ON CACHE BOOL
 	"Enable GME support.")
 set(SRB2_CONFIG_HWRENDER ON CACHE BOOL
 	"Enable hardware rendering through OpenGL.")
+set(SRB2_CONFIG_SOFTPOLY ON CACHE BOOL
+	"Enable model rendering in software mode.")
 set(SRB2_CONFIG_USEASM OFF CACHE BOOL
 	"Enable NASM tmap implementation for software mode speedup.")
 set(SRB2_CONFIG_YASM OFF CACHE BOOL
@@ -421,6 +431,23 @@ if(${SRB2_CONFIG_HWRENDER})
 
 	set(SRB2_R_OPENGL_HEADERS
 		${CMAKE_CURRENT_SOURCE_DIR}/hardware/r_opengl/r_opengl.h
+	)
+
+endif()
+
+if(${SRB2_CONFIG_SOFTPOLY})
+	add_definitions(-DSOFTPOLY)
+	set(SRB2_SOFTPOLY_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/r_softpoly.c
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/rsp_draw.c
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/rsp_math.c
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/rsp_model.c
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/rsp_spans.c
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/rsp_tris.c
+	)
+
+	set (SRB2_SOFTPOLY_HEADERS
+		${CMAKE_CURRENT_SOURCE_DIR}/polyrenderer/r_softpoly.h
 	)
 
 endif()

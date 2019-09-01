@@ -292,7 +292,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\r_main.c" />
-    <ClCompile Include="..\r_model.c" />
     <ClCompile Include="..\r_plane.c" />
     <ClCompile Include="..\r_segs.c" />
     <ClCompile Include="..\r_sky.c" />
