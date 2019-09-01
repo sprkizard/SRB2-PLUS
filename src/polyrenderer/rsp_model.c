@@ -735,11 +735,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		return false;
 
 	// load sprite viewpoint
-	if (portalrender)
-	{
-		RSP_StoreViewpoint();
+	if (rsp_portalrender)
 		RSP_RestoreSpriteViewpoint(spr);
-	}
 
 	// transform the origin point
 	tr_x = mobj->x - viewx;
@@ -771,7 +768,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		if (!md2)
 		{
 			// restore previous viewpoint
-			if (portalrender)
+			if (rsp_portalrender)
 				RSP_RestoreViewpoint();
 			return false;
 		}
@@ -856,7 +853,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			if (!sprtexp)
 			{
 				// restore previous viewpoint
-				if (portalrender)
+				if (rsp_portalrender)
 					RSP_RestoreViewpoint();
 				return false;
 			}
@@ -1095,9 +1092,6 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		}
 	}
 
-	// restore previous viewpoint
-	if (portalrender)
-		RSP_RestoreViewpoint();
 	RSP_ClearDepthBuffer();
 	return true;
 }

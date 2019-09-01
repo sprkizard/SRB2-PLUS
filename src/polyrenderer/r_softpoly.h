@@ -195,10 +195,13 @@ void RSP_SetDrawerFunctions(void);
 void RSP_DebugRender(INT32 model);
 void RSP_ClearDepthBuffer(void);
 
+// PORTAL STUFF
 void RSP_StoreViewpoint(void);
 void RSP_RestoreViewpoint(void);
 void RSP_StoreSpriteViewpoint(vissprite_t *spr);
 void RSP_RestoreSpriteViewpoint(vissprite_t *spr);
+
+extern UINT8 rsp_portalrender;
 
 #include "../r_model.h"
 

@@ -1395,9 +1395,7 @@ static void R_ProjectSprite(mobj_t *thing)
 	vis->isScaled = false;
 
 #ifdef SOFTPOLY
-	if (portalrender)
-		RSP_StoreSpriteViewpoint(vis);
-
+	RSP_StoreSpriteViewpoint(vis);
 	if (!vis->model)		// not needed
 #endif // SOFTPOLY
 		if (thing->subsector->sector->numlights)

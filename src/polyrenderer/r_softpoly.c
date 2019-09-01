@@ -133,9 +133,11 @@ void RSP_OnFrame(void)
 	rsp_viewwindowx = viewwindowx;
 	rsp_viewwindowy = viewwindowy;
 	rsp_target.aiming = true;
+	rsp_portalrender = 0;
 }
 
 // PORTAL STUFF
+UINT8 rsp_portalrender;
 
 // Store the current viewpoint
 void RSP_StoreViewpoint(void)
