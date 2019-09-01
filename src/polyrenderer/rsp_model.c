@@ -724,7 +724,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	INT32 meshnum;
 
 	// Not funny iD Software, didn't laugh.
-	unsigned short idx;
+	unsigned short idx = 0;
 	boolean useTinyFrames;
 
 	float tr_x, tr_y;
@@ -1169,7 +1169,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 	float finalscale;
 
 	// Not funny iD Software, didn't laugh.
-	unsigned short idx;
+	unsigned short idx = 0;
 	boolean useTinyFrames;
 
 	UINT8 *translation = NULL;
@@ -1357,7 +1357,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 	float finalscale;
 
 	// Not funny iD Software, didn't laugh.
-	unsigned short idx;
+	unsigned short idx = 0;
 	boolean useTinyFrames;
 
 	UINT8 *translation = NULL;
