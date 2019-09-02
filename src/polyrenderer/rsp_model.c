@@ -887,22 +887,22 @@ boolean RSP_RenderModel(vissprite_t *spr)
 					//next = &md2->model->meshes[0].frames[nextFrame];
 				}
 			}
+
+			// don't interpolate if instantaneous or infinite in length
+			if (durs != 0 && durs != -1 && tics != -1)
+			{
+				UINT32 newtime = (durs - tics);
+				pol = (newtime)/(float)durs;
+				if (pol > 1.0f)
+					pol = 1.0f;
+				if (pol < 0.0f)
+					pol = 0.0f;
+			}
 		}
 
 		// SRB2CBTODO: MD2 scaling support
 		finalscale = md2->scale * FIXED_TO_FLOAT(mobj->scale);
 		finalscale *= 0.5f;
-
-		// don't interpolate if instantaneous or infinite in length
-		if (durs != 0 && durs != -1 && tics != -1)
-		{
-			UINT32 newtime = (durs - tics);
-			pol = (newtime)/(float)durs;
-			if (pol > 1.0f)
-				pol = 1.0f;
-			if (pol < 0.0f)
-				pol = 0.0f;
-		}
 
 		// Render every mesh
 		for (meshnum = 0; meshnum < md2->model->numMeshes; meshnum++)
@@ -1008,7 +1008,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						t = uv[UV_OFFSET+1];
 					}
 
-					if (!nextframe || fpclassify(pol) == FP_ZERO)
+					if (!(nextframe || tinynextframe) || fpclassify(pol) == FP_ZERO)
 					{
 						float vx, vy, vz;
 						float mx, my, mz;
@@ -1077,9 +1077,9 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						mz2 = pz2 * (flip ? -1 : 1);
 
 						RSP_MakeVector4(triangle.vertices[j].position,
-							 x + (mx1 + pol * (mx2 - mx1)),
-							-z + (mz1 + pol * (mz2 - mz1)),
-							-y + (my1 + pol * (my2 - my1))
+							 x + FloatLerp(mx1, mx2, pol),
+							-z + FloatLerp(mz1, mz2, pol),
+							-y + FloatLerp(my1, my2, pol)
 						);
 					}
 
@@ -1545,9 +1545,9 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 				mz2 = pz2 * (flip ? -1 : 1);
 
 				RSP_MakeVector4(triangle.vertices[j].position,
-					 x + (mx1 + pol * (mx2 - mx1)),
-					-z + (mz1 + pol * (mz2 - mz1)),
-					-y + (my1 + pol * (my2 - my1))
+					 x + FloatLerp(mx1, mx2, pol),
+					-z + FloatLerp(mz1, mz2, pol),
+					-y + FloatLerp(my1, my2, pol)
 				);
 
 				triangle.vertices[j].uv.u = s;
