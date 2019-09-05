@@ -192,9 +192,8 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 	// transform x and y of each vertex to screen coordinates
 	#define TRANSFORM_VERTEX(vertex) \
 	{ \
-		vertex.position.z /= aspect; \
-		vertex.position.x /= vertex.position.z; \
-		vertex.position.y /= vertex.position.z; \
+		vertex.position.x /= (vertex.position.z / aspect); \
+		vertex.position.y /= (vertex.position.z / aspect); \
 		vertex.position.x = ((vertex.position.x + 1.0f) / 2.0f) * rsp_target.width; \
 		vertex.position.y = ((vertex.position.y + 1.0f) / 2.0f) * rsp_target.height; \
 	}
