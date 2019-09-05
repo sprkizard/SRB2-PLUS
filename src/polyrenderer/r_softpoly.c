@@ -37,9 +37,10 @@ void RSP_Init(void)
 // make the viewport, after resolution change
 void RSP_Viewport(INT32 width, INT32 height, boolean sscreen)
 {
-	const float den = 1.7f;
-	float fov = 90.0f - (48.0f / den);
+	float fov = 90.0f;
+#ifdef ASPECTRATIO
 	float aspecty = (BASEVIDHEIGHT * vid.dupy);
+#endif
 
 	// viewport width and height
 	rsp_target.width = width;
@@ -48,10 +49,16 @@ void RSP_Viewport(INT32 width, INT32 height, boolean sscreen)
 	// viewport aspect ratio and fov
 	if (sscreen)
 	{
-		fov /= den;
+		fov /= 2.0f;
+#ifdef ASPECTRATIO
 		aspecty /= 2.0f;
+#endif
 	}
+#ifdef ASPECTRATIO
 	rsp_target.aspectratio = ((float)(BASEVIDWIDTH * vid.dupx) / aspecty);
+#else
+	rsp_target.aspectratio = (float)rsp_target.width / (float)rsp_target.height;
+#endif
 	rsp_target.fov = fov;
 	fov *= (M_PI / 180.f);
 
@@ -274,7 +281,7 @@ void RSP_DebugRender(INT32 model)
 			nextframe = FixedInt(frame+FRACUNIT) % numframes;
 			nextframenum = states[S_PLAY_RUN1+nextframe].frame;
 			pol = FIXED_TO_FLOAT(frame % FRACUNIT);
-			RSP_RenderInterpolatedModelSimple(SPR_PLAY, curframenum, nextframenum, pol, 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);
+			RSP_RenderInterpolatedModelSimple(SPR_PLAY, curframenum, nextframenum, pol, (cv_modelinterpolation.value == 2), 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);
 		}
 		else
 			RSP_RenderModelSimple(SPR_PLAY, curframenum, 0, 0, 0, angle, skincolour, &skins[skinnum], false, false);

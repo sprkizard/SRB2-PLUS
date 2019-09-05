@@ -54,12 +54,17 @@ void RSP_DrawTranslucentPixel(void)
 {
 	INT16 xpix = 0, ypix = 0;
 	UINT8 *dest;
+	fixed_t *depth;
 	UINT8 pixel = rsp_cpix;
 
 	if (!rsp_tpix)
 		I_Error("RSP_DrawTranslucentPixel: NULL transmap");
 
 	if (rsp_xpix >= rsp_target.width || rsp_xpix < 0 || rsp_ypix >= rsp_target.height || rsp_ypix < 0)
+		return;
+
+	depth = rsp_target.depthbuffer + (rsp_xpix + rsp_ypix * rsp_target.width);
+	if (*depth >= rsp_zpix)
 		return;
 
 	xpix = (rsp_xpix + rsp_viewwindowx);
@@ -69,4 +74,5 @@ void RSP_DrawTranslucentPixel(void)
 
 	dest = screens[0] + (ypix * vid.width) + xpix;
 	*dest = *(rsp_tpix + ((UINT8)pixel<<8) + *dest);
+	*depth = rsp_zpix;
 }

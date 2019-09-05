@@ -229,7 +229,7 @@ model_t *RSP_LoadModel(const char *filename);
 rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin);
 boolean RSP_RenderModel(vissprite_t *spr);
 boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard);
-boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameIndex, INT32 nextFrameIndex, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard);
+boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameIndex, INT32 nextFrameIndex, float pol, boolean alwaysinterpolate, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard);
 
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);

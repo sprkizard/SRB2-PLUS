@@ -880,8 +880,17 @@ static void HWR_GetBlendedTexture(GLPatch_t *gpatch, GLPatch_t *blendgpatch, con
 	res?
 	run?
 	*/
+
 #define NORMALFOG 0x00000000
 #define FADEFOG 0x19000000
+
+static boolean HWR_CanInterpolateModel(mobj_t *mobj, model_t *model)
+{
+	if (cv_modelinterpolation.value == 2)
+		return true;
+	return model->interpolate[(mobj->frame & FF_FRAMEMASK)];
+}
+
 void HWR_DrawMD2(gr_vissprite_t *spr)
 {
 	FSurfaceInfo Surf;
@@ -1032,7 +1041,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 		frame = (spr->mobj->frame & FF_FRAMEMASK) % md2->model->meshes[0].numFrames;
 
 #ifdef USE_MODEL_NEXTFRAME
-		if (cv_modelinterpolation.value && tics <= durs)
+		if (HWR_CanInterpolateModel(spr->mobj, md2->model) && tics <= durs)
 		{
 			// frames are handled differently for states with FF_ANIMATE, so get the next frame differently for the interpolation
 			if (spr->mobj->frame & FF_ANIMATE)

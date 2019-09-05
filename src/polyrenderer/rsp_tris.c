@@ -176,9 +176,14 @@ void RSP_ClipTriangle(rsp_triangle_t *tri)
 
 void RSP_DrawTriangle(rsp_triangle_t *tri)
 {
+	float aspect = 1.0;
 	rsp_vertex_t v0 = tri->vertices[0];
 	rsp_vertex_t v1 = tri->vertices[1];
 	rsp_vertex_t v2 = tri->vertices[2];
+
+#ifndef ASPECTRATIO
+	aspect = (float)rsp_target.width / (float)rsp_target.height;
+#endif
 
 	// avoid a crash here
 	if (!rsp_curtrifunc)
@@ -187,6 +192,7 @@ void RSP_DrawTriangle(rsp_triangle_t *tri)
 	// transform x and y of each vertex to screen coordinates
 	#define TRANSFORM_VERTEX(vertex) \
 	{ \
+		vertex.position.z /= aspect; \
 		vertex.position.x /= vertex.position.z; \
 		vertex.position.y /= vertex.position.z; \
 		vertex.position.x = ((vertex.position.x + 1.0f) / 2.0f) * rsp_target.width; \

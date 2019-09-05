@@ -1060,6 +1060,13 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 #define VERTEX_OFFSET   ((i * 9) + (j * 3))		/* (i * 9) = (XYZ coords * vertex count) */
 #define UV_OFFSET       ((i * 6) + (j * 2))		/* (i * 6) = (UV coords * vertex count) */
 
+static boolean RSP_CanInterpolateModel(mobj_t *mobj, model_t *model)
+{
+	if (cv_modelinterpolation.value == 2)
+		return true;
+	return model->interpolate[(mobj->frame & FF_FRAMEMASK)];
+}
+
 boolean RSP_RenderModel(vissprite_t *spr)
 {
 	INT32 frameIndex;
@@ -1218,7 +1225,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		//FIXME: this is not yet correct
 		frameIndex = (mobj->frame & FF_FRAMEMASK) % md2->model->meshes[0].numFrames;
 
-		if (cv_modelinterpolation.value && tics <= durs)
+		if (RSP_CanInterpolateModel(mobj, md2->model) && tics <= durs)
 		{
 			// frames are handled differently for states with FF_ANIMATE, so get the next frame differently for the interpolation
 			if (mobj->frame & FF_ANIMATE)
@@ -1702,7 +1709,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 	return true;
 }
 
-boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameIndex, INT32 nextFrameIndex, float pol, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
+boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameIndex, INT32 nextFrameIndex, float pol, boolean alwaysinterpolate, float x, float y, float z, float model_angle, skincolors_t skincolor, skin_t *skin, boolean flip, boolean billboard)
 {
 	rsp_md2_t *md2;
 	INT32 meshnum;
@@ -1786,6 +1793,9 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 
 	// SRB2CBTODO: MD2 scaling support
 	finalscale = md2->scale * 0.5f;
+
+	if ((!alwaysinterpolate) && (!md2->model->interpolate[frameIndex]))
+		nextFrameIndex = frameIndex;
 
 	// Render every mesh
 	for (meshnum = 0; meshnum < md2->model->numMeshes; meshnum++)

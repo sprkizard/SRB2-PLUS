@@ -61,11 +61,11 @@ fixed_t centerxfrac, centeryfrac;
 fixed_t projection;
 fixed_t projectiony; // aspect ratio
 
-#ifdef SOFTPOLY
+#ifdef ASPECTRATIO
 fixed_t planeaspectratio;
 float slopeaspectratio;
 boolean bigstretchy;
-#endif // SOFTPOLY
+#endif
 
 // just for profiling purposes
 size_t framecount;
@@ -615,7 +615,7 @@ void R_ExecuteSetViewSize(void)
 	centeryfrac = centery<<FRACBITS;
 
 	// aspect ratio
-#ifdef SOFTPOLY
+#ifdef ASPECTRATIO
 	bigstretchy = (cv_models.value);
 	if (bigstretchy)
 	{
@@ -624,8 +624,8 @@ void R_ExecuteSetViewSize(void)
 		slopeaspectratio = (float)vid.width * BASEVIDHEIGHT / BASEVIDWIDTH / vid.height;
 	}
 	else
-#endif // SOFTPOLY
-	projectiony = centerxfrac;
+#endif
+		projectiony = centerxfrac;
 	projection = centerxfrac;
 
 	R_InitViewBuffer(scaledviewwidth, viewheight);

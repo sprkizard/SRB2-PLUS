@@ -538,4 +538,9 @@ extern const char *compdate, *comptime, *comprevision, *compbranch;
 ///      	SRB2CB itself ported this from PrBoom+
 #define NEWCLIP
 
+/// Polygon renderer specific defines
+#ifdef SOFTPOLY
+//#define ASPECTRATIO
+#endif
+
 #endif // __DOOMDEF__
