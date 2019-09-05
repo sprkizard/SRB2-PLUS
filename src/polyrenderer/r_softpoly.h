@@ -234,8 +234,8 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);
 
-void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor);
-void RSP_LoadModelTexture(rsp_md2_t *model);
+void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor);
+void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum);
 void RSP_LoadModelBlendTexture(rsp_md2_t *model);
 void RSP_FreeModelTexture(rsp_md2_t *model);
 void RSP_FreeModelBlendTexture(rsp_md2_t *model);

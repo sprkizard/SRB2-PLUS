@@ -196,7 +196,19 @@ static int PNG_Load(const char *filename, int *w, int *h, rsp_modeltexture_t *te
 }
 #endif
 
-void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
+// Define for getting accurate color brightness readings according to how the human eye sees them.
+// https://en.wikipedia.org/wiki/Relative_luminance
+// 0.2126 to red
+// 0.7152 to green
+// 0.0722 to blue
+// (See this same define in hw_md2.c!)
+#define SETBRIGHTNESS(brightness,r,g,b) \
+	brightness = (UINT8)(((1063*(UINT16)(r))/5000) + ((3576*(UINT16)(g))/5000) + ((361*(UINT16)(b))/5000))
+
+//#define HAVETCRAINDBOW
+#define SKIN_RAMP_LENGTH 16
+
+void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 {
 	rsp_modeltexture_t *texture = model->texture;
 	size_t i, size = 0;
@@ -204,6 +216,38 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 	// get texture size
 	if (texture)
 		size = (texture->width * texture->height);
+
+	// vanilla port
+	UINT8 translation[SKIN_RAMP_LENGTH];
+	const UINT8 skinbasecolors[] = {
+		0x00, // SKINCOLOR_WHITE
+		0x03, // SKINCOLOR_SILVER
+		0x08, // SKINCOLOR_GREY
+		0x18, // SKINCOLOR_BLACK
+		0xd0, // SKINCOLOR_CYAN
+		0xdc, // SKINCOLOR_TEAL
+		0xc8, // SKINCOLOR_STEELBLUE
+		0xe2, // SKINCOLOR_BLUE
+		0x40, // SKINCOLOR_PEACH
+		0x48, // SKINCOLOR_TAN
+		0x90, // SKINCOLOR_PINK
+		0xf8, // SKINCOLOR_LAVENDER
+		0xc0, // SKINCOLOR_PURPLE
+		0x52, // SKINCOLOR_ORANGE
+		0x5c, // SKINCOLOR_ROSEWOOD
+		0x20, // SKINCOLOR_BEIGE
+		0x30, // SKINCOLOR_BROWN
+		0x7d, // SKINCOLOR_RED
+		0x85, // SKINCOLOR_DARKRED
+		0xb8, // SKINCOLOR_NEONGREEN
+		0xa0, // SKINCOLOR_GREEN
+		0xb0, // SKINCOLOR_ZIM
+		0x69, // SKINCOLOR_OLIVE
+		0x67, // SKINCOLOR_YELLOW
+		0x70, // SKINCOLOR_GOLD
+	};
+
+	memset(translation, 0, sizeof(translation));
 
 	// base texture
 	if (!skincolor)
@@ -220,10 +264,46 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 			Z_Free(model->rsp_tex.data);
 		model->rsp_tex.data = Z_Calloc(size, PU_SOFTPOLY, NULL);
 
+		if (skinnum < TC_DEFAULT)
+		{
+			model->rsp_transtex[skincolor].width = texture->width;
+			model->rsp_transtex[skincolor].height = texture->height;
+			model->rsp_transtex[skincolor].data = Z_Calloc(size, PU_SOFTPOLY, NULL);
+		}
+
 		for (i = 0; i < size; i++)
 		{
 			if (image[i].s.alpha < 1)
 				model->rsp_tex.data[i] = TRANSPARENTPIXEL;
+			else if (skinnum == TC_BOSS)
+			{
+				// Pure black turns into white
+				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue == 0)
+				{
+					model->rsp_transtex[skincolor].data[i] = 0;
+				}
+				else
+				{
+					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
+				}
+			}
+			else if (skinnum == TC_METALSONIC)
+			{
+				// Turn everything below a certain blue threshold white
+				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue <= 82)
+				{
+					model->rsp_transtex[skincolor].data[i] = 0;
+				}
+				else
+				{
+					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
+				}
+			}
+			else if (skinnum == TC_ALLWHITE)
+			{
+				// Turn everything white
+				model->rsp_transtex[skincolor].data[i] = 0;
+			}
 			else
 				model->rsp_tex.data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
 		}
@@ -246,134 +326,216 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 		model->rsp_transtex[skincolor].height = texture->height;
 		model->rsp_transtex[skincolor].data = Z_Calloc(size, PU_SOFTPOLY, NULL);
 
-		switch (skincolor)		// color
+		blendcolor = V_GetColor(0); // initialize
+		if (skincolor != SKINCOLOR_NONE)
 		{
-			case SKINCOLOR_WHITE:
-				blendcolor = V_GetColor(3);
-				break;
-			case SKINCOLOR_SILVER:
-				blendcolor = V_GetColor(10);
-				break;
-			case SKINCOLOR_GREY:
-				blendcolor = V_GetColor(15);
-				break;
-			case SKINCOLOR_BLACK:
-				blendcolor = V_GetColor(27);
-				break;
-			case SKINCOLOR_CYAN:
-				blendcolor = V_GetColor(215);
-				break;
-			case SKINCOLOR_TEAL:
-				blendcolor = V_GetColor(221);
-				break;
-			case SKINCOLOR_STEELBLUE:
-				blendcolor = V_GetColor(203);
-				break;
-			case SKINCOLOR_BLUE:
-				blendcolor = V_GetColor(232);
-				break;
-			case SKINCOLOR_PEACH:
-				blendcolor = V_GetColor(71);
-				break;
-			case SKINCOLOR_TAN:
-				blendcolor = V_GetColor(79);
-				break;
-			case SKINCOLOR_PINK:
-				blendcolor = V_GetColor(147);
-				break;
-			case SKINCOLOR_LAVENDER:
-				blendcolor = V_GetColor(251);
-				break;
-			case SKINCOLOR_PURPLE:
-				blendcolor = V_GetColor(195);
-				break;
-			case SKINCOLOR_ORANGE:
-				blendcolor = V_GetColor(87);
-				break;
-			case SKINCOLOR_ROSEWOOD:
-				blendcolor = V_GetColor(94);
-				break;
-			case SKINCOLOR_BEIGE:
-				blendcolor = V_GetColor(40);
-				break;
-			case SKINCOLOR_BROWN:
-				blendcolor = V_GetColor(57);
-				break;
-			case SKINCOLOR_RED:
-				blendcolor = V_GetColor(130);
-				break;
-			case SKINCOLOR_DARKRED:
-				blendcolor = V_GetColor(139);
-				break;
-			case SKINCOLOR_NEONGREEN:
-				blendcolor = V_GetColor(184);
-				break;
-			case SKINCOLOR_GREEN:
-				blendcolor = V_GetColor(166);
-				break;
-			case SKINCOLOR_ZIM:
-				blendcolor = V_GetColor(180);
-				break;
-			case SKINCOLOR_OLIVE:
-				blendcolor = V_GetColor(108);
-				break;
-			case SKINCOLOR_YELLOW:
-				blendcolor = V_GetColor(104);
-				break;
-			case SKINCOLOR_GOLD:
-				blendcolor = V_GetColor(115);
-				break;
+			// -----------------------------------------------------------------
+			// Sal: BECAUSE SRB2 SUCKS AND TRIES TO GENERATE THESE ON DEMAND
+			// INSTEAD OF JUST COMPILING THEM ALL INTO A TABLE LIKE KART DOES IT
+			// I HAVE TO USE ALL OF THIS DUPLICATED CODE FROM R_DRAW
+			// AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+			// -----------------------------------------------------------------
 
-			case SKINCOLOR_SUPER1:
-				blendcolor = V_GetColor(97);
-				break;
-			case SKINCOLOR_SUPER2:
-				blendcolor = V_GetColor(100);
-				break;
-			case SKINCOLOR_SUPER3:
-				blendcolor = V_GetColor(103);
-				break;
-			case SKINCOLOR_SUPER4:
-				blendcolor = V_GetColor(113);
-				break;
-			case SKINCOLOR_SUPER5:
-				blendcolor = V_GetColor(116);
-				break;
+			switch (skincolor)
+			{
+				case SKINCOLOR_SILVER:
+				case SKINCOLOR_GREY:
+				case SKINCOLOR_PEACH:
+				case SKINCOLOR_BEIGE:
+				case SKINCOLOR_BROWN:
+				case SKINCOLOR_RED:
+				case SKINCOLOR_GREEN:
+				case SKINCOLOR_BLUE:
+					// 16 color ramp
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + i);
+					break;
 
-			case SKINCOLOR_TSUPER1:
-				blendcolor = V_GetColor(81);
-				break;
-			case SKINCOLOR_TSUPER2:
-				blendcolor = V_GetColor(82);
-				break;
-			case SKINCOLOR_TSUPER3:
-				blendcolor = V_GetColor(84);
-				break;
-			case SKINCOLOR_TSUPER4:
-				blendcolor = V_GetColor(85);
-				break;
-			case SKINCOLOR_TSUPER5:
-				blendcolor = V_GetColor(87);
-				break;
+				case SKINCOLOR_ORANGE:
+					// 14 colors of orange + brown
+					for (i = 0; i < SKIN_RAMP_LENGTH-2; i++)
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + i);
+					for (i = 0; i < 2; i++)
+						translation[i+SKIN_RAMP_LENGTH-2] = (UINT8)(152 + i);
+					break;
 
-			case SKINCOLOR_KSUPER1:
-				blendcolor = V_GetColor(122);
-				break;
-			case SKINCOLOR_KSUPER2:
-				blendcolor = V_GetColor(123);
-				break;
-			case SKINCOLOR_KSUPER3:
-				blendcolor = V_GetColor(124);
-				break;
-			case SKINCOLOR_KSUPER4:
-				blendcolor = V_GetColor(125);
-				break;
-			case SKINCOLOR_KSUPER5:
-				blendcolor = V_GetColor(126);
-				break;
-			default:
-				blendcolor = V_GetColor(247);
-				break;
+				case SKINCOLOR_CYAN:
+					// 12 color ramp
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + (12*i/SKIN_RAMP_LENGTH));
+					break;
+
+				case SKINCOLOR_WHITE:
+				case SKINCOLOR_BLACK:
+				case SKINCOLOR_STEELBLUE:
+				case SKINCOLOR_PINK:
+				case SKINCOLOR_LAVENDER:
+				case SKINCOLOR_PURPLE:
+				case SKINCOLOR_DARKRED:
+				case SKINCOLOR_ZIM:
+				case SKINCOLOR_YELLOW:
+				case SKINCOLOR_GOLD:
+					// 8 color ramp
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + (i >> 1));
+					break;
+
+				case SKINCOLOR_TEAL:
+					// 5 color ramp
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+					{
+						if (5*i/16 == 0)
+							translation[i] = 0xf7;
+						else
+							translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + (5*i/SKIN_RAMP_LENGTH) - 1);
+					}
+					break;
+
+				case SKINCOLOR_OLIVE:
+					// 7 color ramp
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + (7*i/SKIN_RAMP_LENGTH));
+					break;
+
+				case SKINCOLOR_TAN:
+					// 16 color ramp, from two color ranges
+					for (i = 0; i < SKIN_RAMP_LENGTH/2; i++) // Peach half
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + i);
+					for (i = 0; i < SKIN_RAMP_LENGTH/2; i++) // Brown half
+						translation[i+8] = (UINT8)(48 + i);
+					break;
+
+				case SKINCOLOR_ROSEWOOD:
+					// 12 color ramp, from two color ranges!
+					for (i = 0; i < 6; i++) // Orange ...third?
+						translation[i] = (UINT8)(skinbasecolors[skincolor - 1] + (12*i/SKIN_RAMP_LENGTH));
+					for (i = 0; i < 10; i++) // Rosewood two-thirds-ish
+						translation[i+6] = (UINT8)(152 + (12*i/SKIN_RAMP_LENGTH));
+					break;
+
+				case SKINCOLOR_NEONGREEN:
+					// Multi-color ramp
+					translation[0] = 0xA0; // Brighter green
+					for (i = 0; i < SKIN_RAMP_LENGTH-1; i++) // Neon Green
+						translation[i+1] = (UINT8)(skinbasecolors[skincolor - 1] + (6*i/(SKIN_RAMP_LENGTH-1)));
+					break;
+
+				// Super colors, from lightest to darkest!
+				case SKINCOLOR_SUPER1:
+					// Super White
+					for (i = 0; i < 10; i++)
+						translation[i] = 120; // True white
+					for (; i < SKIN_RAMP_LENGTH; i++) // White-yellow fade
+						translation[i] = (UINT8)(96 + (i-10));
+					break;
+
+				case SKINCOLOR_SUPER2:
+					// Super Bright
+					for (i = 0; i < 5; i++) // White-yellow fade
+						translation[i] = (UINT8)(96 + i);
+					translation[5] = 112; // Golden shine
+					for (i = 0; i < 8; i++) // Yellow
+						translation[i+6] = (UINT8)(101 + (i>>1));
+					for (i = 0; i < 2; i++) // With a fine golden finish! :3
+						translation[i+14] = (UINT8)(113 + i);
+					break;
+
+				case SKINCOLOR_SUPER3:
+					// Super Yellow
+					for (i = 0; i < 3; i++) // White-yellow fade
+						translation[i] = (UINT8)(98 + i);
+					translation[3] = 112; // Golden shine
+					for (i = 0; i < 8; i++) // Yellow
+						translation[i+4] = (UINT8)(101 + (i>>1));
+					for (i = 0; i < 4; i++) // With a fine golden finish! :3
+						translation[i+12] = (UINT8)(113 + i);
+					break;
+
+				case SKINCOLOR_SUPER4:
+					// "The SSNTails"
+					translation[0] = 112; // Golden shine
+					for (i = 0; i < 8; i++) // Yellow
+						translation[i+1] = (UINT8)(101 + (i>>1));
+					for (i = 0; i < 7; i++) // With a fine golden finish! :3
+						translation[i+9] = (UINT8)(113 + i);
+					break;
+
+				case SKINCOLOR_SUPER5:
+					// Golden Delicious
+					for (i = 0; i < 8; i++) // Yellow
+						translation[i] = (UINT8)(101 + (i>>1));
+					for (i = 0; i < 7; i++) // With a fine golden finish! :3
+						translation[i+8] = (UINT8)(113 + i);
+					translation[15] = 155;
+					break;
+
+				// Super Tails
+				case SKINCOLOR_TSUPER1:
+					for (i = 0; i < 10; i++) // white
+						translation[i] = 120;
+					for (; i < SKIN_RAMP_LENGTH; i++) // orange
+						translation[i] = (UINT8)(80 + (i-10));
+					break;
+
+				case SKINCOLOR_TSUPER2:
+					for (i = 0; i < 4; i++) // white
+						translation[i] = 120;
+					for (; i < SKIN_RAMP_LENGTH; i++) // orange
+						translation[i] = (UINT8)(80 + ((i-4)>>1));
+					break;
+
+				case SKINCOLOR_TSUPER3:
+					translation[0] = 120; // pure white
+					translation[1] = 120;
+					for (i = 2; i < SKIN_RAMP_LENGTH; i++) // orange
+						translation[i] = (UINT8)(80 + ((i-2)>>1));
+					break;
+
+				case SKINCOLOR_TSUPER4:
+					translation[0] = 120; // pure white
+					for (i = 1; i < 9; i++) // orange
+						translation[i] = (UINT8)(80 + (i-1));
+					for (; i < SKIN_RAMP_LENGTH; i++) // gold
+						translation[i] = (UINT8)(115 + (5*(i-9)/7));
+					break;
+
+				case SKINCOLOR_TSUPER5:
+					for (i = 0; i < 8; i++) // orange
+						translation[i] = (UINT8)(80 + i);
+					for (; i < SKIN_RAMP_LENGTH; i++) // gold
+						translation[i] = (UINT8)(115 + (5*(i-8)/8));
+					break;
+
+				// Super Knuckles
+				case SKINCOLOR_KSUPER1:
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(120 + (i >> 2));
+					break;
+
+				case SKINCOLOR_KSUPER2:
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(120 + (6*i/SKIN_RAMP_LENGTH));
+					break;
+
+				case SKINCOLOR_KSUPER3:
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(120 + (i >> 1));
+					break;
+
+				case SKINCOLOR_KSUPER4:
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(121 + (i >> 1));
+					break;
+
+				case SKINCOLOR_KSUPER5:
+					for (i = 0; i < SKIN_RAMP_LENGTH; i++)
+						translation[i] = (UINT8)(122 + (i >> 1));
+					break;
+
+				default:
+					I_Error("Invalid skin color #%hu.", (UINT16)skincolor);
+					break;
+			}
 		}
 
 		for (i = 0; i < size; i++)
@@ -381,39 +543,221 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skincolor)
 			RGBA_t *image = texture->data;
 			RGBA_t *blendimage = blendtexture->data;
 
-			INT32 red, green, blue;
-			INT32 tempcolor;
-			INT16 tempmult, tempalpha;
-
-			if (!blendimage)
-				return;
-
-			if (blendimage[i].s.alpha == 0)
+			if (image[i].s.alpha < 1)
+				model->rsp_transtex[skincolor].data[i] = TRANSPARENTPIXEL;
+			else if (skinnum == TC_BOSS)
 			{
-				model->rsp_transtex[skincolor].data[i] = model->rsp_tex.data[i];
-				continue;
+				// Pure black turns into white
+				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue == 0)
+				{
+					model->rsp_transtex[skincolor].data[i] = 0;
+				}
+				else
+				{
+					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
+				}
 			}
+			else if (skinnum == TC_METALSONIC)
+			{
+				// Turn everything below a certain blue threshold white
+				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue <= 82)
+				{
+					model->rsp_transtex[skincolor].data[i] = 0;
+				}
+				else
+				{
+					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
+				}
+			}
+			else if (skinnum == TC_ALLWHITE)
+			{
+				// Turn everything white
+				model->rsp_transtex[skincolor].data[i] = 0;
+			}
+			else
+			{
+				UINT16 brightness;
 
-			tempalpha = -(abs(blendimage[i].s.red-127)-127)*2;
-			if (tempalpha > 255)
-				tempalpha = 255;
-			else if (tempalpha < 0)
-				tempalpha = 0;
+				// Don't bother with blending the pixel if the alpha of the blend pixel is 0
+#ifdef HAVETCRAINDBOW
+				if (skinnum == TC_RAINBOW)
+				{
+					if (image[i].s.alpha == 0 && blendimage[i].s.alpha == 0)
+					{
+						model->rsp_transtex[skincolor].data[i] = TRANSPARENTPIXEL;
+						continue;
+					}
+					else
+					{
+						UINT16 imagebright, blendbright;
+						SETBRIGHTNESS(imagebright,image[i].s.red,image[i].s.green,image[i].s.blue);
+						SETBRIGHTNESS(blendbright,blendimage[i].s.red,blendimage[i].s.green,blendimage[i].s.blue);
+						// slightly dumb average between the blend image color and base image colour, usually one or the other will be fully opaque anyway
+						brightness = (imagebright*(255-blendimage[i].s.alpha))/255 + (blendbright*blendimage[i].s.alpha)/255;
+					}
+				}
+				else
+#endif
+				{
+					if (blendimage[i].s.alpha == 0)
+					{
+						model->rsp_transtex[skincolor].data[i] = model->rsp_tex.data[i];
+						continue;
+					}
+					else
+					{
+						SETBRIGHTNESS(brightness,blendimage[i].s.red,blendimage[i].s.green,blendimage[i].s.blue);
+					}
+				}
 
-			tempmult = (blendimage[i].s.red-127)*2;
-			if (tempmult > 255)
-				tempmult = 255;
-			else if (tempmult < 0)
-				tempmult = 0;
+				// Calculate a sort of "gradient" for the skincolor
+				// (Me splitting this into a function didn't work, so I had to ruin this entire function's groove...)
+				{
+					RGBA_t nextcolor;
+					UINT8 firsti, secondi, mul;
+					UINT32 r, g, b;
 
-			tempcolor = (image[i].s.red*(255-blendimage[i].s.alpha))/255 + ((tempmult + ((tempalpha*blendcolor.s.red)/255)) * blendimage[i].s.alpha)/255;
-			red = (UINT8)tempcolor;
-			tempcolor = (image[i].s.green*(255-blendimage[i].s.alpha))/255 + ((tempmult + ((tempalpha*blendcolor.s.green)/255)) * blendimage[i].s.alpha)/255;
-			green = (UINT8)tempcolor;
-			tempcolor = (image[i].s.blue*(255-blendimage[i].s.alpha))/255 + ((tempmult + ((tempalpha*blendcolor.s.blue)/255)) * blendimage[i].s.alpha)/255;
-			blue = (UINT8)tempcolor;
+#ifdef HAVETCRAINDBOW
+					// Rainbow needs to find the closest match to the textures themselves, instead of matching brightnesses to other colors.
+					// Ensue horrible mess.
+					if (skinnum == TC_RAINBOW)
+					{
+						UINT16 brightdif = 256;
+						UINT8 colorbrightnesses[16];
+						INT32 compare, m, d;
+						UINT8 i;
 
-			model->rsp_transtex[skincolor].data[i] = NearestColor(red, green, blue);
+						// Ignore pure white & pitch black
+						if (brightness > 253 || brightness < 2)
+						{
+							model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red,image[i].s.green,image[i].s.blue);
+							continue;
+						}
+
+						firsti = 0;
+						mul = 0;
+
+						for (i = 0; i < 16; i++)
+						{
+							RGBA_t tempc = V_GetColor(translation[i]);
+							SETBRIGHTNESS(colorbrightnesses[i], tempc.s.red, tempc.s.green, tempc.s.blue); // store brightnesses for comparison
+						}
+
+						for (i = 0; i < 16; i++)
+						{
+							if (brightness > colorbrightnesses[i]) // don't allow greater matches (because calculating a makeshift gradient for this is already a huge mess as is)
+								continue;
+							compare = abs((INT16)(colorbrightnesses[i]) - (INT16)(brightness));
+							if (compare < brightdif)
+							{
+								brightdif = (UINT16)compare;
+								firsti = i; // best matching color that's equal brightness or darker
+							}
+						}
+
+						secondi = firsti+1; // next color in line
+						if (secondi == 16)
+						{
+							m = (INT16)brightness; // - 0;
+							d = (INT16)colorbrightnesses[firsti]; // - 0;
+						}
+						else
+						{
+							m = (INT16)brightness - (INT16)colorbrightnesses[secondi];
+							d = (INT16)colorbrightnesses[firsti] - (INT16)colorbrightnesses[secondi];
+						}
+
+						if (m >= d)
+							m = d-1;
+
+						// calculate the "gradient" multiplier based on how close this color is to the one next in line
+						if (m <= 0 || d <= 0)
+							mul = 0;
+						else
+							mul = 15 - ((m * 16) / d);
+					}
+					else
+#endif
+					{
+						// Thankfully, it's normally way more simple.
+						// Just convert brightness to a skincolor value, use remainder to find the gradient multipler
+						firsti = ((UINT8)(255-brightness) / 16);
+						secondi = firsti+1;
+						mul = ((UINT8)(255-brightness) % 16);
+					}
+
+					blendcolor = V_GetColor(translation[firsti]);
+
+					if (mul > 0 // If it's 0, then we only need the first color.
+						&& translation[firsti] != translation[secondi]) // Some colors have duplicate colors in a row, so let's just save the process
+					{
+						if (secondi == 16) // blend to black
+							nextcolor = V_GetColor(31);
+						else
+							nextcolor = V_GetColor(translation[secondi]);
+
+						// Find difference between points
+						r = (UINT32)(nextcolor.s.red - blendcolor.s.red);
+						g = (UINT32)(nextcolor.s.green - blendcolor.s.green);
+						b = (UINT32)(nextcolor.s.blue - blendcolor.s.blue);
+
+						// Find the gradient of the two points
+						r = ((mul * r) / 16);
+						g = ((mul * g) / 16);
+						b = ((mul * b) / 16);
+
+						// Add gradient value to color
+						blendcolor.s.red += r;
+						blendcolor.s.green += g;
+						blendcolor.s.blue += b;
+					}
+				}
+
+#ifdef HAVETCRAINDBOW
+				if (skinnum == TC_RAINBOW)
+				{
+					UINT32 tempcolor;
+					UINT16 colorbright;
+					UINT8 red, green, blue;
+
+					SETBRIGHTNESS(colorbright,blendcolor.s.red,blendcolor.s.green,blendcolor.s.blue);
+					if (colorbright == 0)
+						colorbright = 1; // no dividing by 0 please
+
+					tempcolor = (brightness * blendcolor.s.red) / colorbright;
+					tempcolor = min(255, tempcolor);
+					red = (UINT8)tempcolor;
+
+					tempcolor = (brightness * blendcolor.s.green) / colorbright;
+					tempcolor = min(255, tempcolor);
+					green = (UINT8)tempcolor;
+
+					tempcolor = (brightness * blendcolor.s.blue) / colorbright;
+					tempcolor = min(255, tempcolor);
+					blue = (UINT8)tempcolor;
+					model->rsp_transtex[skincolor].data[i] = NearestColor(red, green, blue);
+				}
+				else
+#endif
+				{
+					// Color strength depends on image alpha
+					INT32 tempcolor;
+					UINT8 red, green, blue;
+
+					tempcolor = ((image[i].s.red * (255-blendimage[i].s.alpha)) / 255) + ((blendcolor.s.red * blendimage[i].s.alpha) / 255);
+					tempcolor = min(255, tempcolor);
+					red = (UINT8)tempcolor;
+
+					tempcolor = ((image[i].s.green * (255-blendimage[i].s.alpha)) / 255) + ((blendcolor.s.green * blendimage[i].s.alpha) / 255);
+					tempcolor = min(255, tempcolor);
+					green = (UINT8)tempcolor;
+
+					tempcolor = ((image[i].s.blue * (255-blendimage[i].s.alpha)) / 255) + ((blendcolor.s.blue * blendimage[i].s.alpha) / 255);
+					tempcolor = min(255, tempcolor);
+					blue = (UINT8)tempcolor;
+					model->rsp_transtex[skincolor].data[i] = NearestColor(red, green, blue);
+				}
+			}
 		}
 	}
 }
@@ -449,7 +793,7 @@ void RSP_FreeModelBlendTexture(rsp_md2_t *model)
 	model->blendtexture = NULL;
 }
 
-void RSP_LoadModelTexture(rsp_md2_t *model)
+void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum)
 {
 	rsp_modeltexture_t *texture;
 	const char *filename = model->filename;
@@ -473,7 +817,7 @@ void RSP_LoadModelTexture(rsp_md2_t *model)
 	// load!
 	texture->width = (INT16)w;
 	texture->height = (INT16)h;
-	RSP_CreateModelTexture(model, 0);
+	RSP_CreateModelTexture(model, skinnum, 0);
 }
 
 void RSP_LoadModelBlendTexture(rsp_md2_t *model)
@@ -760,6 +1104,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		spriteframe_t *sprframe;
 		float finalscale;
 		float pol = 0.0f;
+		INT32 skinnum = 0;
 
 		skincolors_t skincolor = SKINCOLOR_NONE;
 		UINT8 *translation = NULL;
@@ -783,16 +1128,22 @@ boolean RSP_RenderModel(vissprite_t *spr)
 		if ((mobj->flags & MF_BOSS) && (mobj->flags2 & MF2_FRET) && (leveltime & 1)) // Bosses "flash"
 		{
 			if (mobj->type == MT_CYBRAKDEMON)
-				translation = R_GetTranslationColormap(TC_ALLWHITE, 0, GTC_CACHE);
+				skinnum = TC_ALLWHITE;
 			else if (mobj->type == MT_METALSONIC_BATTLE)
-				translation = R_GetTranslationColormap(TC_METALSONIC, 0, GTC_CACHE);
+				skinnum = TC_METALSONIC;
 			else
-				translation = R_GetTranslationColormap(TC_BOSS, 0, GTC_CACHE);
+				skinnum = TC_BOSS;
+			translation = R_GetTranslationColormap(skinnum, 0, GTC_CACHE);
+			skincolor = -skinnum;
 		}
 
 		// load normal texture
 		if (!md2->texture)
-			RSP_LoadModelTexture(md2);
+		{
+			if (mobj->skin && mobj->sprite == SPR_PLAY)
+				skinnum = (skin_t*)mobj->skin-skins;
+			RSP_LoadModelTexture(md2, skinnum);
+		}
 
 		// load blend texture
 		if (!md2->blendtexture)
@@ -800,7 +1151,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 
 		// load translated texture
 		if ((skincolor > 0) && (md2->rsp_transtex[skincolor].data == NULL))
-			RSP_CreateModelTexture(md2, skincolor);
+			RSP_CreateModelTexture(md2, skinnum, skincolor);
 
 		// use corresponding texture for this model
 		if (md2->rsp_transtex[skincolor].data != NULL)
@@ -1167,6 +1518,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
+	size_t skinnum = 0;
 
 	// Not funny iD Software, didn't laugh.
 	unsigned short idx = 0;
@@ -1179,7 +1531,11 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 
 	// load normal texture
 	if (!md2->texture)
-		RSP_LoadModelTexture(md2);
+	{
+		if (skin && spritenum == SPR_PLAY)
+			skinnum = (skin_t*)skin-skins;
+		RSP_LoadModelTexture(md2, skinnum);
+	}
 
 	// load blend texture
 	if (!md2->blendtexture)
@@ -1187,7 +1543,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 
 	// load translated texture
 	if ((skincolor > 0) && (md2->rsp_transtex[skincolor].data == NULL))
-		RSP_CreateModelTexture(md2, skincolor);
+		RSP_CreateModelTexture(md2, skinnum, skincolor);
 
 	// use corresponding texture for this model
 	if (md2->rsp_transtex[skincolor].data != NULL)
@@ -1355,6 +1711,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
 	float finalscale;
+	size_t skinnum = 0;
 
 	// Not funny iD Software, didn't laugh.
 	unsigned short idx = 0;
@@ -1372,7 +1729,11 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 
 	// load normal texture
 	if (!md2->texture)
-		RSP_LoadModelTexture(md2);
+	{
+		if (skin && spritenum == SPR_PLAY)
+			skinnum = (skin_t*)skin-skins;
+		RSP_LoadModelTexture(md2, skinnum);
+	}
 
 	// load blend texture
 	if (!md2->blendtexture)
@@ -1380,7 +1741,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 
 	// load translated texture
 	if ((skincolor > 0) && (md2->rsp_transtex[skincolor].data == NULL))
-		RSP_CreateModelTexture(md2, skincolor);
+		RSP_CreateModelTexture(md2, skinnum, skincolor);
 
 	// use corresponding texture for this model
 	if (md2->rsp_transtex[skincolor].data != NULL)
