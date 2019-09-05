@@ -213,10 +213,6 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 	rsp_modeltexture_t *texture = model->texture;
 	size_t i, size = 0;
 
-	// get texture size
-	if (texture)
-		size = (texture->width * texture->height);
-
 	// vanilla port
 	UINT8 translation[SKIN_RAMP_LENGTH];
 	const UINT8 skinbasecolors[] = {
@@ -248,6 +244,10 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 	};
 
 	memset(translation, 0, sizeof(translation));
+
+	// get texture size
+	if (texture)
+		size = (texture->width * texture->height);
 
 	// base texture
 	if (!skincolor)
@@ -1189,15 +1189,12 @@ boolean RSP_RenderModel(vissprite_t *spr)
 
 			// sprite translation
 			if ((mobj->flags & MF_BOSS) && (mobj->flags2 & MF2_FRET) && (leveltime & 1)) // Bosses "flash"
-				;	// already set
+				;	// Already set above
 			else if (mobj->color)
 			{
 				// New colormap stuff for skins Tails 06-07-2002
 				if (mobj->skin && mobj->sprite == SPR_PLAY) // This thing is a player!
-				{
-					size_t skinnum = (skin_t*)mobj->skin-skins;
 					translation = R_GetTranslationColormap((INT32)skinnum, mobj->color, GTC_CACHE);
-				}
 				else
 					translation = R_GetTranslationColormap(TC_DEFAULT, mobj->color ? mobj->color : SKINCOLOR_GREEN, GTC_CACHE);
 			}
@@ -1572,10 +1569,7 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 		{
 			// New colormap stuff for skins Tails 06-07-2002
 			if (skin && spritenum == SPR_PLAY) // This thing is a player!
-			{
-				size_t skinnum = skin-skins;
 				translation = R_GetTranslationColormap((INT32)skinnum, skincolor, GTC_CACHE);
-			}
 			else
 				translation = R_GetTranslationColormap(TC_DEFAULT, skincolor ? skincolor : SKINCOLOR_GREEN, GTC_CACHE);
 		}
@@ -1770,10 +1764,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 		{
 			// New colormap stuff for skins Tails 06-07-2002
 			if (skin && spritenum == SPR_PLAY) // This thing is a player!
-			{
-				size_t skinnum = skin-skins;
 				translation = R_GetTranslationColormap((INT32)skinnum, skincolor, GTC_CACHE);
-			}
 			else
 				translation = R_GetTranslationColormap(TC_DEFAULT, skincolor ? skincolor : SKINCOLOR_GREEN, GTC_CACHE);
 		}
