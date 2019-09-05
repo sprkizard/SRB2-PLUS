@@ -27,12 +27,6 @@ extern INT32 centerx, centery;
 extern fixed_t centerxfrac, centeryfrac;
 extern fixed_t projection, projectiony;
 
-#ifdef SOFTPOLY
-extern fixed_t planeaspectratio;
-extern float slopeaspectratio;
-extern boolean bigstretchy;
-#endif
-
 extern size_t validcount, linecount, loopcount, framecount;
 #ifdef ESLOPE
 extern float focallengthf;

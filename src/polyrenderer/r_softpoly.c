@@ -38,27 +38,13 @@ void RSP_Init(void)
 void RSP_Viewport(INT32 width, INT32 height, boolean sscreen)
 {
 	float fov = 90.0f;
-#ifdef ASPECTRATIO
-	float aspecty = (BASEVIDHEIGHT * vid.dupy);
-#endif
 
 	// viewport width and height
 	rsp_target.width = width;
 	rsp_target.height = height;
 
 	// viewport aspect ratio and fov
-	if (sscreen)
-	{
-		fov /= 2.0f;
-#ifdef ASPECTRATIO
-		aspecty /= 2.0f;
-#endif
-	}
-#ifdef ASPECTRATIO
-	rsp_target.aspectratio = ((float)(BASEVIDWIDTH * vid.dupx) / aspecty);
-#else
 	rsp_target.aspectratio = (float)rsp_target.width / (float)rsp_target.height;
-#endif
 	rsp_target.fov = fov;
 	fov *= (M_PI / 180.f);
 

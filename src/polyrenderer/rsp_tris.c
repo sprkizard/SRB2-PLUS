@@ -176,14 +176,10 @@ void RSP_ClipTriangle(rsp_triangle_t *tri)
 
 void RSP_DrawTriangle(rsp_triangle_t *tri)
 {
-	float aspect = 1.0;
+	float aspect = rsp_target.aspectratio;
 	rsp_vertex_t v0 = tri->vertices[0];
 	rsp_vertex_t v1 = tri->vertices[1];
 	rsp_vertex_t v2 = tri->vertices[2];
-
-#ifndef ASPECTRATIO
-	aspect = (float)rsp_target.width / (float)rsp_target.height;
-#endif
 
 	// avoid a crash here
 	if (!rsp_curtrifunc)

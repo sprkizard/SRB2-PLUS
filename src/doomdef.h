@@ -540,7 +540,7 @@ extern const char *compdate, *comptime, *comprevision, *compbranch;
 
 /// Polygon renderer specific defines
 #ifdef SOFTPOLY
-//#define ASPECTRATIO
+// none yet
 #endif
 
 #endif // __DOOMDEF__

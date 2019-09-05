@@ -61,12 +61,6 @@ fixed_t centerxfrac, centeryfrac;
 fixed_t projection;
 fixed_t projectiony; // aspect ratio
 
-#ifdef ASPECTRATIO
-fixed_t planeaspectratio;
-float slopeaspectratio;
-boolean bigstretchy;
-#endif
-
 // just for profiling purposes
 size_t framecount;
 
@@ -615,17 +609,7 @@ void R_ExecuteSetViewSize(void)
 	centeryfrac = centery<<FRACBITS;
 
 	// aspect ratio
-#ifdef ASPECTRATIO
-	bigstretchy = (cv_models.value);
-	if (bigstretchy)
-	{
-		projectiony = (((vid.height*centerx*BASEVIDWIDTH)/BASEVIDHEIGHT)/vid.width)<<FRACBITS;
-		planeaspectratio = (projectiony / centerx);
-		slopeaspectratio = (float)vid.width * BASEVIDHEIGHT / BASEVIDWIDTH / vid.height;
-	}
-	else
-#endif
-		projectiony = centerxfrac;
+	projectiony = centerxfrac;
 	projection = centerxfrac;
 
 	R_InitViewBuffer(scaledviewwidth, viewheight);
