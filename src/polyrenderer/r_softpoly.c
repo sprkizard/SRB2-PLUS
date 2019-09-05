@@ -35,7 +35,7 @@ void RSP_Init(void)
 }
 
 // make the viewport, after resolution change
-void RSP_Viewport(INT32 width, INT32 height, boolean sscreen)
+void RSP_Viewport(INT32 width, INT32 height)
 {
 	float fov = 90.0f;
 
@@ -240,7 +240,7 @@ void RSP_DebugRender(INT32 model)
 	rsp_viewpoint.viewsin = FINESINE(va>>ANGLETOFINESHIFT);
 
 	// set viewpoint
-	RSP_Viewport(vid.width, vid.height, false);
+	RSP_Viewport(vid.width, vid.height);
 	RSP_SetupFrame(vx, vy, vz, va);
 	RSP_ClearDepthBuffer();
 	rsp_viewwindowx = 0;
@@ -292,5 +292,5 @@ void RSP_DebugRender(INT32 model)
 	}
 
 	// restore the viewport!!!!!!!!!
-	RSP_Viewport(viewwidth, viewheight, splitscreen);
+	RSP_Viewport(viewwidth, viewheight);
 }
