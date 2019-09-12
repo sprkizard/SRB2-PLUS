@@ -1810,8 +1810,6 @@ static void DrawModelEx(model_t *model, INT32 frameIndex, INT32 duration, INT32 
 		pglLightfv(GL_LIGHT0, GL_POSITION, LightPos);
 		pglShadeModel(GL_SMOOTH);
 	}
-	else
-		pglShadeModel(GL_FLAT);
 
 	if (color)
 	{
@@ -1823,8 +1821,8 @@ static void DrawModelEx(model_t *model, INT32 frameIndex, INT32 duration, INT32 
 			pglMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
 		}
 		else
-			pglDisable(GL_LIGHTING);
 #endif
+			pglColor4ubv((GLubyte*)color);
 		if (color[3] < 255)
 			SetBlend(PF_Translucent|PF_Modulated|PF_Clip);
 		else
