@@ -86,6 +86,7 @@ static UINT32 atohex(const char *s);
 static void CV_filtermode_ONChange(void);
 static void CV_anisotropic_ONChange(void);
 static void CV_FogDensity_ONChange(void);
+static void CV_grModelLighting_OnChange(void);
 static void CV_grFov_OnChange(void);
 // ==========================================================================
 //                                          3D ENGINE COMMANDS & CONSOLE VARS
@@ -112,6 +113,7 @@ static consvar_t cv_grbeta = {"gr_beta", "0", 0, CV_Unsigned, NULL, 0, NULL, NUL
 
 static float HWRWipeCounter = 1.0f;
 consvar_t cv_grrounddown = {"gr_rounddown", "Off", 0, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_grmodellighting = {"gr_modellighting", "Off", CV_CALL, CV_OnOff, CV_grModelLighting_OnChange, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_grfov = {"gr_fov", "90", CV_FLOAT|CV_CALL, grfov_cons_t, CV_grFov_OnChange, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_grfogdensity = {"gr_fogdensity", "150", CV_CALL|CV_NOINIT, CV_Unsigned,
                              CV_FogDensity_ONChange, 0, NULL, NULL, 0, 0, NULL};
@@ -6353,6 +6355,11 @@ static void HWR_FoggingOn(void)
 // ==========================================================================
 
 
+static void CV_grModelLighting_OnChange(void)
+{
+	HWD.pfnSetSpecialState(HWD_SET_MODEL_LIGHTING, cv_grmodellighting.value);
+}
+
 static void CV_grFov_OnChange(void)
 {
 	if ((netgame || multiplayer) && !cv_debug && cv_grfov.value != 90*FRACUNIT)
@@ -6383,6 +6390,7 @@ void HWR_AddCommands(void)
 	if (!alreadycalled)
 	{
 		CV_RegisterVar(&cv_grrounddown);
+		CV_RegisterVar(&cv_grmodellighting);
 		CV_RegisterVar(&cv_grfov);
 		CV_RegisterVar(&cv_grfogdensity);
 		CV_RegisterVar(&cv_grfiltermode);

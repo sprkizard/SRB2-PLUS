@@ -86,6 +86,7 @@ static GLint min_filter = GL_LINEAR;
 static GLint mag_filter = GL_LINEAR;
 static GLint anisotropic_filter = 0;
 static FTransform  md2_transform;
+static boolean model_lighting = true;
 
 const GLubyte *gl_extensions = NULL;
 
@@ -1424,6 +1425,10 @@ EXPORT void HWRAPI(SetSpecialState) (hwdspecialstate_t IdState, INT32 Value)
 		}
 #endif
 
+		case HWD_SET_MODEL_LIGHTING:
+			model_lighting = Value;
+			break;
+
 		case HWD_SET_FOG_COLOR:
 		{
 			GLfloat fogcolor[4];
@@ -1435,6 +1440,7 @@ EXPORT void HWRAPI(SetSpecialState) (hwdspecialstate_t IdState, INT32 Value)
 			pglFogfv(GL_FOG_COLOR, fogcolor);
 			break;
 		}
+
 		case HWD_SET_FOG_DENSITY:
 			pglFogf(GL_FOG_DENSITY, Value*1200/(500*1000000.0f));
 			break;
@@ -1799,15 +1805,25 @@ static void DrawModelEx(model_t *model, INT32 frameIndex, INT32 duration, INT32 
 	}
 #endif
 
-	pglLightfv(GL_LIGHT0, GL_POSITION, LightPos);
+	if (model_lighting)
+	{
+		pglLightfv(GL_LIGHT0, GL_POSITION, LightPos);
+		pglShadeModel(GL_SMOOTH);
+	}
+	else
+		pglShadeModel(GL_FLAT);
 
-	pglShadeModel(GL_SMOOTH);
 	if (color)
 	{
 #ifdef GL_LIGHT_MODEL_AMBIENT
-		pglEnable(GL_LIGHTING);
-		pglMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-		pglMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+		if (model_lighting)
+		{
+			pglEnable(GL_LIGHTING);
+			pglMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+			pglMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+		}
+		else
+			pglDisable(GL_LIGHTING);
 #endif
 		if (color[3] < 255)
 			SetBlend(PF_Translucent|PF_Modulated|PF_Clip);
