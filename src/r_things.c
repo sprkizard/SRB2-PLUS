@@ -1120,7 +1120,11 @@ static void R_ProjectSprite(mobj_t *thing)
 	tz = gxt-gyt;
 
 	// thing is behind view plane?
-	if (tz < FixedMul(MINZ, this_scale))
+	if (tz < FixedMul(MINZ, this_scale)
+#ifdef SOFTPOLY
+		&& (!cv_models.value || rsp_md2_models[thing->sprite].notfound == true) //Yellow: Only MD2's dont disappear
+#endif
+		)
 		return;
 
 	gxt = -FixedMul(tr_x, viewsin);

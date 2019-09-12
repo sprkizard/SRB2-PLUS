@@ -893,7 +893,7 @@ void RSP_InitModels(void)
 	{
 		if (stricmp(name, "PLAY") == 0)
 		{
-			CONS_Printf("MD2 for sprite PLAY detected in md2.dat, use a player skin instead!\n");
+			//CONS_Printf("MD2 for sprite PLAY detected in md2.dat, use a player skin instead!\n");
 			continue;
 		}
 
@@ -1078,9 +1078,6 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	unsigned short idx = 0;
 	boolean useTinyFrames;
 
-	float tr_x, tr_y;
-	float tz;
-
 	mobj_t *mobj = spr->mobj;
 	if (!mobj)
 		return false;
@@ -1089,18 +1086,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 	if (rsp_portalrender)
 		RSP_RestoreSpriteViewpoint(spr);
 
-	// transform the origin point
-	tr_x = mobj->x - viewx;
-	tr_y = mobj->y - viewy;
-
-	// rotation around vertical axis
-	tz = (tr_x * viewcos) + (tr_y * viewsin);
-
-	// thing is behind view plane?
-	if (tz < FRACUNIT*4)
-		return true;
-
-	// Look at HWR_ProjectSprite for more
+	// Look at R_ProjectSprite for more
 	{
 		rsp_texture_t *texture, sprtex;
 		rsp_spritetexture_t *sprtexp;

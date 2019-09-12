@@ -489,7 +489,7 @@ void HWR_InitMD2(void)
 	{
 		if (stricmp(name, "PLAY") == 0)
 		{
-			CONS_Printf("MD2 for sprite PLAY detected in md2.dat, use a player skin instead!\n");
+			//CONS_Printf("MD2 for sprite PLAY detected in md2.dat, use a player skin instead!\n");
 			continue;
 		}
 
