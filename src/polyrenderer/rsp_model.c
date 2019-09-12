@@ -73,7 +73,7 @@ rsp_md2_t rsp_md2_playermodels[MAXSKINS];
 //
 model_t *RSP_LoadModel(const char *filename)
 {
-	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_SOFTPOLY);
+	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_STATIC);
 }
 
 #ifdef HAVE_PNG

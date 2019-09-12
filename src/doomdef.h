@@ -538,9 +538,7 @@ extern const char *compdate, *comptime, *comprevision, *compbranch;
 ///      	SRB2CB itself ported this from PrBoom+
 #define NEWCLIP
 
-/// Polygon renderer specific defines
-#ifdef SOFTPOLY
-// none yet
-#endif
+/// Cache patches in Lua in a way that renderer switching will work flawlessly.
+//#define LUA_PATCH_SAFETY
 
 #endif // __DOOMDEF__
