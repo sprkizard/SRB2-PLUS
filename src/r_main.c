@@ -1404,25 +1404,37 @@ void R_FreeModels(void)
 	for (s = 0; s < MAXSKINS; s++)
 	{
 #ifdef SOFTPOLY
-		RSP_FreeModelTexture(&rsp_md2_playermodels[s]);
-		RSP_FreeModelBlendTexture(&rsp_md2_playermodels[s]);
+		if (initmodels_rsp)
+		{
+			RSP_FreeModelTexture(&rsp_md2_playermodels[s]);
+			RSP_FreeModelBlendTexture(&rsp_md2_playermodels[s]);
+		}
 #endif
 #ifdef HWRENDER
-		if (md2_playermodels[s].grpatch != NULL)
-			Z_Free(md2_playermodels[s].grpatch);
-		md2_playermodels[s].grpatch = NULL;
+		if (initmodels_hwr)
+		{
+			if (md2_playermodels[s].grpatch != NULL)
+				Z_Free(md2_playermodels[s].grpatch);
+			md2_playermodels[s].grpatch = NULL;
+		}
 #endif
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
 #ifdef SOFTPOLY
-		RSP_FreeModelTexture(&rsp_md2_models[i]);
-		RSP_FreeModelBlendTexture(&rsp_md2_models[i]);
+		if (initmodels_rsp)
+		{
+			RSP_FreeModelTexture(&rsp_md2_models[i]);
+			RSP_FreeModelBlendTexture(&rsp_md2_models[i]);
+		}
 #endif
 #ifdef HWRENDER
-		if (md2_models[i].grpatch != NULL)
-			Z_Free(md2_models[i].grpatch);
-		md2_models[i].grpatch = NULL;
+		if (initmodels_hwr)
+		{
+			if (md2_models[i].grpatch != NULL)
+				Z_Free(md2_models[i].grpatch);
+			md2_models[i].grpatch = NULL;
+		}
 #endif
 	}
 }

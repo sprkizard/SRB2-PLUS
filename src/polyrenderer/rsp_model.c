@@ -870,6 +870,7 @@ void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 
 // Don't spam the console, or the OS with fopen requests!
 static boolean nomd2s = false;
+boolean initmodels_rsp = false;
 
 void RSP_InitModels(void)
 {
@@ -907,6 +908,8 @@ void RSP_InitModels(void)
 		rsp_md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		rsp_md2_models[i].notfound = true;
 	}
+
+	initmodels_rsp = true;
 
 	// read the md2.dat file
 	//Filename checking fixed ~Monster Iestyn and Golden
@@ -1053,7 +1056,6 @@ void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, flo
 	rsp_md2_playermodels[skinnum].scale = scale;
 	rsp_md2_playermodels[skinnum].offset = offset;
 	rsp_md2_playermodels[skinnum].notfound = false;
-	rsp_md2_playermodels[skinnum].error = false;
 	rsp_md2_playermodels[skinnum].internal = true;
 	rsp_md2_playermodels[skinnum].model_lumpnum = lumpnum;
 
@@ -1087,7 +1089,6 @@ void RSP_AddInternalSpriteModel(UINT32 lumpnum)
 			rsp_md2_models[spritenum].scale = 3.0f;
 			rsp_md2_models[spritenum].offset = 0.0f;
 			rsp_md2_models[spritenum].notfound = false;
-			rsp_md2_models[spritenum].error = false;
 			rsp_md2_models[spritenum].internal = true;
 			rsp_md2_models[spritenum].model_lumpnum = lumpnum;
             {

@@ -477,6 +477,7 @@ static void md2_loadBlendTexture(md2_t *model)
 
 // Don't spam the console, or the OS with fopen requests!
 static boolean nomd2s = false;
+boolean initmodels_hwr = false;
 
 void HWR_InitMD2(void)
 {
@@ -515,6 +516,8 @@ void HWR_InitMD2(void)
 		md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		md2_models[i].notfound = true;
 	}
+
+	initmodels_hwr = true;
 
 	// read the md2.dat file
 	//Filename checking fixed ~Monster Iestyn and Golden
@@ -667,7 +670,6 @@ void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float
 	md2_playermodels[skinnum].scale = scale;
 	md2_playermodels[skinnum].offset = offset;
 	md2_playermodels[skinnum].notfound = false;
-	md2_playermodels[skinnum].error = false;
 	md2_playermodels[skinnum].internal = true;
 	md2_playermodels[skinnum].model_lumpnum = lumpnum;
 
@@ -701,7 +703,6 @@ void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 			md2_models[spritenum].scale = 3.0f;
 			md2_models[spritenum].offset = 0.0f;
 			md2_models[spritenum].notfound = false;
-			md2_models[spritenum].error = false;
 			md2_models[spritenum].internal = true;
 			md2_models[spritenum].model_lumpnum = lumpnum;
             {
