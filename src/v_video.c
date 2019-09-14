@@ -302,10 +302,12 @@ static void CV_Models_OnChange(void)
 	R_SetViewSize();
 }
 
+#ifdef SOFTPOLY
 static void CV_TextureMapping_OnChange(void)
 {
 	R_SetViewSize();
 }
+#endif
 
 // --------------------------------------------------------------------------
 // Copy a rectangular area from one bitmap to another (8bpp)

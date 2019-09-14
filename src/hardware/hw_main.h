@@ -25,7 +25,9 @@
 
 #include "../am_map.h"
 #include "../d_player.h"
+#include "../r_main.h"
 #include "../r_defs.h"
+#include "../r_model.h"
 
 // Startup & Shutdown the hardware mode renderer
 void HWR_Startup(void);

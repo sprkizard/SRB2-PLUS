@@ -11,6 +11,7 @@
 #include "w_wad.h"
 #include "doomdef.h"
 #include "i_video.h"	// rendermode
+#include "r_things.h"
 #include "r_model.h"
 #include "r_md2load.h"
 #include "r_md3load.h"
