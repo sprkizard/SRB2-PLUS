@@ -91,11 +91,16 @@ extern consvar_t cv_tailspickup;
 
 // Called by startup code.
 void R_Init(void);
-#ifdef HWRENDER
-void R_InitHardwareMode(void);
-#endif
 void R_FreeModels(void);
 void R_ReloadHUDGraphics(void);
+
+#ifdef HWRENDER
+void R_InitHardwareMode(void);
+extern boolean initmodels_hwr;
+#endif
+#ifdef SOFTPOLY
+extern boolean initmodels_rsp;
+#endif
 
 // just sets setsizeneeded true
 extern boolean setsizeneeded;

@@ -477,6 +477,7 @@ static void md2_loadBlendTexture(md2_t *model)
 
 // Don't spam the console, or the OS with fopen requests!
 static boolean nomd2s = false;
+boolean initmodels_hwr = false;
 
 void HWR_InitMD2(void)
 {
@@ -500,7 +501,6 @@ void HWR_InitMD2(void)
 		md2_playermodels[s].texture_lumpnum = UINT32_MAX;
 		md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
 		md2_playermodels[s].notfound = true;
-		md2_playermodels[s].error = false;
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
@@ -515,8 +515,9 @@ void HWR_InitMD2(void)
 		md2_models[i].texture_lumpnum = UINT32_MAX;
 		md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		md2_models[i].notfound = true;
-		md2_models[i].error = false;
 	}
+
+	initmodels_hwr = true;
 
 	// read the md2.dat file
 	//Filename checking fixed ~Monster Iestyn and Golden
@@ -669,7 +670,6 @@ void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float
 	md2_playermodels[skinnum].scale = scale;
 	md2_playermodels[skinnum].offset = offset;
 	md2_playermodels[skinnum].notfound = false;
-	md2_playermodels[skinnum].error = false;
 	md2_playermodels[skinnum].internal = true;
 	md2_playermodels[skinnum].model_lumpnum = lumpnum;
 
@@ -703,7 +703,6 @@ void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 			md2_models[spritenum].scale = 3.0f;
 			md2_models[spritenum].offset = 0.0f;
 			md2_models[spritenum].notfound = false;
-			md2_models[spritenum].error = false;
 			md2_models[spritenum].internal = true;
 			md2_models[spritenum].model_lumpnum = lumpnum;
             {
@@ -1402,8 +1401,6 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 		else
 			md2 = &md2_models[spr->mobj->sprite];
 
-		if (md2->error)
-			return; // we already failed loading this before :(
 		if (!md2->model)
 		{
 			//CONS_Debug(DBG_RENDER, "Loading model... (%s)", sprnames[spr->mobj->sprite]);
@@ -1423,7 +1420,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 			else
 			{
 				//CONS_Debug(DBG_RENDER, " FAILED\n");
-				md2->error = true; // prevent endless fail
+				md2->notfound = true; // prevent endless fail
 				return;
 			}
 		}
