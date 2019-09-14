@@ -264,7 +264,7 @@ static void M_RendererOptionsMenu(void);
 #ifdef HWRENDER
 menu_t OP_OpenGLOptionsDef, OP_OpenGLFogDef, OP_OpenGLColorDef;
 #endif
-#ifdef HWRENDER
+#ifdef SOFTPOLY
 menu_t OP_SoftPolyOptionsDef;
 #endif // HWRENDER
 menu_t OP_SoundOptionsDef;
@@ -1127,7 +1127,7 @@ static menuitem_t OP_VideoOptionsMenu[] =
 	{IT_STRING | IT_CVAR,    NULL, "Clear Before Redraw", &cv_homremoval, 120},
 	{IT_STRING | IT_CVAR,    NULL, "Vertical Sync",       &cv_vidwait,    130},
 
-#ifdef HWRENDER
+#if defined (HWRENDER) || defined (SOFTPOLY)
 	{IT_STRING | IT_CALL, NULL,   "Renderer Options...",  M_RendererOptionsMenu,    150},
 #endif
 };
