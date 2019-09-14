@@ -219,7 +219,6 @@ typedef struct
 	UINT32              blendtexture_lumpnum;
 	boolean             notfound;
 	INT32               skin;
-	boolean             error;
 
 	// RSP textures
 	rsp_texture_t       rsp_tex;

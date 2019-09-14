@@ -500,7 +500,6 @@ void HWR_InitMD2(void)
 		md2_playermodels[s].texture_lumpnum = UINT32_MAX;
 		md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
 		md2_playermodels[s].notfound = true;
-		md2_playermodels[s].error = false;
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
@@ -515,7 +514,6 @@ void HWR_InitMD2(void)
 		md2_models[i].texture_lumpnum = UINT32_MAX;
 		md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		md2_models[i].notfound = true;
-		md2_models[i].error = false;
 	}
 
 	// read the md2.dat file
@@ -1402,8 +1400,6 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 		else
 			md2 = &md2_models[spr->mobj->sprite];
 
-		if (md2->error)
-			return; // we already failed loading this before :(
 		if (!md2->model)
 		{
 			//CONS_Debug(DBG_RENDER, "Loading model... (%s)", sprnames[spr->mobj->sprite]);
@@ -1423,7 +1419,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 			else
 			{
 				//CONS_Debug(DBG_RENDER, " FAILED\n");
-				md2->error = true; // prevent endless fail
+				md2->notfound = true; // prevent endless fail
 				return;
 			}
 		}
