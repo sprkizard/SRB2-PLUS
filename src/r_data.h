@@ -120,6 +120,11 @@ INT32 R_CreateColormap(char *p1, char *p2, char *p3);
 const char *R_ColormapNameForNum(INT32 num);
 
 boolean R_CheckIfPatch(lumpnum_t lump);
+boolean R_IsLumpPNG(UINT8 *d, size_t s);
+
+#ifdef HAVE_PNG
+UINT32 *PNG_RawConvert(UINT8 *png, UINT16 *w, UINT16 *h, size_t size, void *user);
+#endif
 
 extern INT32 numtextures;
 

@@ -92,6 +92,11 @@ static void md2_freeModel (model_t *model)
 // load model
 //
 // Hurdler: the current path is the Legacy.exe path
+static model_t *md2_readInternalModel(UINT32 lumpnum)
+{
+	return LoadInternalModel(lumpnum, PU_STATIC);
+}
+
 static model_t *md2_readModel(const char *filename)
 {
 	//Filename checking fixed ~Monster Iestyn and Golden
@@ -367,7 +372,20 @@ static void md2_loadTexture(md2_t *model)
 	{
 		int w = 0, h = 0;
 #ifdef HAVE_PNG
-		grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
+		if (model->internal)
+		{
+			UINT16 width = 0, height = 0;
+			lumpnum_t lumpnum = model->texture_lumpnum;
+			if (lumpnum != UINT32_MAX)
+			{
+				PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_CACHE), &width, &height, W_LumpLength(lumpnum), &grpatch->mipmap.grInfo.data);
+				w = (int)width;
+				h = (int)height;
+				grpatch->mipmap.grInfo.format = GR_RGBA;
+			}
+		}
+		else
+			grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
 		if (grpatch->mipmap.grInfo.format == 0)
 #endif
 		grpatch->mipmap.grInfo.format = PCX_Load(filename, &w, &h, grpatch);
@@ -415,7 +433,20 @@ static void md2_loadBlendTexture(md2_t *model)
 	{
 		int w = 0, h = 0;
 #ifdef HAVE_PNG
-		grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
+		if (model->internal)
+		{
+			UINT16 width = 0, height = 0;
+			lumpnum_t lumpnum = model->blendtexture_lumpnum;
+			if (lumpnum != UINT32_MAX)
+			{
+				PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_CACHE), &width, &height, W_LumpLength(lumpnum), &grpatch->mipmap.grInfo.data);
+				w = (int)width;
+				h = (int)height;
+				grpatch->mipmap.grInfo.format = GR_RGBA;
+			}
+		}
+		else
+			grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
 		if (grpatch->mipmap.grInfo.format == 0)
 #endif
 		grpatch->mipmap.grInfo.format = PCX_Load(filename, &w, &h, grpatch);
@@ -458,19 +489,31 @@ void HWR_InitMD2(void)
 	CONS_Printf("InitMD2()...\n");
 	for (s = 0; s < MAXSKINS; s++)
 	{
+		if (md2_playermodels[s].internal)
+			continue;
 		md2_playermodels[s].scale = -1.0f;
 		md2_playermodels[s].model = NULL;
 		md2_playermodels[s].grpatch = NULL;
 		md2_playermodels[s].skin = -1;
+		md2_playermodels[s].internal = false;
+		md2_playermodels[s].model_lumpnum = UINT32_MAX;
+		md2_playermodels[s].texture_lumpnum = UINT32_MAX;
+		md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
 		md2_playermodels[s].notfound = true;
 		md2_playermodels[s].error = false;
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
+		if (md2_models[i].internal)
+			continue;
 		md2_models[i].scale = -1.0f;
 		md2_models[i].model = NULL;
 		md2_models[i].grpatch = NULL;
 		md2_models[i].skin = -1;
+		md2_models[i].internal = false;
+		md2_models[i].model_lumpnum = UINT32_MAX;
+		md2_models[i].texture_lumpnum = UINT32_MAX;
+		md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		md2_models[i].notfound = true;
 		md2_models[i].error = false;
 	}
@@ -568,11 +611,10 @@ void HWR_AddPlayerMD2(int skin) // For MD2's that were added after startup
 	}
 
 	//CONS_Printf("MD2 for player skin %s not found\n", skins[skin].name);
-	md2_playermodels[skin].notfound = true;
+	//md2_playermodels[skin].notfound = true;
 playermd2found:
 	fclose(f);
 }
-
 
 void HWR_AddSpriteMD2(size_t spritenum) // For MD2s that were added after startup
 {
@@ -613,9 +655,74 @@ void HWR_AddSpriteMD2(size_t spritenum) // For MD2s that were added after startu
 	}
 
 	//CONS_Printf("MD2 for sprite %s not found\n", sprnames[spritenum]);
-	md2_models[spritenum].notfound = true;
+	//md2_models[spritenum].notfound = true;
 spritemd2found:
 	fclose(f);
+}
+
+void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float offset)
+{
+	const char *mdllumpname = W_CheckNameForNum(lumpnum);
+	if (strlen(mdllumpname) <= 4)
+		return;
+
+	md2_playermodels[skinnum].scale = scale;
+	md2_playermodels[skinnum].offset = offset;
+	md2_playermodels[skinnum].notfound = false;
+	md2_playermodels[skinnum].error = false;
+	md2_playermodels[skinnum].internal = true;
+	md2_playermodels[skinnum].model_lumpnum = lumpnum;
+
+	{
+		char lumpname[9];
+		memcpy(lumpname, "TEX_", 4);
+		memcpy(lumpname+4, mdllumpname+4, 4);
+		lumpname[8] = '\0';
+
+		// get texture lump number
+		md2_playermodels[skinnum].texture_lumpnum = W_CheckNumForName(lumpname);
+
+		// get blend texture lump number
+		memcpy(lumpname, "BLE_", 4);
+		md2_playermodels[skinnum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+	}
+}
+
+void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
+{
+	const char *lumpname = W_CheckNameForNum(lumpnum);
+	size_t spritenum = 0;
+
+	if (strlen(lumpname) <= 4)
+		return;
+
+	while (spritenum < NUMSPRITES)
+	{
+		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
+		{
+			md2_models[spritenum].scale = 3.0f;
+			md2_models[spritenum].offset = 0.0f;
+			md2_models[spritenum].notfound = false;
+			md2_models[spritenum].error = false;
+			md2_models[spritenum].internal = true;
+			md2_models[spritenum].model_lumpnum = lumpnum;
+            {
+				char lumpname[9];
+				memcpy(lumpname, "TEX_", 4);
+				memcpy(lumpname+4, sprnames[spritenum], 4);
+				lumpname[8] = '\0';
+
+				// get texture lump number
+				md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lumpname);
+
+				// get blend texture lump number
+				memcpy(lumpname, "BLE_", 4);
+				md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+            }
+			break;
+		}
+		spritenum++;
+	}
 }
 
 // Define for getting accurate color brightness readings according to how the human eye sees them.
@@ -1223,9 +1330,6 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 	md2_t *md2;
 	UINT8 color[4];
 
-	if (!cv_models.value)
-		return;
-
 	if (spr->precip)
 		return;
 
@@ -1303,8 +1407,13 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 		if (!md2->model)
 		{
 			//CONS_Debug(DBG_RENDER, "Loading model... (%s)", sprnames[spr->mobj->sprite]);
-			sprintf(filename, "md2/%s", md2->filename);
-			md2->model = md2_readModel(filename);
+			if (md2->internal)
+				md2->model = md2_readInternalModel(md2->model_lumpnum);
+			else
+			{
+				sprintf(filename, "md2/%s", md2->filename);
+				md2->model = md2_readModel(filename);
+			}
 
 			if (md2->model)
 			{

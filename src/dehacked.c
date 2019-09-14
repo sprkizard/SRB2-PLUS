@@ -6708,6 +6708,7 @@ static const char *const MOBJFLAG_LIST[] = {
 	"NOCLIPTHING",
 	"GRENADEBOUNCE",
 	"RUNSPAWNFUNC",
+	"RENDERMODEL",
 	NULL
 };
 
@@ -6741,6 +6742,7 @@ static const char *const MOBJFLAG2_LIST[] = {
 	"BOSSNOTRAP",	// No Egg Trap after boss
 	"BOSSFLEE",		// Boss is fleeing!
 	"BOSSDEAD",		// Boss is dead! (Not necessarily fleeing, if a fleeing point doesn't exist.)
+	"DONTCULLMODEL",// Don't cull the object's model if behind the viewpoint.
 	NULL
 };
 
@@ -7170,6 +7172,7 @@ struct {
 	{"SF_NOSKID",SF_NOSKID},
 	{"SF_NOSPEEDADJUST",SF_NOSPEEDADJUST},
 	{"SF_RUNONWATER",SF_RUNONWATER},
+	{"SF_RENDERMODEL",SF_RENDERMODEL},
 
 	// Character abilities!
 	// Primary

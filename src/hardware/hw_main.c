@@ -5342,14 +5342,18 @@ static void HWR_DrawSprites(void)
 #endif
 				if (spr->mobj && spr->mobj->skin && spr->mobj->sprite == SPR_PLAY)
 				{
-					if (!cv_models.value || md2_playermodels[(skin_t*)spr->mobj->skin-skins].notfound || md2_playermodels[(skin_t*)spr->mobj->skin-skins].scale < 0.0f)
+					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && (!md2_playermodels[(skin_t*)spr->mobj->skin-skins].notfound) && md2_playermodels[(skin_t*)spr->mobj->skin-skins].scale > 0.0f);
+					if (((skin_t*)spr->mobj->skin)->flags & SF_RENDERMODEL)
+						modelavailable = true;
+					if (!modelavailable)
 						HWR_DrawSprite(spr);
 					else
 						HWR_DrawMD2(spr);
 				}
 				else
 				{
-					if (!cv_models.value || md2_models[spr->mobj->sprite].notfound || md2_models[spr->mobj->sprite].scale < 0.0f)
+					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && (!md2_models[spr->mobj->sprite].notfound) && md2_models[spr->mobj->sprite].scale > 0.0f);
+					if (!modelavailable)
 						HWR_DrawSprite(spr);
 					else
 						HWR_DrawMD2(spr);
@@ -5459,6 +5463,8 @@ static void HWR_ProjectSprite(mobj_t *thing)
 	UINT8 flip;
 	angle_t ang;
 	INT32 heightsec, phs;
+	boolean model;
+	boolean dontcullmodel;
 
 	if (!thing)
 		return;
@@ -5472,9 +5478,25 @@ static void HWR_ProjectSprite(mobj_t *thing)
 	// rotation around vertical axis
 	tz = (tr_x * gr_viewcos) + (tr_y * gr_viewsin);
 
+	{
+		skin_t *skin = (skin_t *)thing->skin;
+		model = ((cv_models.value || (thing->flags & MF_RENDERMODEL)) && md2_models[thing->sprite].notfound == false);
+		dontcullmodel = (thing->flags2 & MF2_DONTCULLMODEL);
+		if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
+			model = true;
+	}
+
 	// thing is behind view plane?
-	if (tz < ZCLIP_PLANE && (!cv_models.value || md2_models[thing->sprite].notfound == true)) //Yellow: Only MD2's dont disappear
-		return;
+	if (tz < ZCLIP_PLANE)
+	{
+		if (model) //Yellow: Only MD2's dont disappear
+		{
+			if (!dontcullmodel)
+				return;
+		}
+		else
+			return;
+	}
 
 	// The above can stay as it works for cutting sprites that are too close
 	tr_x = FIXED_TO_FLOAT(thing->x);

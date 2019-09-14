@@ -39,6 +39,7 @@ typedef enum
 	SF_NOSKID           = 1<<4, // No skid particles etc
 	SF_NOSPEEDADJUST    = 1<<5, // Skin-specific version of disablespeedadjust
 	SF_RUNONWATER       = 1<<6, // Run on top of water FOFs?
+	SF_RENDERMODEL      = 1<<7, // Render models instead of sprites
 } skinflags_t;
 
 //Primary and secondary skin abilities

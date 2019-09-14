@@ -207,18 +207,23 @@ extern UINT8 rsp_portalrender;
 
 typedef struct
 {
-	char				filename[32];
-	float				scale;
-	float				offset;
-	model_t				*model;
-	void				*texture;
-	void				*blendtexture;
-	boolean				notfound;
-	INT32				skin;
-	boolean				error;
+	char                filename[32];
+	float               scale;
+	float               offset;
+	model_t             *model;
+	void                *texture;
+	void                *blendtexture;
+	boolean             internal;
+	UINT32              model_lumpnum;
+	UINT32              texture_lumpnum;
+	UINT32              blendtexture_lumpnum;
+	boolean             notfound;
+	INT32               skin;
+	boolean             error;
 
-	rsp_texture_t		rsp_tex;
-	rsp_texture_t		rsp_transtex[MAXTRANSLATIONS];
+	// RSP textures
+	rsp_texture_t       rsp_tex;
+	rsp_texture_t       rsp_transtex[MAXTRANSLATIONS];
 } rsp_md2_t;
 
 extern rsp_md2_t rsp_md2_models[NUMSPRITES];
@@ -233,6 +238,9 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);
+
+void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float offset);
+void RSP_AddInternalSpriteModel(UINT32 lumpnum);
 
 void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor);
 void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum);

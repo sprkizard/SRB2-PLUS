@@ -119,9 +119,6 @@ void RSP_SetDrawerFunctions(void)
 // on frame start
 void RSP_OnFrame(void)
 {
-	if (!cv_models.value)
-		return;
-
 	RSP_ModelView();
 	rsp_viewwindowx = viewwindowx;
 	rsp_viewwindowy = viewwindowy;

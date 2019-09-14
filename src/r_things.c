@@ -114,14 +114,23 @@ static void R_InstallSpriteLump(UINT16 wad,            // graphics patch
 		UINT8 rot = (rotation != 0) ? (rotation-1) : 0;
 		patch_t *patch = (patch_t *)W_CacheLumpNumPwad(wad, lump, PU_STATIC);
 		rsp_spritetexture_t *tex = &sprtemp[frame].rsp_texture[rot];
+		INT32 blockwidth, blockheight;
 
-		tex->width = patch->width;
-		tex->height = patch->height;
-		tex->data = Z_Malloc(tex->width * tex->height, PU_STATIC, NULL);
-		memset(tex->data, TRANSPARENTPIXEL, tex->width * tex->height);
+		// size up to nearest power of 2
+		blockwidth = 1;
+		blockheight = 1;
+		while (blockwidth < SHORT(patch->width))
+			blockwidth <<= 1;
+		while (blockheight < SHORT(patch->height))
+			blockheight <<= 1;
+
+		tex->width = blockwidth;
+		tex->height = blockheight;
+		tex->data = Z_Malloc(blockwidth * blockheight, PU_STATIC, NULL);
+		memset(tex->data, TRANSPARENTPIXEL, blockwidth * blockheight);
 
 		if (R_CheckIfPatch(lumppat))
-			RSP_GenerateTexture(patch, tex->data, 0, 0, tex->width, tex->height, NULL, NULL);
+			RSP_GenerateTexture(patch, tex->data, 0, 0, blockwidth, blockheight, NULL, NULL);
 
 		Z_Free(patch);
 	}
@@ -1087,6 +1096,10 @@ static void R_ProjectSprite(mobj_t *thing)
 	fixed_t gxt, gyt;
 	fixed_t tx, tz;
 	fixed_t xscale, yscale; //added : 02-02-98 : aaargll..if I were a math-guy!!!
+#ifdef SOFTPOLY
+	boolean model;
+	boolean dontcullmodel;
+#endif
 
 	INT32 x1, x2;
 
@@ -1119,13 +1132,29 @@ static void R_ProjectSprite(mobj_t *thing)
 
 	tz = gxt-gyt;
 
-	// thing is behind view plane?
-	if (tz < FixedMul(MINZ, this_scale)
 #ifdef SOFTPOLY
-		&& (!cv_models.value || rsp_md2_models[thing->sprite].notfound == true) //Yellow: Only MD2's dont disappear
+	{
+		skin_t *skin = (skin_t *)thing->skin;
+		model = ((cv_models.value || (thing->flags & MF_RENDERMODEL)) && RSP_ModelAvailable(thing->sprite, skin));
+		dontcullmodel = (thing->flags2 & MF2_DONTCULLMODEL);
+		if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
+			model = true;
+	}
 #endif
-		)
-		return;
+
+	// thing is behind view plane?
+	if (tz < FixedMul(MINZ, this_scale))
+	{
+#ifdef SOFTPOLY
+		if (model) //Yellow: Only MD2's dont disappear
+		{
+			if (!dontcullmodel)
+				return;
+		}
+		else
+#endif
+			return;
+	}
 
 	gxt = -FixedMul(tr_x, viewsin);
 	gyt = FixedMul(tr_y, viewcos);
@@ -1314,8 +1343,10 @@ static void R_ProjectSprite(mobj_t *thing)
 #ifdef SOFTPOLY
 	vis->spritenum = thing->sprite;
 	vis->skin = thing->skin;
-	vis->model = (cv_models.value && RSP_ModelAvailable(vis->spritenum, (skin_t *)vis->skin));
-#endif // SOFTPOLY
+	vis->model = model;
+	if (model)
+		modelinview = true;
+#endif
 
 	vis->x1 = x1 < 0 ? 0 : x1;
 	vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
@@ -2099,7 +2130,7 @@ static void R_DrawSprite(vissprite_t *spr)
 #ifdef SOFTPOLY
 	rsp_mfloorclip = mfloorclip;
 	rsp_mceilingclip = mceilingclip;
-	if (!cv_models.value)
+	if (!spr->model)
 		R_DrawVisSprite(spr);
 	else if (!RSP_RenderModel(spr))
 #endif // SOFTPOLY
@@ -2142,7 +2173,7 @@ void R_ClipSprites(void)
 #ifdef SOFTPOLY
 		// Arkus: Yes, clip against the ENTIRE viewport.
 		// You don't know how big the model is!
-		if (cv_models.value && spr->model)
+		if (spr->model)
 		{
 			model = true;
 			ox1 = spr->x1, ox2 = spr->x2;
@@ -2631,6 +2662,8 @@ void R_AddSkins(UINT16 wadnum)
 	size_t size;
 	skin_t *skin;
 	boolean hudname, realname, superface;
+	boolean playermodel = false;
+	float playermodelscale = 3.0f, playermodeloffset = 0.0f;
 
 	//
 	// search for all skin markers in pwad
@@ -2763,6 +2796,16 @@ void R_AddSkins(UINT16 wadnum)
 				strupr(value);
 				strncpy(skin->superface, value, sizeof skin->superface);
 			}
+			else if (!stricmp(stoken, "model"))
+			{
+				strupr(value);
+				strncpy(skin->model, value, sizeof skin->model);
+				playermodel = true;
+			}
+			else if (!stricmp(stoken, "modelscale"))
+				playermodelscale = atof(value);
+			else if (!stricmp(stoken, "modeloffset"))
+				playermodeloffset = atof(value);
 
 #define FULLPROCESS(field) else if (!stricmp(stoken, #field)) skin->field = get_number(value);
 			// character type identification
@@ -2891,6 +2934,18 @@ next_token:
 		}
 
 		R_FlushTranslationColormapCache();
+
+		if (playermodel)
+		{
+#ifdef SOFTPOLY
+			RSP_AddInternalPlayerModel(W_GetNumForName(skin->model), numskins, playermodelscale, playermodeloffset);
+#endif
+#ifdef HWRENDER
+			HWR_AddInternalPlayerMD2(W_GetNumForName(skin->model), numskins, playermodelscale, playermodeloffset);
+#endif
+			(void)playermodelscale;
+			(void)playermodeloffset;
+		}
 
 		CONS_Printf(M_GetText("Added skin '%s'\n"), skin->name);
 #ifdef SKINVALUES

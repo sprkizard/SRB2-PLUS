@@ -32,6 +32,10 @@ extern size_t validcount, linecount, loopcount, framecount;
 extern float focallengthf;
 #endif
 
+#ifdef SOFTPOLY
+extern boolean modelinview;
+#endif
+
 //
 // Lighting LUT.
 // Used for z-depth cuing per column/row,
@@ -90,6 +94,7 @@ void R_Init(void);
 #ifdef HWRENDER
 void R_InitHardwareMode(void);
 #endif
+void R_FreeModels(void);
 void R_ReloadHUDGraphics(void);
 
 // just sets setsizeneeded true

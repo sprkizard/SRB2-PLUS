@@ -1309,6 +1309,8 @@ void VID_CheckRenderer(void)
 
 	SDLSetMode(vid.width, vid.height, USE_FULLSCREEN);
 
+	R_FreeModels();
+
 	if (rendermode == render_soft)
 	{
 		if (bufSurface)

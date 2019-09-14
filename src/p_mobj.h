@@ -160,7 +160,9 @@ typedef enum
 	MF_GRENADEBOUNCE    = 1<<28,
 	// Run the action thinker on spawn.
 	MF_RUNSPAWNFUNC     = 1<<29,
-	// free: 1<<30 and 1<<31
+	// This object renders a model instead of a sprite.
+	MF_RENDERMODEL      = 1<<30,
+	// free: 1<<31
 } mobjflag_t;
 
 typedef enum
@@ -193,6 +195,7 @@ typedef enum
 	MF2_BOSSNOTRAP     = 1<<25, // No Egg Trap after boss
 	MF2_BOSSFLEE       = 1<<26, // Boss is fleeing!
 	MF2_BOSSDEAD       = 1<<27, // Boss is dead! (Not necessarily fleeing, if a fleeing point doesn't exist.)
+	MF2_DONTCULLMODEL  = 1<<28, // Don't cull the object's model if behind the viewpoint.
 	// free: to and including 1<<31
 } mobjflag2_t;
 

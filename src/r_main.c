@@ -39,6 +39,7 @@
 
 #ifdef HWRENDER
 #include "hardware/hw_main.h"
+#include "hardware/hw_md2.h"
 #endif
 
 //profile stuff ---------------------------------------------------------
@@ -79,6 +80,10 @@ boolean viewsky, skyVisible;
 boolean skyVisible1, skyVisible2; // saved values of skyVisible for P1 and P2, for splitscreen
 sector_t *viewsector;
 player_t *viewplayer;
+
+#ifdef SOFTPOLY
+boolean modelinview = false;
+#endif
 
 // PORTALS!
 // You can thank and/or curse JTE for these.
@@ -671,8 +676,7 @@ void R_ExecuteSetViewSize(void)
 
 	am_recalc = true;
 #ifdef SOFTPOLY
-	if (cv_models.value)
-		RSP_Viewport(viewwidth, viewheight);
+	RSP_Viewport(viewwidth, viewheight);
 #endif
 }
 
@@ -890,8 +894,7 @@ void R_SetupFrame(player_t *player, boolean skybox)
 
 	R_SetupFreelook();
 #ifdef SOFTPOLY
-	if (cv_models.value)
-		RSP_ModelView();
+	RSP_ModelView();
 #endif
 }
 
@@ -1112,8 +1115,7 @@ void R_SkyboxFrame(player_t *player)
 
 	R_SetupFreelook();
 #ifdef SOFTPOLY
-	if (cv_models.value)
-		RSP_ModelView();
+	RSP_ModelView();
 #endif
 }
 
@@ -1259,8 +1261,9 @@ void R_RenderPlayerView(player_t *player)
 	portal_base = portal_cap = NULL;
 
 #ifdef SOFTPOLY
+	modelinview = false;
 	RSP_OnFrame();
-#endif // SOFTPOLY
+#endif
 
 	if (skybox && skyVisible)
 	{
@@ -1319,7 +1322,7 @@ void R_RenderPlayerView(player_t *player)
 
 	// PORTAL RENDERING
 #ifdef SOFTPOLY
-	if (cv_models.value && portal_base)
+	if (modelinview && portal_base)
 		RSP_StoreViewpoint();
 #endif
 	for (portal = portal_base; portal; portal = portal_base)
@@ -1330,7 +1333,7 @@ void R_RenderPlayerView(player_t *player)
 
 		R_PortalFrame(&lines[portal->line1], &lines[portal->line2], portal);
 #ifdef SOFTPOLY
-		if (cv_models.value)
+		if (modelinview)
 		{
 			RSP_ModelView();
 			rsp_portalrender = portalrender;
@@ -1392,6 +1395,37 @@ void R_InitHardwareMode(void)
 	}
 }
 #endif
+
+void R_FreeModels(void)
+{
+	size_t i;
+	INT32 s;
+
+	for (s = 0; s < MAXSKINS; s++)
+	{
+#ifdef SOFTPOLY
+		RSP_FreeModelTexture(&rsp_md2_playermodels[s]);
+		RSP_FreeModelBlendTexture(&rsp_md2_playermodels[s]);
+#endif
+#ifdef HWRENDER
+		if (md2_playermodels[s].grpatch != NULL)
+			Z_Free(md2_playermodels[s].grpatch);
+		md2_playermodels[s].grpatch = NULL;
+#endif
+	}
+	for (i = 0; i < NUMSPRITES; i++)
+	{
+#ifdef SOFTPOLY
+		RSP_FreeModelTexture(&rsp_md2_models[i]);
+		RSP_FreeModelBlendTexture(&rsp_md2_models[i]);
+#endif
+#ifdef HWRENDER
+		if (md2_models[i].grpatch != NULL)
+			Z_Free(md2_models[i].grpatch);
+		md2_models[i].grpatch = NULL;
+#endif
+	}
+}
 
 void R_ReloadHUDGraphics(void)
 {

@@ -14,6 +14,7 @@
 #include "doomtype.h"
 
 // Load the Model
-model_t *MD2_LoadModel(const char *fileName, int ztag, boolean useFloat, boolean RSPload);
+model_t *MD2_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RSPload);
+model_t *MD2_LoadModelFile(const char *fileName, int ztag, boolean useFloat, boolean RSPload);
 
 #endif

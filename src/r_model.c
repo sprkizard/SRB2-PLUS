@@ -8,6 +8,7 @@
 */
 
 #include "z_zone.h"
+#include "w_wad.h"
 #include "doomdef.h"
 #include "i_video.h"	// rendermode
 #include "r_model.h"
@@ -143,14 +144,76 @@ tag_t *GetTagByName(model_t *model, char *name, int frame)
 // convert it to the
 // internal format.
 //
+model_t *LoadInternalModel(UINT32 lumpnum, int ztag)
+{
+	model_t *model;
+	boolean RSP = false;
+	int i;
+
+	UINT8 *data = W_CacheLumpNum(lumpnum, ztag);
+	const char *filename = W_CheckNameForNum(lumpnum);
+
+	char prefix[5];
+	strncpy(prefix, filename, 4);
+	prefix[4] = '\0';
+
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		RSP = true;
+#endif // SOFTPOLY
+
+	if (!stricmp(prefix, "MD3_"))
+	{
+		if (!(model = MD3_LoadModelData(data, ztag, false, RSP)))
+			return NULL;
+	}
+	else if (!stricmp(prefix, "MD2_"))
+	{
+		if (!(model = MD2_LoadModelData(data, ztag, false, RSP)))
+			return NULL;
+	}
+	else
+	{
+		CONS_Printf("Unknown model format: %s\n", prefix);
+		return NULL;
+	}
+
+	model->mdlFilename = NULL;
+
+	Optimize(model);
+	GeneratePolygonNormals(model, ztag);
+	LoadModelInterpolationSettings(model);
+
+	// Default material properties
+	for (i = 0 ; i < model->numMaterials; i++)
+	{
+		material_t *material = &model->materials[i];
+		material->ambient[0] = 0.7686f;
+		material->ambient[1] = 0.7686f;
+		material->ambient[2] = 0.7686f;
+		material->ambient[3] = 1.0f;
+		material->diffuse[0] = 0.5863f;
+		material->diffuse[1] = 0.5863f;
+		material->diffuse[2] = 0.5863f;
+		material->diffuse[3] = 1.0f;
+		material->specular[0] = 0.4902f;
+		material->specular[1] = 0.4902f;
+		material->specular[2] = 0.4902f;
+		material->specular[3] = 1.0f;
+		material->shininess = 25.0f;
+	}
+
+	return model;
+}
+
 model_t *LoadModel(const char *filename, int ztag)
 {
 	model_t *model;
 	boolean RSP = false;
+	int i;
 
 	// What type of file?
 	const char *extension = NULL;
-	int i;
 	for (i = (int)strlen(filename)-1; i >= 0; i--)
 	{
 		if (filename[i] != '.')
@@ -173,22 +236,22 @@ model_t *LoadModel(const char *filename, int ztag)
 
 	if (!strcmp(extension, ".md3"))
 	{
-		if (!(model = MD3_LoadModel(filename, ztag, false, RSP)))
+		if (!(model = MD3_LoadModelFile(filename, ztag, false, RSP)))
 			return NULL;
 	}
 	else if (!strcmp(extension, ".md3s")) // MD3 that will be converted in memory to use full floats
 	{
-		if (!(model = MD3_LoadModel(filename, ztag, true, RSP)))
+		if (!(model = MD3_LoadModelFile(filename, ztag, true, RSP)))
 			return NULL;
 	}
 	else if (!strcmp(extension, ".md2"))
 	{
-		if (!(model = MD2_LoadModel(filename, ztag, false, RSP)))
+		if (!(model = MD2_LoadModelFile(filename, ztag, false, RSP)))
 			return NULL;
 	}
 	else if (!strcmp(extension, ".md2s"))
 	{
-		if (!(model = MD2_LoadModel(filename, ztag, true, RSP)))
+		if (!(model = MD2_LoadModelFile(filename, ztag, true, RSP)))
 			return NULL;
 	}
 	else

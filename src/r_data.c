@@ -40,6 +40,28 @@
 #include <errno.h>
 #endif
 
+#ifdef HAVE_PNG
+
+#ifndef _MSC_VER
+#ifndef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE
+#endif
+#endif
+
+#ifndef _LFS64_LARGEFILE
+#define _LFS64_LARGEFILE
+#endif
+
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 0
+#endif
+
+#include "png.h"
+#ifndef PNG_READ_SUPPORTED
+#undef HAVE_PNG
+#endif
+#endif
+
 //
 // Texture definition.
 // Each texture is composed of one or more patches,
@@ -1662,6 +1684,168 @@ void R_PrecacheLevel(void)
 			"texturememory: %s k\n"
 			"spritememory:  %s k\n", sizeu1(flatmemory>>10), sizeu2(texturememory>>10), sizeu3(spritememory>>10));
 }
+
+boolean R_IsLumpPNG(UINT8 *d, size_t s)
+{
+	if (s < 67) // http://garethrees.org/2007/11/14/pngcrush/
+		return false;
+	// Check for PNG file signature using memcmp
+	// As it may be faster on CPUs with slow unaligned memory access
+	// Ref: http://www.libpng.org/pub/png/spec/1.2/PNG-Rationale.html#R.PNG-file-signature
+	return (memcmp(&d[0], "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a", 8) == 0);
+}
+
+#ifdef HAVE_PNG
+typedef struct {
+	png_bytep buffer;
+	png_uint_32 bufsize;
+	png_uint_32 current_pos;
+} png_io_t;
+
+static void PNG_IOReader(png_structp png_ptr, png_bytep data, png_size_t length)
+{
+	png_io_t *f = png_get_io_ptr(png_ptr);
+	if (length > (f->bufsize - f->current_pos))
+		png_error(png_ptr, "PNG_IOReader: buffer overrun");
+	memcpy(data, f->buffer + f->current_pos, length);
+	f->current_pos += length;
+}
+
+static void PNG_error(png_structp PNG, png_const_charp pngtext)
+{
+	CONS_Debug(DBG_RENDER, "libpng error at %p: %s", PNG, pngtext);
+	//I_Error("libpng error at %p: %s", PNG, pngtext);
+}
+
+static void PNG_warn(png_structp PNG, png_const_charp pngtext)
+{
+	CONS_Debug(DBG_RENDER, "libpng warning at %p: %s", PNG, pngtext);
+}
+
+static png_bytep *PNG_Read(UINT8 *png, UINT16 *w, UINT16 *h, size_t size)
+{
+	png_structp png_ptr;
+	png_infop png_info_ptr;
+	png_uint_32 width, height;
+	int bit_depth, color_type;
+	png_uint_32 y;
+#ifdef PNG_SETJMP_SUPPORTED
+#ifdef USE_FAR_KEYWORD
+	jmp_buf jmpbuf;
+#endif
+#endif
+
+	png_io_t png_io;
+	png_bytep *row_pointers;
+
+	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, PNG_error, PNG_warn);
+	if (!png_ptr)
+	{
+		CONS_Debug(DBG_RENDER, "PNG_Load: Error on initialize libpng\n");
+		return NULL;
+	}
+
+	png_info_ptr = png_create_info_struct(png_ptr);
+	if (!png_info_ptr)
+	{
+		CONS_Debug(DBG_RENDER, "PNG_Load: Error on allocate for libpng\n");
+		png_destroy_read_struct(&png_ptr, NULL, NULL);
+		return NULL;
+	}
+
+#ifdef USE_FAR_KEYWORD
+	if (setjmp(jmpbuf))
+#else
+	if (setjmp(png_jmpbuf(png_ptr)))
+#endif
+	{
+		//CONS_Debug(DBG_RENDER, "libpng load error on %s\n", filename);
+		png_destroy_read_struct(&png_ptr, &png_info_ptr, NULL);
+		return NULL;
+	}
+#ifdef USE_FAR_KEYWORD
+	png_memcpy(png_jmpbuf(png_ptr), jmpbuf, sizeof jmp_buf);
+#endif
+
+	// set our own read_function
+	png_io.buffer = (png_bytep)png;
+	png_io.bufsize = size;
+	png_io.current_pos = 0;
+	png_set_read_fn(png_ptr, &png_io, PNG_IOReader);
+
+#ifdef PNG_SET_USER_LIMITS_SUPPORTED
+	png_set_user_limits(png_ptr, 2048, 2048);
+#endif
+
+	png_read_info(png_ptr, png_info_ptr);
+	png_get_IHDR(png_ptr, png_info_ptr, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
+
+	if (bit_depth == 16)
+		png_set_strip_16(png_ptr);
+
+	if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+		png_set_gray_to_rgb(png_ptr);
+	else if (color_type == PNG_COLOR_TYPE_PALETTE)
+		png_set_palette_to_rgb(png_ptr);
+
+	if (png_get_valid(png_ptr, png_info_ptr, PNG_INFO_tRNS))
+		png_set_tRNS_to_alpha(png_ptr);
+	else if (color_type != PNG_COLOR_TYPE_RGB_ALPHA && color_type != PNG_COLOR_TYPE_GRAY_ALPHA)
+	{
+#if PNG_LIBPNG_VER < 10207
+		png_set_filler(png_ptr, 0xFF, PNG_FILLER_AFTER);
+#else
+		png_set_add_alpha(png_ptr, 0xFF, PNG_FILLER_AFTER);
+#endif
+	}
+
+	png_read_update_info(png_ptr, png_info_ptr);
+
+	// Read the image
+	row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
+	for (y = 0; y < height; y++)
+		row_pointers[y] = (png_byte*)malloc(png_get_rowbytes(png_ptr, png_info_ptr));
+	png_read_image(png_ptr, row_pointers);
+
+	// bye
+	png_destroy_read_struct(&png_ptr, &png_info_ptr, NULL);
+
+	*w = (INT32)width;
+	*h = (INT32)height;
+	return row_pointers;
+}
+
+// Convert a PNG to a raw image.
+UINT32 *PNG_RawConvert(UINT8 *png, UINT16 *w, UINT16 *h, size_t size, void *user)
+{
+	RGBA_t *flat;
+	png_uint_32 x, y;
+	png_bytep *row_pointers = PNG_Read(png, w, h, size);
+	png_uint_32 width = *w, height = *h;
+
+	if (!row_pointers)
+		I_Error("PNG_RawConvert: conversion failed");
+
+	flat = Z_Calloc(width * height * sizeof(UINT32), PU_STATIC, user);
+	for (y = 0; y < height; y++)
+	{
+		png_bytep row = row_pointers[y];
+		for (x = 0; x < width; x++)
+		{
+			png_bytep px = &(row[x * 4]);
+			RGBA_t pixel;
+			pixel.s.red = px[0];
+			pixel.s.green = px[1];
+			pixel.s.blue = px[2];
+			pixel.s.alpha = px[3];
+			flat[((y * width) + x)] = pixel;
+		}
+	}
+	free(row_pointers);
+
+	return (UINT32 *)flat;
+}
+#endif
 
 // https://github.com/coelckers/prboom-plus/blob/master/prboom2/src/r_patch.c#L350
 boolean R_CheckIfPatch(lumpnum_t lump)

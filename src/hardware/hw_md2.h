@@ -36,6 +36,10 @@ typedef struct
 	model_t     *model;
 	void        *grpatch;
 	void        *blendgrpatch;
+	boolean     internal;
+	UINT32      model_lumpnum;
+	UINT32      texture_lumpnum;
+	UINT32      blendtexture_lumpnum;
 	boolean     notfound;
 	INT32       skin;
 	boolean     error;
@@ -46,7 +50,11 @@ extern md2_t md2_playermodels[MAXSKINS];
 
 void HWR_InitMD2(void);
 void HWR_DrawMD2(gr_vissprite_t *spr);
+
 void HWR_AddPlayerMD2(INT32 skin);
 void HWR_AddSpriteMD2(size_t spritenum);
+
+void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float offset);
+void HWR_AddInternalSpriteMD2(UINT32 lumpnum);
 
 #endif // _HW_MD2_H_

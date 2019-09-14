@@ -98,6 +98,7 @@ extern model_t *modelHead;
 
 tag_t *GetTagByName(model_t *model, char *name, int frame);
 model_t *LoadModel(const char *filename, int ztag);
+model_t *LoadInternalModel(UINT32 lumpnum, int ztag);
 void UnloadModel(model_t *model);
 void Optimize(model_t *model);
 void LoadModelInterpolationSettings(model_t *model);

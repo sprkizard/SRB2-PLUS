@@ -76,6 +76,11 @@ model_t *RSP_LoadModel(const char *filename)
 	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_STATIC);
 }
 
+model_t *RSP_LoadInternalModel(UINT32 lumpnum)
+{
+	return LoadInternalModel(lumpnum, PU_STATIC);
+}
+
 #ifdef HAVE_PNG
 static void PNG_error(png_structp PNG, png_const_charp pngtext)
 {
@@ -88,7 +93,7 @@ static void PNG_warn(png_structp PNG, png_const_charp pngtext)
 	CONS_Debug(DBG_RENDER, "libpng warning at %p: %s", PNG, pngtext);
 }
 
-static int PNG_Load(const char *filename, int *w, int *h, rsp_modeltexture_t *texture)
+static int PNG_Load(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture_t *texture)
 {
 	png_structp png_ptr;
 	png_infop png_info_ptr;
@@ -179,7 +184,7 @@ static int PNG_Load(const char *filename, int *w, int *h, rsp_modeltexture_t *te
 
 	{
 		png_uint_32 i, pitch = png_get_rowbytes(png_ptr, png_info_ptr);
-		png_bytep PNG_image = Z_Malloc(pitch*height, PU_CACHE, &texture->data);
+		png_bytep PNG_image = Z_Malloc(pitch*height, PU_STATIC, &texture->data);
 		png_bytepp row_pointers = png_malloc(png_ptr, height * sizeof (png_bytep));
 		for (i = 0; i < height; i++)
 			row_pointers[i] = PNG_image + i*pitch;
@@ -190,8 +195,8 @@ static int PNG_Load(const char *filename, int *w, int *h, rsp_modeltexture_t *te
 	png_destroy_read_struct(&png_ptr, &png_info_ptr, NULL);
 
 	fclose(png_FILE);
-	*w = (int)width;
-	*h = (int)height;
+	*w = (UINT16)width;
+	*h = (UINT16)height;
 	return 1;
 }
 #endif
@@ -797,7 +802,7 @@ void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum)
 {
 	rsp_modeltexture_t *texture;
 	const char *filename = model->filename;
-	int w = 1, h = 1;
+	UINT16 w = 1, h = 1;
 
 	// texture was already loaded, don't do JACK
 	if (model->texture)
@@ -805,14 +810,20 @@ void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum)
 
 	// make new texture
 	RSP_FreeModelTexture(model);
-	texture = Z_Calloc(sizeof *texture, PU_CACHE, &(model->texture));
+	texture = Z_Calloc(sizeof *texture, PU_STATIC, &(model->texture));
 
 #ifdef HAVE_PNG
-	if (!(PNG_Load(filename, &w, &h, texture)))
-#else
-	if (true)
-#endif
+	if (model->internal)
+	{
+		lumpnum_t lumpnum = model->texture_lumpnum;
+		if (lumpnum != UINT32_MAX)
+			texture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
+	}
+	else if (!(PNG_Load(filename, &w, &h, texture)))
 		return;
+#else
+	return;
+#endif
 
 	// load!
 	texture->width = (INT16)w;
@@ -824,7 +835,7 @@ void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 {
 	rsp_modeltexture_t *blendtexture;
 	char *filename = Z_Malloc(strlen(model->filename)+7, PU_SOFTPOLY, NULL);
-	int w = 1, h = 1;
+	UINT16 w = 1, h = 1;
 
 	strcpy(filename, model->filename);
 	FIL_ForceExtension(filename, "_blend.png");
@@ -834,19 +845,27 @@ void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 		return;
 
 	RSP_FreeModelBlendTexture(model);
-	blendtexture = Z_Calloc(sizeof *blendtexture, PU_CACHE, &(model->blendtexture));
+	blendtexture = Z_Calloc(sizeof *blendtexture, PU_STATIC, &(model->blendtexture));
 
 #ifdef HAVE_PNG
-	if (!(PNG_Load(filename, &w, &h, blendtexture)))
-#else
-	if (true)
-#endif
+	if (model->internal)
+	{
+		lumpnum_t lumpnum = model->blendtexture_lumpnum;
+		if (lumpnum != UINT32_MAX)
+			blendtexture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
+	}
+	else if (!(PNG_Load(filename, &w, &h, blendtexture)))
+	{
+		Z_Free(filename);
 		return;
+	}
+#else
+	Z_Free(filename);
+	return;
+#endif
 
 	blendtexture->width = (INT16)w;
 	blendtexture->height = (INT16)h;
-
-	Z_Free(filename);
 }
 
 // Don't spam the console, or the OS with fopen requests!
@@ -862,19 +881,31 @@ void RSP_InitModels(void)
 
 	for (s = 0; s < MAXSKINS; s++)
 	{
+		if (rsp_md2_playermodels[s].internal)
+			continue;
 		rsp_md2_playermodels[s].scale = -1.0f;
 		rsp_md2_playermodels[s].model = NULL;
 		rsp_md2_playermodels[s].texture = NULL;
 		rsp_md2_playermodels[s].skin = -1;
+		rsp_md2_playermodels[s].internal = false;
+		rsp_md2_playermodels[s].model_lumpnum = UINT32_MAX;
+		rsp_md2_playermodels[s].texture_lumpnum = UINT32_MAX;
+		rsp_md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
 		rsp_md2_playermodels[s].notfound = true;
 		rsp_md2_playermodels[s].error = false;
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
+		if (rsp_md2_models[i].internal)
+			continue;
 		rsp_md2_models[i].scale = -1.0f;
 		rsp_md2_models[i].model = NULL;
 		rsp_md2_models[i].texture = NULL;
 		rsp_md2_models[i].skin = -1;
+		rsp_md2_models[i].internal = false;
+		rsp_md2_models[i].model_lumpnum = UINT32_MAX;
+		rsp_md2_models[i].texture_lumpnum = UINT32_MAX;
+		rsp_md2_models[i].blendtexture_lumpnum = UINT32_MAX;
 		rsp_md2_models[i].notfound = true;
 		rsp_md2_models[i].error = false;
 	}
@@ -996,7 +1027,7 @@ void RSP_AddSpriteModel(size_t spritenum) // For MD2s that were added after star
 		return;
 	}
 
-	// Check for any MD2s that match the names of player skins!
+	// Check for any MD2s that match sprite names!
 	while (fscanf(f, "%19s %31s %f %f", name, filename, &scale, &offset) == 4)
 	{
 		if (stricmp(name, sprnames[spritenum]) == 0)
@@ -1013,6 +1044,71 @@ void RSP_AddSpriteModel(size_t spritenum) // For MD2s that were added after star
 	rsp_md2_models[spritenum].notfound = true;
 spritemd2found:
 	fclose(f);
+}
+
+void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float offset)
+{
+	const char *mdllumpname = W_CheckNameForNum(lumpnum);
+	if (strlen(mdllumpname) <= 4)
+		return;
+
+	rsp_md2_playermodels[skinnum].scale = scale;
+	rsp_md2_playermodels[skinnum].offset = offset;
+	rsp_md2_playermodels[skinnum].notfound = false;
+	rsp_md2_playermodels[skinnum].error = false;
+	rsp_md2_playermodels[skinnum].internal = true;
+	rsp_md2_playermodels[skinnum].model_lumpnum = lumpnum;
+
+	{
+		char lumpname[9];
+		memcpy(lumpname, "TEX_", 4);
+		memcpy(lumpname+4, mdllumpname+4, 4);
+		lumpname[8] = '\0';
+
+		// get texture lump number
+		rsp_md2_playermodels[skinnum].texture_lumpnum = W_CheckNumForName(lumpname);
+
+		// get blend texture lump number
+		memcpy(lumpname, "BLE_", 4);
+		rsp_md2_playermodels[skinnum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+	}
+}
+
+void RSP_AddInternalSpriteModel(UINT32 lumpnum)
+{
+	const char *lumpname = W_CheckNameForNum(lumpnum);
+	size_t spritenum = 0;
+
+	if (strlen(lumpname) <= 4)
+		return;
+
+	while (spritenum < NUMSPRITES)
+	{
+		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
+		{
+			rsp_md2_models[spritenum].scale = 3.0f;
+			rsp_md2_models[spritenum].offset = 0.0f;
+			rsp_md2_models[spritenum].notfound = false;
+			rsp_md2_models[spritenum].error = false;
+			rsp_md2_models[spritenum].internal = true;
+			rsp_md2_models[spritenum].model_lumpnum = lumpnum;
+            {
+				char lumpname[9];
+				memcpy(lumpname, "TEX_", 4);
+				memcpy(lumpname+4, sprnames[spritenum], 4);
+				lumpname[8] = '\0';
+
+				// get texture lump number
+				rsp_md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lumpname);
+
+				// get blend texture lump number
+				memcpy(lumpname, "BLE_", 4);
+				rsp_md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+            }
+			break;
+		}
+		spritenum++;
+	}
 }
 
 rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
@@ -1042,8 +1138,13 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 	if (!md2->model)
 	{
 		//CONS_Debug(DBG_RENDER, "Loading MD2... (%s)", sprnames[spritenum]);
-		sprintf(filename, "md2/%s", md2->filename);
-		md2->model = RSP_LoadModel(filename);
+		if (md2->internal)
+			md2->model = RSP_LoadInternalModel(md2->model_lumpnum);
+		else
+		{
+			sprintf(filename, "md2/%s", md2->filename);
+			md2->model = RSP_LoadModel(filename);
+		}
 
 		if (!md2->model)
 		{

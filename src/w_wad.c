@@ -50,10 +50,16 @@
 #endif
 #include "m_misc.h" // M_MapNumber
 
-#ifdef HWRENDER
 #include "r_data.h"
+
+#ifdef HWRENDER
 #include "hardware/hw_main.h"
 #include "hardware/hw_glob.h"
+#include "hardware/hw_md2.h"
+#endif
+
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
 #endif
 
 #ifdef PC_DOS
@@ -278,6 +284,48 @@ static inline void W_LoadDehackedLumps(UINT16 wadnum)
 		}
 	}
 #endif
+}
+
+// Look for all models inside a PK3 archive.
+static inline void W_LoadModelLumpsPK3(UINT16 wadnum)
+{
+	UINT16 posStart, posEnd;
+	posStart = W_CheckNumForFolderStartPK3("Model/", wadnum, 0);
+	if (posStart != INT16_MAX)
+	{
+		posEnd = W_CheckNumForFolderEndPK3("Model/", wadnum, posStart);
+		posStart++;
+		for (; posStart < posEnd; posStart++)
+		{
+			lumpinfo_t *lump_p = &wadfiles[wadnum]->lumpinfo[posStart];
+#ifdef SOFTPOLY
+			RSP_AddInternalSpriteModel((wadnum<<16)+posStart);
+#endif
+#ifdef HWRENDER
+			HWR_AddInternalSpriteMD2((wadnum<<16)+posStart);
+#endif
+			(void)lump_p;
+		}
+	}
+}
+
+// search for all model lumps in all wads and load it
+static inline void W_LoadModelLumps(UINT16 wadnum)
+{
+	UINT16 lump;
+	lumpinfo_t *lump_p = wadfiles[wadnum]->lumpinfo;
+	for (lump = 0; lump < wadfiles[wadnum]->numlumps; lump++, lump_p++)
+	{
+		if ((memcmp(lump_p->name,"MD3_",4)==0) || (memcmp(lump_p->name,"MD2_",4)==0)) // Check for MD3 and MD2 lumps
+		{
+#ifdef SOFTPOLY
+			RSP_AddInternalSpriteModel((wadnum<<16)+lump);
+#endif
+#ifdef HWRENDER
+			HWR_AddInternalSpriteMD2((wadnum<<16)+lump);
+#endif
+		}
+	}
 }
 
 /** Compute MD5 message digest for bytes read from STREAM of this filname.
@@ -811,6 +859,24 @@ UINT16 W_InitFile(const char *filename)
 		break;
 	}
 
+	// Load models
+	// Okay, look, it's about 03:45 right now, I slept for the entire day,
+	// and I can barely maintain my focus, so excuse the sloppiness of my code.
+	// Also, have what I'm listening to.
+	// https://www.youtube.com/watch?v=YCDYssDoknM
+	R_FreeModels();
+	switch (wadfile->type)
+	{
+	case RET_WAD:
+		W_LoadModelLumps(numwadfiles - 1);
+		break;
+	case RET_PK3:
+		W_LoadModelLumpsPK3(numwadfiles - 1);
+		break;
+	default:
+		break;
+	}
+
 	W_InvalidateLumpnumCache();
 	return wadfile->numlumps;
 }
@@ -1205,8 +1271,6 @@ void zerr(int ret)
     }
 }
 #endif
-
-#define NO_PNG_LUMPS
 
 #ifdef NO_PNG_LUMPS
 static void ErrorIfPNG(UINT8 *d, size_t s, char *f, char *l)
