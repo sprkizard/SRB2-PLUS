@@ -5345,18 +5345,18 @@ static void HWR_DrawSprites(void)
 					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && md2_playermodels[(skin_t*)spr->mobj->skin-skins].scale > 0.0f);
 					if (((skin_t*)spr->mobj->skin)->flags & SF_RENDERMODEL)
 						modelavailable = true;
-					if (!modelavailable)
-						HWR_DrawSprite(spr);
+					if (modelavailable && HWR_DrawMD2(spr))
+						;
 					else
-						HWR_DrawMD2(spr);
+						HWR_DrawSprite(spr);
 				}
 				else
 				{
 					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && md2_models[spr->mobj->sprite].scale > 0.0f);
-					if (!modelavailable)
-						HWR_DrawSprite(spr);
+					if (modelavailable && HWR_DrawMD2(spr))
+						;
 					else
-						HWR_DrawMD2(spr);
+						HWR_DrawSprite(spr);
 				}
 		}
 	}

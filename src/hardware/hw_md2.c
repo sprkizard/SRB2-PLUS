@@ -1326,7 +1326,7 @@ static boolean HWR_CanInterpolateModel(mobj_t *mobj, model_t *model)
 	return model->interpolate[(mobj->frame & FF_FRAMEMASK)];
 }
 
-void HWR_DrawMD2(gr_vissprite_t *spr)
+boolean HWR_DrawMD2(gr_vissprite_t *spr)
 {
 	FSurfaceInfo Surf;
 
@@ -1338,7 +1338,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 	UINT8 color[4];
 
 	if (spr->precip)
-		return;
+		return false;
 
 	// MD2 colormap fix
 	// colormap test
@@ -1429,7 +1429,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 			{
 				//CONS_Debug(DBG_RENDER, " FAILED\n");
 				md2->notfound = true; // prevent endless fail
-				return;
+				return false;
 			}
 		}
 		//HWD.pfnSetBlend(blend); // This seems to actually break translucency?
@@ -1580,6 +1580,7 @@ void HWR_DrawMD2(gr_vissprite_t *spr)
 
 		HWD.pfnDrawModel(md2->model, frame, durs, tics, nextFrame, &p, finalscale, flip, color);
 	}
+	return true;
 }
 
 #endif //HWRENDER
