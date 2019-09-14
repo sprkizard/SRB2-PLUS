@@ -29,6 +29,7 @@
 #include "p_setup.h"
 #include "r_data.h"
 #include "r_sky.h"
+#include "r_model.h"
 #include "fastcmp.h"
 #include "lua_script.h"
 #include "lua_hook.h"
@@ -335,7 +336,6 @@ static INT32 searchvalue(const char *s)
 	}
 }
 
-#ifdef HWRENDER
 static float searchfvalue(const char *s)
 {
 	while (s[0] != '=' && s[0])
@@ -348,7 +348,6 @@ static float searchfvalue(const char *s)
 		return 0;
 	}
 }
-#endif
 
 // These are for clearing all of various things
 static void clear_conditionsets(void)
@@ -921,6 +920,79 @@ static void readlight(MYFILE *f, INT32 num)
 	Z_Free(s);
 }
 
+static void readmodel(MYFILE *f, INT32 num)
+{
+	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
+	char *word;
+	char *word2;
+	char *tmp;
+	//INT32 value;
+	float fvalue;
+
+	do
+	{
+		if (myfgets(s, MAXLINELEN, f))
+		{
+			if (s[0] == '\n')
+				break;
+
+			tmp = strchr(s, '#');
+			if (tmp)
+				*tmp = '\0';
+			if (s == tmp)
+				continue; // Skip comment lines, but don't break.
+
+			//value = searchvalue(s);
+			fvalue = searchfvalue(s);
+
+			word = strtok(s, " ");
+			if (word)
+				strupr(word);
+			else
+				break;
+
+			word2 = strtok(NULL, " = ");
+			if (word2)
+				strupr(word2);
+			else
+				break;
+
+			if (word2[strlen(word2)-1] == '\n')
+				word2[strlen(word2)-1] = '\0';
+
+			// Intentionally no DEHACKED UNDO here.
+			// I didn't forget about it.
+			if (fastcmp(word, "SCALE"))
+				R_SetModelDefScale(num, fvalue);
+			else if (fastcmp(word, "XOFFSET"))
+				R_SetModelDefXOffset(num, fvalue);
+			else if (fastcmp(word, "YOFFSET"))
+				R_SetModelDefYOffset(num, fvalue);
+			else if (fastcmp(word, "ANGLEOFFSET"))
+				R_SetModelDefAngleOffset(num, fvalue);
+			else if (fastcmp(word, "REPLACESPRITES"))
+			{
+				if (word2[0] == 'T' || word2[0] == 'Y')
+					R_SetModelDefReplaceSpritesFlag(num, true);
+				else
+					R_SetModelDefReplaceSpritesFlag(num, false);
+			}
+			else if (fastcmp(word, "DONOTCULL"))
+			{
+				if (word2[0] == 'T' || word2[0] == 'Y')
+					R_SetModelDefDoNotCullFlag(num, true);
+				else
+					R_SetModelDefDoNotCullFlag(num, false);
+			}
+			else
+				deh_warning("Model %d: unknown word '%s'", num, word);
+		}
+	} while (!myfeof(f)); // finish when the line is empty
+
+	Z_Free(s);
+}
+#endif // HWRENDER
+
 static void readspritelight(MYFILE *f, INT32 num)
 {
 	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
@@ -964,7 +1036,6 @@ static void readspritelight(MYFILE *f, INT32 num)
 
 	Z_Free(s);
 }
-#endif // HWRENDER
 
 static const struct {
 	const char *name;
@@ -3463,7 +3534,20 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 						ignorelines(f);
 					}
 					DEH_WriteUndoline(word, word2, UNDO_HEADER);
+				}
 #endif
+				else if (fastcmp(word, "MODEL"))
+				{
+					if (i == 0 && word2[0] != '0') // If word2 isn't a number
+						i = get_sprite(word2); // find a sprite by name
+					if (i < NUMSPRITES && i >= 0)
+						readmodel(f, i);
+					else
+					{
+						deh_warning("Sprite number %d out of range (0 - %d)", i, NUMSPRITES-1);
+						ignorelines(f);
+					}
+					DEH_WriteUndoline(word, word2, UNDO_HEADER);
 				}
 				else if (fastcmp(word, "LEVEL"))
 				{
@@ -6708,7 +6792,6 @@ static const char *const MOBJFLAG_LIST[] = {
 	"NOCLIPTHING",
 	"GRENADEBOUNCE",
 	"RUNSPAWNFUNC",
-	"RENDERMODEL",
 	NULL
 };
 
@@ -6742,7 +6825,6 @@ static const char *const MOBJFLAG2_LIST[] = {
 	"BOSSNOTRAP",	// No Egg Trap after boss
 	"BOSSFLEE",		// Boss is fleeing!
 	"BOSSDEAD",		// Boss is dead! (Not necessarily fleeing, if a fleeing point doesn't exist.)
-	"DONTCULLMODEL",// Don't cull the object's model if behind the viewpoint.
 	NULL
 };
 

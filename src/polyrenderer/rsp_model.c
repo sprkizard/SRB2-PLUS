@@ -887,6 +887,9 @@ void RSP_InitModels(void)
 			if (rsp_md2_playermodels[s].internal)
 				continue;
 			rsp_md2_playermodels[s].scale = -1.0f;
+			rsp_md2_playermodels[s].xoffset = 0.0f;
+			rsp_md2_playermodels[s].yoffset = 0.0f;
+			rsp_md2_playermodels[s].modelflags = 0;
 			rsp_md2_playermodels[s].model = NULL;
 			rsp_md2_playermodels[s].texture = NULL;
 			rsp_md2_playermodels[s].skin = -1;
@@ -902,6 +905,9 @@ void RSP_InitModels(void)
 			if (rsp_md2_models[i].internal)
 				continue;
 			rsp_md2_models[i].scale = -1.0f;
+			rsp_md2_models[i].xoffset = 0.0f;
+			rsp_md2_models[i].yoffset = 0.0f;
+			rsp_md2_models[i].modelflags = 0;
 			rsp_md2_models[i].model = NULL;
 			rsp_md2_models[i].texture = NULL;
 			rsp_md2_models[i].skin = -1;
@@ -939,7 +945,7 @@ void RSP_InitModels(void)
 			if (stricmp(name, sprnames[i]) == 0)
 			{
 				rsp_md2_models[i].scale = scale;
-				rsp_md2_models[i].offset = offset;
+				rsp_md2_models[i].yoffset = offset;
 				rsp_md2_models[i].notfound = false;
 				strcpy(rsp_md2_models[i].filename, filename);
 				goto md2found;
@@ -952,7 +958,7 @@ void RSP_InitModels(void)
 			{
 				rsp_md2_playermodels[s].skin = s;
 				rsp_md2_playermodels[s].scale = scale;
-				rsp_md2_playermodels[s].offset = offset;
+				rsp_md2_playermodels[s].yoffset = offset;
 				rsp_md2_playermodels[s].notfound = false;
 				strcpy(rsp_md2_playermodels[s].filename, filename);
 				goto md2found;
@@ -996,7 +1002,7 @@ void RSP_AddPlayerModel(int skin) // For MD2's that were added after startup
 		{
 			rsp_md2_playermodels[skin].skin = skin;
 			rsp_md2_playermodels[skin].scale = scale;
-			rsp_md2_playermodels[skin].offset = offset;
+			rsp_md2_playermodels[skin].yoffset = offset;
 			rsp_md2_playermodels[skin].notfound = false;
 			strcpy(rsp_md2_playermodels[skin].filename, filename);
 			goto playermd2found;
@@ -1038,7 +1044,7 @@ void RSP_AddSpriteModel(size_t spritenum) // For MD2s that were added after star
 		if (stricmp(name, sprnames[spritenum]) == 0)
 		{
 			rsp_md2_models[spritenum].scale = scale;
-			rsp_md2_models[spritenum].offset = offset;
+			rsp_md2_models[spritenum].yoffset = offset;
 			rsp_md2_models[spritenum].notfound = false;
 			strcpy(rsp_md2_models[spritenum].filename, filename);
 			goto spritemd2found;
@@ -1049,14 +1055,15 @@ spritemd2found:
 	fclose(f);
 }
 
-void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float offset)
+void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float xoffset, float yoffset)
 {
 	const char *mdllumpname = W_CheckNameForNum(lumpnum);
 	if (strlen(mdllumpname) <= 4)
 		return;
 
 	rsp_md2_playermodels[skinnum].scale = scale;
-	rsp_md2_playermodels[skinnum].offset = offset;
+	rsp_md2_playermodels[skinnum].xoffset = xoffset;
+	rsp_md2_playermodels[skinnum].yoffset = yoffset;
 	rsp_md2_playermodels[skinnum].notfound = false;
 	rsp_md2_playermodels[skinnum].internal = true;
 	rsp_md2_playermodels[skinnum].model_lumpnum = lumpnum;
@@ -1081,15 +1088,10 @@ void RSP_AddInternalSpriteModel(UINT32 lumpnum)
 	const char *lumpname = W_CheckNameForNum(lumpnum);
 	size_t spritenum = 0;
 
-	if (strlen(lumpname) <= 4)
-		return;
-
 	while (spritenum < NUMSPRITES)
 	{
 		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
 		{
-			rsp_md2_models[spritenum].scale = 3.0f;
-			rsp_md2_models[spritenum].offset = 0.0f;
 			rsp_md2_models[spritenum].notfound = false;
 			rsp_md2_models[spritenum].internal = true;
 			rsp_md2_models[spritenum].model_lumpnum = lumpnum;
@@ -1109,6 +1111,16 @@ void RSP_AddInternalSpriteModel(UINT32 lumpnum)
 			break;
 		}
 		spritenum++;
+	}
+
+	if ((spritenum == NUMSPRITES) && (rendermode == render_soft))
+	{
+		if (loadmodelcount < MAXSKINS)
+		{
+			strncpy(needloadplayermodels[loadmodelcount], lumpname, 8);
+			loadmodelcount++;
+		}
+		//CONS_Alert(CONS_WARNING, M_GetText("RSP_AddInternalSpriteModel: Unknown sprite %s\n"), lumpname+4);
 	}
 }
 
@@ -1416,7 +1428,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 			}
 
 			// model angle in radians
-			theta = -(FIXED_TO_FLOAT(model_angle) * M_PI / 180.0f);
+			theta = -((FIXED_TO_FLOAT(model_angle) + md2->angleoffset) * M_PI / 180.0f);
 			cs = cos(theta);
 			sn = sin(theta);
 
@@ -1427,8 +1439,8 @@ boolean RSP_RenderModel(vissprite_t *spr)
 				float s, t;
 				float *uv = mesh->uvs;
 
-				x = FIXED_TO_FLOAT(mobj->x);
-				y = FIXED_TO_FLOAT(mobj->y) + md2->offset;
+				x = FIXED_TO_FLOAT(mobj->x) + md2->xoffset;
+				y = FIXED_TO_FLOAT(mobj->y) + md2->yoffset;
 
 				if (mobj->eflags & MFE_VERTICALFLIP)
 					z = FIXED_TO_FLOAT(mobj->z + mobj->height);
@@ -1725,11 +1737,12 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 		}
 
 		// model angle in radians
-		theta = -(model_angle * M_PI / 180.0f);
+		theta = -((model_angle + md2->angleoffset) * M_PI / 180.0f);
 		cs = cos(theta);
 		sn = sin(theta);
 
-		y += md2->offset;
+		x += md2->xoffset;
+		y += md2->yoffset;
 
 		// render every triangle
 		for (i = 0; i < mesh->numTriangles; i++)
@@ -1931,11 +1944,12 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 		}
 
 		// model angle in radians
-		theta = -(model_angle * M_PI / 180.0f);
+		theta = -((model_angle + md2->angleoffset) * M_PI / 180.0f);
 		cs = cos(theta);
 		sn = sin(theta);
 
-		y += md2->offset;
+		x += md2->yoffset;
+		y += md2->yoffset;
 
 		// render every triangle
 		for (i = 0; i < mesh->numTriangles; i++)

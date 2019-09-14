@@ -17,6 +17,7 @@
 #include "../doomtype.h"
 #include "../doomstat.h"
 #include "../g_game.h"
+#include "../i_video.h"
 #include "../r_data.h"
 #include "../r_defs.h"
 #include "../r_main.h"
@@ -209,10 +210,13 @@ typedef struct
 {
 	char                filename[32];
 	float               scale;
-	float               offset;
+	float               xoffset;
+	float               yoffset;
+	float               angleoffset;
 	model_t             *model;
 	void                *texture;
 	void                *blendtexture;
+	modelflags_t        modelflags;
 	boolean             internal;
 	UINT32              model_lumpnum;
 	UINT32              texture_lumpnum;
@@ -238,7 +242,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 void RSP_AddPlayerModel(INT32 skin);
 void RSP_AddSpriteModel(size_t spritenum);
 
-void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float offset);
+void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, float xoffset, float yoffset);
 void RSP_AddInternalSpriteModel(UINT32 lumpnum);
 
 void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor);

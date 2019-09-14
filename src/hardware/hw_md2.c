@@ -34,6 +34,7 @@
 #include "hw_light.h"
 #include "hw_md2.h"
 #include "../d_main.h"
+#include "../i_video.h"
 #include "../r_bsp.h"
 #include "../r_main.h"
 #include "../m_misc.h"
@@ -502,6 +503,9 @@ void HWR_InitMD2(void)
 			if (md2_playermodels[s].internal)
 				continue;
 			md2_playermodels[s].scale = -1.0f;
+			md2_playermodels[s].xoffset = 0.0f;
+			md2_playermodels[s].yoffset = 0.0f;
+			md2_playermodels[s].modelflags = 0;
 			md2_playermodels[s].model = NULL;
 			md2_playermodels[s].grpatch = NULL;
 			md2_playermodels[s].skin = -1;
@@ -517,6 +521,9 @@ void HWR_InitMD2(void)
 			if (md2_models[i].internal)
 				continue;
 			md2_models[i].scale = -1.0f;
+			md2_models[i].xoffset = 0.0f;
+			md2_models[i].yoffset = 0.0f;
+			md2_models[i].modelflags = 0;
 			md2_models[i].model = NULL;
 			md2_models[i].grpatch = NULL;
 			md2_models[i].skin = -1;
@@ -558,7 +565,7 @@ void HWR_InitMD2(void)
 
 				//CONS_Debug(DBG_RENDER, "  Found: %s %s %f %f\n", name, filename, scale, offset);
 				md2_models[i].scale = scale;
-				md2_models[i].offset = offset;
+				md2_models[i].yoffset = offset;
 				md2_models[i].notfound = false;
 				strcpy(md2_models[i].filename, filename);
 				goto md2found;
@@ -572,7 +579,7 @@ void HWR_InitMD2(void)
 				//CONS_Printf("  Found: %s %s %f %f\n", name, filename, scale, offset);
 				md2_playermodels[s].skin = s;
 				md2_playermodels[s].scale = scale;
-				md2_playermodels[s].offset = offset;
+				md2_playermodels[s].yoffset = offset;
 				md2_playermodels[s].notfound = false;
 				strcpy(md2_playermodels[s].filename, filename);
 				goto md2found;
@@ -616,7 +623,7 @@ void HWR_AddPlayerMD2(int skin) // For MD2's that were added after startup
 		{
 			md2_playermodels[skin].skin = skin;
 			md2_playermodels[skin].scale = scale;
-			md2_playermodels[skin].offset = offset;
+			md2_playermodels[skin].yoffset = offset;
 			md2_playermodels[skin].notfound = false;
 			strcpy(md2_playermodels[skin].filename, filename);
 			goto playermd2found;
@@ -658,7 +665,7 @@ void HWR_AddSpriteMD2(size_t spritenum) // For MD2s that were added after startu
 		if (stricmp(name, sprnames[spritenum]) == 0)
 		{
 			md2_models[spritenum].scale = scale;
-			md2_models[spritenum].offset = offset;
+			md2_models[spritenum].yoffset = offset;
 			md2_models[spritenum].notfound = false;
 			strcpy(md2_models[spritenum].filename, filename);
 			goto spritemd2found;
@@ -669,14 +676,15 @@ spritemd2found:
 	fclose(f);
 }
 
-void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float offset)
+void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float xoffset, float yoffset)
 {
 	const char *mdllumpname = W_CheckNameForNum(lumpnum);
 	if (strlen(mdllumpname) <= 4)
 		return;
 
 	md2_playermodels[skinnum].scale = scale;
-	md2_playermodels[skinnum].offset = offset;
+	md2_playermodels[skinnum].xoffset = xoffset;
+	md2_playermodels[skinnum].yoffset = yoffset;
 	md2_playermodels[skinnum].notfound = false;
 	md2_playermodels[skinnum].internal = true;
 	md2_playermodels[skinnum].model_lumpnum = lumpnum;
@@ -701,15 +709,10 @@ void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 	const char *lumpname = W_CheckNameForNum(lumpnum);
 	size_t spritenum = 0;
 
-	if (strlen(lumpname) <= 4)
-		return;
-
 	while (spritenum < NUMSPRITES)
 	{
 		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
 		{
-			md2_models[spritenum].scale = 3.0f;
-			md2_models[spritenum].offset = 0.0f;
 			md2_models[spritenum].notfound = false;
 			md2_models[spritenum].internal = true;
 			md2_models[spritenum].model_lumpnum = lumpnum;
@@ -729,6 +732,16 @@ void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 			break;
 		}
 		spritenum++;
+	}
+
+	if ((spritenum == NUMSPRITES) && (rendermode == render_opengl))
+	{
+		if (loadmodelcount < MAXSKINS)
+		{
+			strncpy(needloadplayermodels[loadmodelcount], lumpname, 8);
+			loadmodelcount++;
+		}
+		//CONS_Alert(CONS_WARNING, M_GetText("HWR_AddInternalSpriteMD2: Unknown sprite %s\n"), lumpname+4);
 	}
 }
 
@@ -1517,8 +1530,8 @@ boolean HWR_DrawMD2(gr_vissprite_t *spr)
 #endif
 
 		//Hurdler: it seems there is still a small problem with mobj angle
-		p.x = FIXED_TO_FLOAT(spr->mobj->x);
-		p.y = FIXED_TO_FLOAT(spr->mobj->y)+md2->offset;
+		p.x = FIXED_TO_FLOAT(spr->mobj->x) + md2->xoffset;
+		p.y = FIXED_TO_FLOAT(spr->mobj->y) + md2->yoffset;
 
 		if (spr->mobj->eflags & MFE_VERTICALFLIP)
 			p.z = FIXED_TO_FLOAT(spr->mobj->z + spr->mobj->height);
@@ -1549,6 +1562,7 @@ boolean HWR_DrawMD2(gr_vissprite_t *spr)
 			const fixed_t anglef = AngleFixed((R_PointToAngle(spr->mobj->x, spr->mobj->y))-ANGLE_180);
 			p.angley = FIXED_TO_FLOAT(anglef);
 		}
+		p.angley += md2->angleoffset;
 		p.anglex = 0.0f;
 #ifdef USE_FTRANSFORM_ANGLEZ
 		// Slope rotation from Kart

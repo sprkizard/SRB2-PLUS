@@ -42,6 +42,7 @@
 #include "d_clisrv.h"
 #include "r_defs.h"
 #include "r_data.h"
+#include "r_model.h"
 #include "i_system.h"
 #include "md5.h"
 #include "lua_script.h"
@@ -289,43 +290,125 @@ static inline void W_LoadDehackedLumps(UINT16 wadnum)
 // Look for all models inside a PK3 archive.
 static inline void W_LoadModelLumpsPK3(UINT16 wadnum)
 {
+	char wadname[MAX_WADPATH];
+	INT32 modelcount = 0;
+	INT32 i, skinnum = -1;
+
 	UINT16 posStart, posEnd;
-	posStart = W_CheckNumForFolderStartPK3("Model/", wadnum, 0);
+	posStart = W_CheckNumForFolderStartPK3("Models/", wadnum, 0);
+
 	if (posStart != INT16_MAX)
 	{
-		posEnd = W_CheckNumForFolderEndPK3("Model/", wadnum, posStart);
+		posEnd = W_CheckNumForFolderEndPK3("Models/", wadnum, posStart);
 		posStart++;
 		for (; posStart < posEnd; posStart++)
 		{
-			lumpinfo_t *lump_p = &wadfiles[wadnum]->lumpinfo[posStart];
+			UINT32 lumpnum = (wadnum<<16)+posStart;
+			const char *lumpname = W_CheckNameForNum(lumpnum);
+
+			if (strlen(lumpname) != 8)
+			{
+				CONS_Alert(CONS_WARNING, M_GetText("W_LoadModelLumpsPK3: Model lump name %s is too short\n"), lumpname);
+				continue;
+			}
+
+			// find skin name with model name
+			for (i = 0; i < MAXSKINS; i++)
+			{
+				if (!strcmp(skins[i].sprite, lumpname+4))
+				{
+					skinnum = i;
+					break;
+				}
+			}
+
+			if (skinnum != -1)
+			{
 #ifdef SOFTPOLY
-			RSP_AddInternalSpriteModel((wadnum<<16)+posStart);
+				RSP_AddInternalPlayerModel(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
 #ifdef HWRENDER
-			HWR_AddInternalSpriteMD2((wadnum<<16)+posStart);
+				HWR_AddInternalPlayerMD2(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
-			(void)lump_p;
+			}
+			else
+			{
+#ifdef SOFTPOLY
+				RSP_AddInternalSpriteModel(lumpnum);
+#endif
+#ifdef HWRENDER
+				HWR_AddInternalSpriteMD2(lumpnum);
+#endif
+			}
+			modelcount++;
 		}
 	}
+
+	if (!modelcount)
+		return;
+	nameonly(strcpy(wadname, wadfiles[wadnum]->filename));
+	CONS_Printf(M_GetText("%s added %d model(s)\n"), wadname, modelcount);
 }
 
 // search for all model lumps in all wads and load it
 static inline void W_LoadModelLumps(UINT16 wadnum)
 {
+	char wadname[MAX_WADPATH];
+	INT32 modelcount = 0;
+	INT32 i, skinnum = -1;
+
 	UINT16 lump;
 	lumpinfo_t *lump_p = wadfiles[wadnum]->lumpinfo;
+
 	for (lump = 0; lump < wadfiles[wadnum]->numlumps; lump++, lump_p++)
 	{
 		if ((memcmp(lump_p->name,"MD3_",4)==0) || (memcmp(lump_p->name,"MD2_",4)==0)) // Check for MD3 and MD2 lumps
 		{
+			UINT32 lumpnum = (wadnum<<16)+lump;
+			const char *lumpname = W_CheckNameForNum(lumpnum);
+
+			if (strlen(lumpname) != 8)
+			{
+				CONS_Alert(CONS_WARNING, M_GetText("W_LoadModelLumps: Model lump name %s is too short\n"), lumpname);
+				continue;
+			}
+
+			// find skin name with model name
+			for (i = 0; i < MAXSKINS; i++)
+			{
+				if (!strcmp(skins[i].sprite, lumpname+4))
+				{
+					skinnum = i;
+					break;
+				}
+			}
+
+			if (skinnum != -1)
+			{
 #ifdef SOFTPOLY
-			RSP_AddInternalSpriteModel((wadnum<<16)+lump);
+				RSP_AddInternalPlayerModel(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
 #ifdef HWRENDER
-			HWR_AddInternalSpriteMD2((wadnum<<16)+lump);
+				HWR_AddInternalPlayerMD2(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
+			}
+			else
+			{
+#ifdef SOFTPOLY
+				RSP_AddInternalSpriteModel(lumpnum);
+#endif
+#ifdef HWRENDER
+				HWR_AddInternalSpriteMD2(lumpnum);
+#endif
+			}
+			modelcount++;
 		}
 	}
+
+	if (!modelcount)
+		return;
+	nameonly(strcpy(wadname, wadfiles[wadnum]->filename));
+	CONS_Printf(M_GetText("%s added %d model(s)\n"), wadname, modelcount);
 }
 
 /** Compute MD5 message digest for bytes read from STREAM of this filname.
@@ -860,11 +943,7 @@ UINT16 W_InitFile(const char *filename)
 	}
 
 	// Load models
-	// Okay, look, it's about 03:45 right now, I slept for the entire day,
-	// and I can barely maintain my focus, so excuse the sloppiness of my code.
-	// Also, have what I'm listening to.
-	// https://www.youtube.com/watch?v=YCDYssDoknM
-	R_FreeModels();
+	R_FreeModelTextures();
 	switch (wadfile->type)
 	{
 	case RET_WAD:
@@ -1828,6 +1907,11 @@ int W_VerifyNMUSlumps(const char *filename)
 		{"RRINGS", 6}, // Rings HUD (not named as SBO)
 		{"YB_", 3}, // Intermission graphics, goes with the above
 		{"M_", 2}, // As does menu stuff
+
+		{"MD3_", 4}, // MD3 model
+		{"MD2_", 4}, // MD2 model
+		{"TEX_", 4}, // Model texture
+		{"BLE_", 4}, // Model blend texture
 
 		{NULL, 0},
 	};

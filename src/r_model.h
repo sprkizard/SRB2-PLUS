@@ -12,6 +12,35 @@
 
 #include "doomtype.h"
 
+void R_InitLoadModels(void);
+void R_CheckLoadModels(void);
+void R_FreeModelTextures(void);
+
+void R_SetModelDefScale(INT32 spritenum, float scale);
+void R_SetModelDefXOffset(INT32 spritenum, float offset);
+void R_SetModelDefYOffset(INT32 spritenum, float offset);
+void R_SetModelDefAngleOffset(INT32 spritenum, float offset);
+void R_SetModelDefReplaceSpritesFlag(INT32 spritenum, boolean flag);
+void R_SetModelDefDoNotCullFlag(INT32 spritenum, boolean flag);
+
+float R_GetModelDefScale(INT32 spritenum);
+float R_GetModelDefXOffset(INT32 spritenum);
+float R_GetModelDefYOffset(INT32 spritenum);
+float R_GetModelDefAngleOffset(INT32 spritenum);
+INT32 R_GetModelDefReplaceSpritesFlag(INT32 spritenum);
+INT32 R_GetModelDefDoNotCullFlag(INT32 spritenum);
+
+#define DEFAULTMODELSCALE 3.0f
+extern char needloadplayermodels[MAXSKINS][9];
+extern INT32 loadmodelcount;
+
+typedef enum
+{
+	MDF_REPLACESPRITES  = 1,
+	MDF_DONOTCULL       = 1<<1,
+	// free: 1<<2 to 1<<31
+} modelflags_t;
+
 typedef struct
 {
 	float x, y, z;

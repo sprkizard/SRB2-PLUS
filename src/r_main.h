@@ -91,7 +91,6 @@ extern consvar_t cv_tailspickup;
 
 // Called by startup code.
 void R_Init(void);
-void R_FreeModels(void);
 void R_ReloadHUDGraphics(void);
 
 #ifdef HWRENDER

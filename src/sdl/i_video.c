@@ -72,6 +72,7 @@
 #include "../console.h"
 #include "../command.h"
 #include "../r_main.h"
+#include "../r_model.h"
 #include "sdlmain.h"
 #ifdef HWRENDER
 #include "../hardware/hw_main.h"
@@ -1309,7 +1310,7 @@ void VID_CheckRenderer(void)
 
 	SDLSetMode(vid.width, vid.height, USE_FULLSCREEN);
 
-	R_FreeModels();
+	R_FreeModelTextures();
 
 	if (rendermode == render_soft)
 	{

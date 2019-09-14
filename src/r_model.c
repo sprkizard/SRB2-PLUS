@@ -17,6 +17,254 @@
 #include "u_list.h"
 #include <string.h>
 
+#ifdef HWRENDER
+#include "hardware/hw_main.h"
+#include "hardware/hw_glob.h"
+#include "hardware/hw_md2.h"
+#endif
+
+#ifdef SOFTPOLY
+#include "polyrenderer/r_softpoly.h"
+#endif
+
+char needloadplayermodels[MAXSKINS][9];
+INT32 loadmodelcount = 0;
+
+void R_InitLoadModels(void)
+{
+	memset(needloadplayermodels, 0x00, (sizeof(char) * 9) * MAXSKINS);
+	loadmodelcount = 0;
+}
+
+void R_CheckLoadModels(void)
+{
+	INT32 i;
+	for (i = 0; i < loadmodelcount; i++)
+	{
+		INT32 skinnum;
+		// find skin name with model name
+		for (skinnum = 0; skinnum < MAXSKINS; skinnum++)
+		{
+			if (!strcmp(skins[skinnum].sprite, needloadplayermodels[i]+4))
+			{
+				size_t lumpnum = W_GetNumForName(needloadplayermodels[i]);
+#ifdef SOFTPOLY
+				RSP_AddInternalPlayerModel(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
+#endif
+#ifdef HWRENDER
+				HWR_AddInternalPlayerMD2(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
+#endif
+				strncpy(skins[skinnum].model, needloadplayermodels[i], sizeof skins[skinnum].model);
+				skins[skinnum].flags |= SF_RENDERMODEL;
+				break;
+			}
+		}
+		if (skinnum == MAXSKINS)
+			CONS_Alert(CONS_WARNING, M_GetText("R_CheckLoadModels: Unknown sprite or skin %s\n"), needloadplayermodels[i]+4);
+		memset(needloadplayermodels[i], 0x00, 9);
+	}
+	loadmodelcount = 0;
+}
+
+//
+// Set model options
+//
+void R_SetModelDefScale(INT32 spritenum, float scale)
+{
+#ifdef SOFTPOLY
+	rsp_md2_models[spritenum].scale = scale;
+#endif
+#ifdef HWRENDER
+	md2_models[spritenum].scale = scale;
+#endif
+}
+
+void R_SetModelDefXOffset(INT32 spritenum, float offset)
+{
+#ifdef SOFTPOLY
+	rsp_md2_models[spritenum].xoffset = offset;
+#endif
+#ifdef HWRENDER
+	md2_models[spritenum].xoffset = offset;
+#endif
+}
+
+void R_SetModelDefYOffset(INT32 spritenum, float offset)
+{
+#ifdef SOFTPOLY
+	rsp_md2_models[spritenum].yoffset = offset;
+#endif
+#ifdef HWRENDER
+	md2_models[spritenum].yoffset = offset;
+#endif
+}
+
+void R_SetModelDefAngleOffset(INT32 spritenum, float offset)
+{
+#ifdef SOFTPOLY
+	rsp_md2_models[spritenum].angleoffset = offset;
+#endif
+#ifdef HWRENDER
+	md2_models[spritenum].angleoffset = offset;
+#endif
+}
+
+void R_SetModelDefReplaceSpritesFlag(INT32 spritenum, boolean flag)
+{
+#ifdef SOFTPOLY
+	if (flag)
+		rsp_md2_models[spritenum].modelflags |= MDF_REPLACESPRITES;
+	else
+		rsp_md2_models[spritenum].modelflags &= ~MDF_REPLACESPRITES;
+#endif
+#ifdef HWRENDER
+	if (flag)
+		md2_models[spritenum].modelflags |= MDF_REPLACESPRITES;
+	else
+		md2_models[spritenum].modelflags &= ~MDF_REPLACESPRITES;
+#endif
+}
+
+void R_SetModelDefDoNotCullFlag(INT32 spritenum, boolean flag)
+{
+#ifdef SOFTPOLY
+	if (flag)
+		rsp_md2_models[spritenum].modelflags |= MDF_DONOTCULL;
+	else
+		rsp_md2_models[spritenum].modelflags &= ~MDF_DONOTCULL;
+#endif
+#ifdef HWRENDER
+	if (flag)
+		md2_models[spritenum].modelflags |= MDF_DONOTCULL;
+	else
+		md2_models[spritenum].modelflags &= ~MDF_DONOTCULL;
+#endif
+}
+
+//
+// Get model options
+//
+float R_GetModelDefScale(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return rsp_md2_models[spritenum].scale;
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return md2_models[spritenum].scale;
+#endif
+	return 0.0f;
+}
+
+float R_GetModelDefXOffset(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return rsp_md2_models[spritenum].xoffset;
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return md2_models[spritenum].xoffset;
+#endif
+	return 0.0f;
+}
+
+float R_GetModelDefYOffset(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return rsp_md2_models[spritenum].yoffset;
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return md2_models[spritenum].yoffset;
+#endif
+	return 0.0f;
+}
+
+float R_GetModelDefAngleOffset(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return rsp_md2_models[spritenum].angleoffset;
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return md2_models[spritenum].angleoffset;
+#endif
+	return 0.0f;
+}
+
+INT32 R_GetModelDefReplaceSpritesFlag(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return (rsp_md2_models[spritenum].modelflags & MDF_REPLACESPRITES);
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return (md2_models[spritenum].modelflags & MDF_REPLACESPRITES);
+#endif
+	return 0;
+}
+
+INT32 R_GetModelDefDoNotCullFlag(INT32 spritenum)
+{
+#ifdef SOFTPOLY
+	if (rendermode == render_soft)
+		return (rsp_md2_models[spritenum].modelflags & MDF_DONOTCULL);
+#endif
+#ifdef HWRENDER
+	if (rendermode == render_opengl)
+		return (md2_models[spritenum].modelflags & MDF_DONOTCULL);
+#endif
+	return 0;
+}
+
+void R_FreeModelTextures(void)
+{
+	size_t i;
+	INT32 s;
+
+	for (s = 0; s < MAXSKINS; s++)
+	{
+#ifdef SOFTPOLY
+		if (initmodels_rsp)
+		{
+			RSP_FreeModelTexture(&rsp_md2_playermodels[s]);
+			RSP_FreeModelBlendTexture(&rsp_md2_playermodels[s]);
+		}
+#endif
+#ifdef HWRENDER
+		if (initmodels_hwr)
+		{
+			if (md2_playermodels[s].grpatch != NULL)
+				Z_Free(md2_playermodels[s].grpatch);
+			md2_playermodels[s].grpatch = NULL;
+		}
+#endif
+	}
+	for (i = 0; i < NUMSPRITES; i++)
+	{
+#ifdef SOFTPOLY
+		if (initmodels_rsp)
+		{
+			RSP_FreeModelTexture(&rsp_md2_models[i]);
+			RSP_FreeModelBlendTexture(&rsp_md2_models[i]);
+		}
+#endif
+#ifdef HWRENDER
+		if (initmodels_hwr)
+		{
+			if (md2_models[i].grpatch != NULL)
+				Z_Free(md2_models[i].grpatch);
+			md2_models[i].grpatch = NULL;
+		}
+#endif
+	}
+}
+
 static float PI = (3.1415926535897932384626433832795f);
 static float U_Deg2Rad(float deg)
 {

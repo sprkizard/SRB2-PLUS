@@ -30,18 +30,21 @@
 
 typedef struct
 {
-	char        filename[32];
-	float       scale;
-	float       offset;
-	model_t     *model;
-	void        *grpatch;
-	void        *blendgrpatch;
-	boolean     internal;
-	UINT32      model_lumpnum;
-	UINT32      texture_lumpnum;
-	UINT32      blendtexture_lumpnum;
-	boolean     notfound;
-	INT32       skin;
+	char         filename[32];
+	float        scale;
+	float        xoffset;
+	float        yoffset;
+	float        angleoffset;
+	model_t      *model;
+	void         *grpatch;
+	void         *blendgrpatch;
+	modelflags_t modelflags;
+	boolean      internal;
+	UINT32       model_lumpnum;
+	UINT32       texture_lumpnum;
+	UINT32       blendtexture_lumpnum;
+	boolean      notfound;
+	INT32        skin;
 } md2_t;
 
 extern md2_t md2_models[NUMSPRITES];
@@ -53,7 +56,7 @@ boolean HWR_DrawMD2(gr_vissprite_t *spr);
 void HWR_AddPlayerMD2(INT32 skin);
 void HWR_AddSpriteMD2(size_t spritenum);
 
-void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float offset);
+void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float xoffset, float yoffset);
 void HWR_AddInternalSpriteMD2(UINT32 lumpnum);
 
 #endif // _HW_MD2_H_

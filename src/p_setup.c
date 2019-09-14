@@ -3294,6 +3294,7 @@ boolean P_AddWadFile(const char *wadfilename)
 	// look for skins
 	//
 	R_AddSkins(wadnum); // faB: wadfile index in wadfiles[]
+	R_CheckLoadModels();
 
 	//
 	// search for maps

@@ -18,6 +18,7 @@
 #include "g_input.h"
 #include "r_local.h"
 #include "r_splats.h" // faB(21jan): testing
+#include "r_model.h"
 #include "r_sky.h"
 #include "hu_stuff.h"
 #include "st_stuff.h"
@@ -1395,49 +1396,6 @@ void R_InitHardwareMode(void)
 	}
 }
 #endif
-
-void R_FreeModels(void)
-{
-	size_t i;
-	INT32 s;
-
-	for (s = 0; s < MAXSKINS; s++)
-	{
-#ifdef SOFTPOLY
-		if (initmodels_rsp)
-		{
-			RSP_FreeModelTexture(&rsp_md2_playermodels[s]);
-			RSP_FreeModelBlendTexture(&rsp_md2_playermodels[s]);
-		}
-#endif
-#ifdef HWRENDER
-		if (initmodels_hwr)
-		{
-			if (md2_playermodels[s].grpatch != NULL)
-				Z_Free(md2_playermodels[s].grpatch);
-			md2_playermodels[s].grpatch = NULL;
-		}
-#endif
-	}
-	for (i = 0; i < NUMSPRITES; i++)
-	{
-#ifdef SOFTPOLY
-		if (initmodels_rsp)
-		{
-			RSP_FreeModelTexture(&rsp_md2_models[i]);
-			RSP_FreeModelBlendTexture(&rsp_md2_models[i]);
-		}
-#endif
-#ifdef HWRENDER
-		if (initmodels_hwr)
-		{
-			if (md2_models[i].grpatch != NULL)
-				Z_Free(md2_models[i].grpatch);
-			md2_models[i].grpatch = NULL;
-		}
-#endif
-	}
-}
 
 void R_ReloadHUDGraphics(void)
 {
