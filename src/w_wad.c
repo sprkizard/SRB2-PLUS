@@ -288,7 +288,7 @@ static inline void W_LoadDehackedLumps(UINT16 wadnum)
 }
 
 // Look for all models inside a PK3 archive.
-static inline void W_LoadModelLumpsPK3(UINT16 wadnum)
+static void W_LoadModelLumpsPK3(UINT16 wadnum)
 {
 	char wadname[MAX_WADPATH];
 	INT32 modelcount = 0;
@@ -351,7 +351,7 @@ static inline void W_LoadModelLumpsPK3(UINT16 wadnum)
 }
 
 // search for all model lumps in all wads and load it
-static inline void W_LoadModelLumps(UINT16 wadnum)
+static void W_LoadModelLumps(UINT16 wadnum)
 {
 	char wadname[MAX_WADPATH];
 	INT32 modelcount = 0;

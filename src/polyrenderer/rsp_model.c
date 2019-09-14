@@ -1085,28 +1085,28 @@ void RSP_AddInternalPlayerModel(UINT32 lumpnum, size_t skinnum, float scale, flo
 
 void RSP_AddInternalSpriteModel(UINT32 lumpnum)
 {
-	const char *lumpname = W_CheckNameForNum(lumpnum);
+	const char *mdllumpname = W_CheckNameForNum(lumpnum);
 	size_t spritenum = 0;
 
 	while (spritenum < NUMSPRITES)
 	{
-		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
+		if (stricmp(mdllumpname+4, sprnames[spritenum]) == 0)
 		{
 			rsp_md2_models[spritenum].notfound = false;
 			rsp_md2_models[spritenum].internal = true;
 			rsp_md2_models[spritenum].model_lumpnum = lumpnum;
             {
-				char lumpname[9];
-				memcpy(lumpname, "TEX_", 4);
-				memcpy(lumpname+4, sprnames[spritenum], 4);
-				lumpname[8] = '\0';
+				char lname[9];
+				memcpy(lname, "TEX_", 4);
+				memcpy(lname+4, sprnames[spritenum], 4);
+				lname[8] = '\0';
 
 				// get texture lump number
-				rsp_md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lumpname);
+				rsp_md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lname);
 
 				// get blend texture lump number
-				memcpy(lumpname, "BLE_", 4);
-				rsp_md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+				memcpy(lname, "BLE_", 4);
+				rsp_md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lname);
             }
 			break;
 		}
@@ -1117,7 +1117,7 @@ void RSP_AddInternalSpriteModel(UINT32 lumpnum)
 	{
 		if (loadmodelcount < MAXSKINS)
 		{
-			strncpy(needloadplayermodels[loadmodelcount], lumpname, 8);
+			strncpy(needloadplayermodels[loadmodelcount], mdllumpname, 8);
 			loadmodelcount++;
 		}
 		//CONS_Alert(CONS_WARNING, M_GetText("RSP_AddInternalSpriteModel: Unknown sprite %s\n"), lumpname+4);

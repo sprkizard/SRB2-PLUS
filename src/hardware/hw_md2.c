@@ -690,44 +690,44 @@ void HWR_AddInternalPlayerMD2(UINT32 lumpnum, size_t skinnum, float scale, float
 	md2_playermodels[skinnum].model_lumpnum = lumpnum;
 
 	{
-		char lumpname[9];
-		memcpy(lumpname, "TEX_", 4);
-		memcpy(lumpname+4, mdllumpname+4, 4);
-		lumpname[8] = '\0';
+		char lname[9];
+		memcpy(lname, "TEX_", 4);
+		memcpy(lname+4, mdllumpname+4, 4);
+		lname[8] = '\0';
 
 		// get texture lump number
-		md2_playermodels[skinnum].texture_lumpnum = W_CheckNumForName(lumpname);
+		md2_playermodels[skinnum].texture_lumpnum = W_CheckNumForName(lname);
 
 		// get blend texture lump number
-		memcpy(lumpname, "BLE_", 4);
-		md2_playermodels[skinnum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+		memcpy(lname, "BLE_", 4);
+		md2_playermodels[skinnum].blendtexture_lumpnum = W_CheckNumForName(lname);
 	}
 }
 
 void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 {
-	const char *lumpname = W_CheckNameForNum(lumpnum);
+	const char *mdllumpname = W_CheckNameForNum(lumpnum);
 	size_t spritenum = 0;
 
 	while (spritenum < NUMSPRITES)
 	{
-		if (stricmp(lumpname+4, sprnames[spritenum]) == 0)
+		if (stricmp(mdllumpname+4, sprnames[spritenum]) == 0)
 		{
 			md2_models[spritenum].notfound = false;
 			md2_models[spritenum].internal = true;
 			md2_models[spritenum].model_lumpnum = lumpnum;
             {
-				char lumpname[9];
-				memcpy(lumpname, "TEX_", 4);
-				memcpy(lumpname+4, sprnames[spritenum], 4);
-				lumpname[8] = '\0';
+				char lname[9];
+				memcpy(lname, "TEX_", 4);
+				memcpy(lname+4, sprnames[spritenum], 4);
+				lname[8] = '\0';
 
 				// get texture lump number
-				md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lumpname);
+				md2_models[spritenum].texture_lumpnum = W_CheckNumForName(lname);
 
 				// get blend texture lump number
-				memcpy(lumpname, "BLE_", 4);
-				md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lumpname);
+				memcpy(lname, "BLE_", 4);
+				md2_models[spritenum].blendtexture_lumpnum = W_CheckNumForName(lname);
             }
 			break;
 		}
@@ -738,7 +738,7 @@ void HWR_AddInternalSpriteMD2(UINT32 lumpnum)
 	{
 		if (loadmodelcount < MAXSKINS)
 		{
-			strncpy(needloadplayermodels[loadmodelcount], lumpname, 8);
+			strncpy(needloadplayermodels[loadmodelcount], mdllumpname, 8);
 			loadmodelcount++;
 		}
 		//CONS_Alert(CONS_WARNING, M_GetText("HWR_AddInternalSpriteMD2: Unknown sprite %s\n"), lumpname+4);
