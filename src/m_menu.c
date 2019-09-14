@@ -261,7 +261,9 @@ static void M_ChangeControl(INT32 choice);
 // Video & Sound
 menu_t OP_VideoOptionsDef, OP_VideoModeDef;
 static void M_VideoOptionsMenu(void);
+#if defined (HWRENDER) || defined (SOFTPOLY)
 static void M_RendererOptionsMenu(void);
+#endif
 #ifdef HWRENDER
 menu_t OP_OpenGLOptionsDef, OP_OpenGLFogDef, OP_OpenGLColorDef;
 #endif
@@ -1762,6 +1764,7 @@ static void M_VideoOptionsMenu(void)
 	M_SetupNextMenu(&OP_VideoOptionsDef);
 }
 
+#if defined (HWRENDER) || defined (SOFTPOLY)
 static void M_RendererOptionsMenu(void)
 {
 #ifdef HWRENDER
@@ -1776,6 +1779,7 @@ static void M_RendererOptionsMenu(void)
 		M_SetupNextMenu(&OP_SoftPolyOptionsDef);
 #endif
 }
+#endif // HWRENDER || SOFTPOLY
 
 #ifdef HWRENDER
 menu_t OP_OpenGLOptionsDef = DEFAULTMENUSTYLE("M_VIDEO", OP_OpenGLOptionsMenu, &OP_VideoOptionsDef, 30, 30);
@@ -2023,6 +2027,7 @@ void Renderer_Onchange(void)
 {
 	SCR_ChangeRenderer();
 
+#ifdef HWRENDER
 #ifndef SOFTPOLY
 	if (cv_renderer.value == 1)/* Renderer change does not occur immediately. */
 		OP_VideoOptionsMenu[op_video_renderer_options].status = IT_GRAYEDOUT;
@@ -2030,6 +2035,7 @@ void Renderer_Onchange(void)
 #endif
 		OP_VideoOptionsMenu[op_video_renderer_options].status =
 			( IT_STRING | IT_CALL );
+#endif // HWRENDER
 }
 
 void Screenshot_option_Onchange(void)
