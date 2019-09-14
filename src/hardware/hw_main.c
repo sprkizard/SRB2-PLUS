@@ -5342,7 +5342,7 @@ static void HWR_DrawSprites(void)
 #endif
 				if (spr->mobj && spr->mobj->skin && spr->mobj->sprite == SPR_PLAY)
 				{
-					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && (!md2_playermodels[(skin_t*)spr->mobj->skin-skins].notfound) && md2_playermodels[(skin_t*)spr->mobj->skin-skins].scale > 0.0f);
+					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && md2_playermodels[(skin_t*)spr->mobj->skin-skins].scale > 0.0f);
 					if (((skin_t*)spr->mobj->skin)->flags & SF_RENDERMODEL)
 						modelavailable = true;
 					if (!modelavailable)
@@ -5352,7 +5352,7 @@ static void HWR_DrawSprites(void)
 				}
 				else
 				{
-					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && (!md2_models[spr->mobj->sprite].notfound) && md2_models[spr->mobj->sprite].scale > 0.0f);
+					boolean modelavailable = ((cv_models.value || (spr->mobj->flags & MF_RENDERMODEL)) && md2_models[spr->mobj->sprite].scale > 0.0f);
 					if (!modelavailable)
 						HWR_DrawSprite(spr);
 					else

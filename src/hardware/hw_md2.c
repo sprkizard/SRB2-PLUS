@@ -384,9 +384,9 @@ static void md2_loadTexture(md2_t *model)
 				grpatch->mipmap.grInfo.format = GR_RGBA;
 			}
 		}
-		else
+		else if (filename)
 			grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
-		if (grpatch->mipmap.grInfo.format == 0)
+		if (grpatch->mipmap.grInfo.format == 0 && filename)
 #endif
 		grpatch->mipmap.grInfo.format = PCX_Load(filename, &w, &h, grpatch);
 		if (grpatch->mipmap.grInfo.format == 0)
@@ -415,10 +415,14 @@ static void md2_loadTexture(md2_t *model)
 static void md2_loadBlendTexture(md2_t *model)
 {
 	GLPatch_t *grpatch;
-	char *filename = Z_Malloc(strlen(model->filename)+7, PU_STATIC, NULL);
-	strcpy(filename, model->filename);
 
-	FIL_ForceExtension(filename, "_blend.png");
+	char *filename = NULL;
+	if (strlen(model->filename) > 0)
+	{
+		filename = Z_Malloc(strlen(model->filename)+7, PU_STATIC, NULL);
+		strcpy(filename, model->filename);
+		FIL_ForceExtension(filename, "_blend.png");
+	}
 
 	if (model->blendgrpatch)
 	{
@@ -445,14 +449,15 @@ static void md2_loadBlendTexture(md2_t *model)
 				grpatch->mipmap.grInfo.format = GR_RGBA;
 			}
 		}
-		else
+		else if (filename)
 			grpatch->mipmap.grInfo.format = PNG_Load(filename, &w, &h, grpatch);
-		if (grpatch->mipmap.grInfo.format == 0)
+		if (grpatch->mipmap.grInfo.format == 0 && filename)
 #endif
 		grpatch->mipmap.grInfo.format = PCX_Load(filename, &w, &h, grpatch);
 		if (grpatch->mipmap.grInfo.format == 0)
 		{
-			Z_Free(filename);
+			if (filename)
+				Z_Free(filename);
 			return;
 		}
 
@@ -472,7 +477,8 @@ static void md2_loadBlendTexture(md2_t *model)
 	HWD.pfnSetTexture(&grpatch->mipmap); // We do need to do this so that it can be cleared and knows to recreate it when necessary
 	HWR_UnlockCachedPatch(grpatch);
 
-	Z_Free(filename);
+	if (filename)
+		Z_Free(filename);
 }
 
 // Don't spam the console, or the OS with fopen requests!
@@ -488,33 +494,39 @@ void HWR_InitMD2(void)
 	float scale, offset;
 
 	CONS_Printf("InitMD2()...\n");
-	for (s = 0; s < MAXSKINS; s++)
+
+	if (!initmodels_hwr)
 	{
-		if (md2_playermodels[s].internal)
-			continue;
-		md2_playermodels[s].scale = -1.0f;
-		md2_playermodels[s].model = NULL;
-		md2_playermodels[s].grpatch = NULL;
-		md2_playermodels[s].skin = -1;
-		md2_playermodels[s].internal = false;
-		md2_playermodels[s].model_lumpnum = UINT32_MAX;
-		md2_playermodels[s].texture_lumpnum = UINT32_MAX;
-		md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
-		md2_playermodels[s].notfound = true;
-	}
-	for (i = 0; i < NUMSPRITES; i++)
-	{
-		if (md2_models[i].internal)
-			continue;
-		md2_models[i].scale = -1.0f;
-		md2_models[i].model = NULL;
-		md2_models[i].grpatch = NULL;
-		md2_models[i].skin = -1;
-		md2_models[i].internal = false;
-		md2_models[i].model_lumpnum = UINT32_MAX;
-		md2_models[i].texture_lumpnum = UINT32_MAX;
-		md2_models[i].blendtexture_lumpnum = UINT32_MAX;
-		md2_models[i].notfound = true;
+		for (s = 0; s < MAXSKINS; s++)
+		{
+			if (md2_playermodels[s].internal)
+				continue;
+			md2_playermodels[s].scale = -1.0f;
+			md2_playermodels[s].model = NULL;
+			md2_playermodels[s].grpatch = NULL;
+			md2_playermodels[s].skin = -1;
+			md2_playermodels[s].internal = false;
+			md2_playermodels[s].model_lumpnum = UINT32_MAX;
+			md2_playermodels[s].texture_lumpnum = UINT32_MAX;
+			md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
+			md2_playermodels[s].notfound = true;
+			md2_playermodels[s].filename[0] = '\0';
+		}
+		for (i = 0; i < NUMSPRITES; i++)
+		{
+			if (md2_models[i].internal)
+				continue;
+			md2_models[i].scale = -1.0f;
+			md2_models[i].model = NULL;
+			md2_models[i].grpatch = NULL;
+			md2_models[i].skin = -1;
+			md2_models[i].internal = false;
+			md2_models[i].model_lumpnum = UINT32_MAX;
+			md2_models[i].texture_lumpnum = UINT32_MAX;
+			md2_models[i].blendtexture_lumpnum = UINT32_MAX;
+			md2_models[i].notfound = true;
+			md2_models[i].filename[0] = '\0';
+		}
 	}
 
 	initmodels_hwr = true;
@@ -611,8 +623,6 @@ void HWR_AddPlayerMD2(int skin) // For MD2's that were added after startup
 		}
 	}
 
-	//CONS_Printf("MD2 for player skin %s not found\n", skins[skin].name);
-	//md2_playermodels[skin].notfound = true;
 playermd2found:
 	fclose(f);
 }
@@ -655,8 +665,6 @@ void HWR_AddSpriteMD2(size_t spritenum) // For MD2s that were added after startu
 		}
 	}
 
-	//CONS_Printf("MD2 for sprite %s not found\n", sprnames[spritenum]);
-	//md2_models[spritenum].notfound = true;
 spritemd2found:
 	fclose(f);
 }

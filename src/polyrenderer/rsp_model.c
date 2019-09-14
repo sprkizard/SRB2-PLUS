@@ -880,33 +880,38 @@ void RSP_InitModels(void)
 	char name[18], filename[32];
 	float scale, offset;
 
-	for (s = 0; s < MAXSKINS; s++)
+	if (!initmodels_rsp)
 	{
-		if (rsp_md2_playermodels[s].internal)
-			continue;
-		rsp_md2_playermodels[s].scale = -1.0f;
-		rsp_md2_playermodels[s].model = NULL;
-		rsp_md2_playermodels[s].texture = NULL;
-		rsp_md2_playermodels[s].skin = -1;
-		rsp_md2_playermodels[s].internal = false;
-		rsp_md2_playermodels[s].model_lumpnum = UINT32_MAX;
-		rsp_md2_playermodels[s].texture_lumpnum = UINT32_MAX;
-		rsp_md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
-		rsp_md2_playermodels[s].notfound = true;
-	}
-	for (i = 0; i < NUMSPRITES; i++)
-	{
-		if (rsp_md2_models[i].internal)
-			continue;
-		rsp_md2_models[i].scale = -1.0f;
-		rsp_md2_models[i].model = NULL;
-		rsp_md2_models[i].texture = NULL;
-		rsp_md2_models[i].skin = -1;
-		rsp_md2_models[i].internal = false;
-		rsp_md2_models[i].model_lumpnum = UINT32_MAX;
-		rsp_md2_models[i].texture_lumpnum = UINT32_MAX;
-		rsp_md2_models[i].blendtexture_lumpnum = UINT32_MAX;
-		rsp_md2_models[i].notfound = true;
+		for (s = 0; s < MAXSKINS; s++)
+		{
+			if (rsp_md2_playermodels[s].internal)
+				continue;
+			rsp_md2_playermodels[s].scale = -1.0f;
+			rsp_md2_playermodels[s].model = NULL;
+			rsp_md2_playermodels[s].texture = NULL;
+			rsp_md2_playermodels[s].skin = -1;
+			rsp_md2_playermodels[s].internal = false;
+			rsp_md2_playermodels[s].model_lumpnum = UINT32_MAX;
+			rsp_md2_playermodels[s].texture_lumpnum = UINT32_MAX;
+			rsp_md2_playermodels[s].blendtexture_lumpnum = UINT32_MAX;
+			rsp_md2_playermodels[s].notfound = true;
+			rsp_md2_playermodels[s].filename[0] = '\0';
+		}
+		for (i = 0; i < NUMSPRITES; i++)
+		{
+			if (rsp_md2_models[i].internal)
+				continue;
+			rsp_md2_models[i].scale = -1.0f;
+			rsp_md2_models[i].model = NULL;
+			rsp_md2_models[i].texture = NULL;
+			rsp_md2_models[i].skin = -1;
+			rsp_md2_models[i].internal = false;
+			rsp_md2_models[i].model_lumpnum = UINT32_MAX;
+			rsp_md2_models[i].texture_lumpnum = UINT32_MAX;
+			rsp_md2_models[i].blendtexture_lumpnum = UINT32_MAX;
+			rsp_md2_models[i].notfound = true;
+			rsp_md2_models[i].filename[0] = '\0';
+		}
 	}
 
 	initmodels_rsp = true;
@@ -998,7 +1003,6 @@ void RSP_AddPlayerModel(int skin) // For MD2's that were added after startup
 		}
 	}
 
-	rsp_md2_playermodels[skin].notfound = true;
 playermd2found:
 	fclose(f);
 }
@@ -1041,8 +1045,6 @@ void RSP_AddSpriteModel(size_t spritenum) // For MD2s that were added after star
 		}
 	}
 
-	//CONS_Printf("MD2 for sprite %s not found\n", sprnames[spritenum]);
-	rsp_md2_models[spritenum].notfound = true;
 spritemd2found:
 	fclose(f);
 }
