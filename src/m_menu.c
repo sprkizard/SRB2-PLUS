@@ -260,6 +260,7 @@ static void M_ChangeControl(INT32 choice);
 
 // Video & Sound
 menu_t OP_VideoOptionsDef, OP_VideoModeDef;
+static void M_VideoOptionsMenu(void);
 static void M_RendererOptionsMenu(void);
 #ifdef HWRENDER
 menu_t OP_OpenGLOptionsDef, OP_OpenGLFogDef, OP_OpenGLColorDef;
@@ -930,7 +931,7 @@ static menuitem_t OP_MainMenu[] =
 {
 	{IT_SUBMENU | IT_STRING, NULL, "Setup Controls...",     &OP_ControlsDef,      10},
 
-	{IT_SUBMENU | IT_STRING, NULL, "Video Options...",      &OP_VideoOptionsDef,  30},
+	{IT_STRING  | IT_STRING, NULL, "Video Options...",      M_VideoOptionsMenu,   30},
 	{IT_SUBMENU | IT_STRING, NULL, "Sound Options...",      &OP_SoundOptionsDef,  40},
 	{IT_SUBMENU | IT_STRING, NULL, "Data Options...",       &OP_DataOptionsDef,   50},
 
@@ -1129,6 +1130,26 @@ static menuitem_t OP_VideoOptionsMenu[] =
 
 #if defined (HWRENDER) || defined (SOFTPOLY)
 	{IT_STRING | IT_CALL, NULL,   "Renderer Options...",  M_RendererOptionsMenu,    150},
+#endif
+};
+
+enum
+{
+	op_video_mode,
+	op_video_renderer,
+#if (defined (__unix__) && !defined (MSDOS)) || defined (UNIXCOMMON) || defined (HAVE_SDL)
+	op_video_fullscreen,
+#endif
+	op_video_brightness,
+	op_video_drawdist,
+	op_video_nights_drawdist,
+	op_video_precip_drawdist,
+	op_video_precip_density,
+	op_video_showfps,
+	op_video_homremoval,
+	op_video_vsync,
+#if defined (HWRENDER) || defined (SOFTPOLY)
+	op_video_renderer_options,
 #endif
 };
 
@@ -1735,6 +1756,12 @@ menu_t OP_MonitorToggleDef =
 	NULL
 };
 
+static void M_VideoOptionsMenu(void)
+{
+	Renderer_Onchange();
+	M_SetupNextMenu(&OP_VideoOptionsDef);
+}
+
 static void M_RendererOptionsMenu(void)
 {
 #ifdef HWRENDER
@@ -1990,6 +2017,19 @@ static void Newgametype_OnChange(void)
 			CV_AddValue(&cv_nextmap, 1);
 		}
 	}
+}
+
+void Renderer_Onchange(void)
+{
+	SCR_ChangeRenderer();
+
+#ifndef SOFTPOLY
+	if (cv_renderer.value == 1)/* Renderer change does not occur immediately. */
+		OP_VideoOptionsMenu[op_video_renderer_options].status = IT_GRAYEDOUT;
+	else
+#endif
+		OP_VideoOptionsMenu[op_video_renderer_options].status =
+			( IT_STRING | IT_CALL );
 }
 
 void Screenshot_option_Onchange(void)

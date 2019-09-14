@@ -28,6 +28,7 @@
 #include "d_main.h"
 #include "d_clisrv.h"
 #include "f_finale.h"
+#include "m_menu.h"
 
 
 #if defined (USEASM) && !defined (NORUSEASM)//&& (!defined (_MSC_VER) || (_MSC_VER <= 1200))
@@ -80,7 +81,7 @@ static CV_PossibleValue_t cv_renderer_t[] = {
 #endif
 	{0, NULL}
 };
-consvar_t cv_renderer = {"renderer", "Software", CV_SAVE|CV_CALL, cv_renderer_t, SCR_ChangeRenderer, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_renderer = {"renderer", "Software", CV_SAVE|CV_CALL, cv_renderer_t, Renderer_Onchange, 0, NULL, NULL, 0, 0, NULL};
 
 static void SCR_ChangeFullscreen(void);
 
