@@ -867,7 +867,6 @@ void RSP_InitModels(void)
 		rsp_md2_playermodels[s].texture = NULL;
 		rsp_md2_playermodels[s].skin = -1;
 		rsp_md2_playermodels[s].notfound = true;
-		rsp_md2_playermodels[s].error = false;
 	}
 	for (i = 0; i < NUMSPRITES; i++)
 	{
@@ -876,7 +875,6 @@ void RSP_InitModels(void)
 		rsp_md2_models[i].texture = NULL;
 		rsp_md2_models[i].skin = -1;
 		rsp_md2_models[i].notfound = true;
-		rsp_md2_models[i].error = false;
 	}
 
 	// read the md2.dat file
@@ -1037,8 +1035,6 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 	else
 		md2 = &rsp_md2_models[spritenum];
 
-	if (md2->error)
-		return NULL; // we already failed loading this before :(
 	if (!md2->model)
 	{
 		//CONS_Debug(DBG_RENDER, "Loading MD2... (%s)", sprnames[spritenum]);
@@ -1047,7 +1043,7 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 
 		if (!md2->model)
 		{
-			md2->error = true;
+			md2->notfound = true;
 			return NULL;
 		}
 	}

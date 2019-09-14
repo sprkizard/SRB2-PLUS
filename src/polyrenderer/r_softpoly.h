@@ -215,7 +215,6 @@ typedef struct
 	void				*blendtexture;
 	boolean				notfound;
 	INT32				skin;
-	boolean				error;
 
 	rsp_texture_t		rsp_tex;
 	rsp_texture_t		rsp_transtex[MAXTRANSLATIONS];
