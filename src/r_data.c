@@ -1427,6 +1427,14 @@ UINT8 NearestColor(UINT8 r, UINT8 g, UINT8 b)
 	return (UINT8)bestcolor;
 }
 
+UINT8 NearestColorSafe(UINT8 r, UINT8 g, UINT8 b)
+{
+	UINT8 pixel = NearestColor(r, g, b);
+	if (pixel == TRANSPARENTPIXEL)
+		pixel = 220;
+	return pixel;
+}
+
 // Rounds off floating numbers and checks for 0 - 255 bounds
 static int RoundUp(double number)
 {

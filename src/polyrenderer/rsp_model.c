@@ -290,25 +290,17 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 			{
 				// Pure black turns into white
 				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue == 0)
-				{
 					model->rsp_transtex[skincolor].data[i] = 0;
-				}
 				else
-				{
-					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
-				}
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(image[i].s.red, image[i].s.green, image[i].s.blue);
 			}
 			else if (skinnum == TC_METALSONIC)
 			{
 				// Turn everything below a certain blue threshold white
 				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue <= 82)
-				{
 					model->rsp_transtex[skincolor].data[i] = 0;
-				}
 				else
-				{
-					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
-				}
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(image[i].s.red, image[i].s.green, image[i].s.blue);
 			}
 			else if (skinnum == TC_ALLWHITE)
 			{
@@ -316,7 +308,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 				model->rsp_transtex[skincolor].data[i] = 0;
 			}
 			else
-				model->rsp_tex.data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
+				model->rsp_tex.data[i] = NearestColorSafe(image[i].s.red, image[i].s.green, image[i].s.blue);
 		}
 	}
 	else
@@ -559,25 +551,17 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 			{
 				// Pure black turns into white
 				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue == 0)
-				{
 					model->rsp_transtex[skincolor].data[i] = 0;
-				}
 				else
-				{
-					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
-				}
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(image[i].s.red, image[i].s.green, image[i].s.blue);
 			}
 			else if (skinnum == TC_METALSONIC)
 			{
 				// Turn everything below a certain blue threshold white
 				if (image[i].s.red == 0 && image[i].s.green == 0 && image[i].s.blue <= 82)
-				{
 					model->rsp_transtex[skincolor].data[i] = 0;
-				}
 				else
-				{
-					model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red, image[i].s.green, image[i].s.blue);
-				}
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(image[i].s.red, image[i].s.green, image[i].s.blue);
 			}
 			else if (skinnum == TC_ALLWHITE)
 			{
@@ -640,7 +624,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 						// Ignore pure white & pitch black
 						if (brightness > 253 || brightness < 2)
 						{
-							model->rsp_transtex[skincolor].data[i] = NearestColor(image[i].s.red,image[i].s.green,image[i].s.blue);
+							model->rsp_transtex[skincolor].data[i] = NearestColorSafe(image[i].s.red,image[i].s.green,image[i].s.blue);
 							continue;
 						}
 
@@ -745,7 +729,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 					tempcolor = (brightness * blendcolor.s.blue) / colorbright;
 					tempcolor = min(255, tempcolor);
 					blue = (UINT8)tempcolor;
-					model->rsp_transtex[skincolor].data[i] = NearestColor(red, green, blue);
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(red, green, blue);
 				}
 				else
 #endif
@@ -765,7 +749,7 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 					tempcolor = ((image[i].s.blue * (255-blendimage[i].s.alpha)) / 255) + ((blendcolor.s.blue * blendimage[i].s.alpha) / 255);
 					tempcolor = min(255, tempcolor);
 					blue = (UINT8)tempcolor;
-					model->rsp_transtex[skincolor].data[i] = NearestColor(red, green, blue);
+					model->rsp_transtex[skincolor].data[i] = NearestColorSafe(red, green, blue);
 				}
 			}
 		}

@@ -74,6 +74,7 @@ void RSP_GenerateTexture(patch_t *patch, UINT8 *buffer,
 #endif
 
 UINT8 NearestColor(UINT8 r, UINT8 g, UINT8 b);
+UINT8 NearestColorSafe(UINT8 r, UINT8 g, UINT8 b);
 
 // texture width is a power of 2, so it can easily repeat along sidedefs using a simple mask
 extern INT32 *texturewidthmask;
