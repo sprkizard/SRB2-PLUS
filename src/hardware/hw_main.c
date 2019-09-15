@@ -5345,7 +5345,7 @@ static void HWR_DrawSprites(void)
 				skin_t *skin = (skin_t *)spr->mobj->skin;
 				if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
 					modelavailable = true;
-				else
+				else if (!modelavailable)
 					modelavailable = R_GetModelDefReplaceSpritesFlag(spr->mobj->sprite);
 				if (modelavailable && HWR_DrawMD2(spr))
 					;
