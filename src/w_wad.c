@@ -268,6 +268,11 @@ static inline void W_LoadDehackedLumps(UINT16 wadnum)
 				CONS_Printf(M_GetText("Loading object config from %s\n"), wadfiles[wadnum]->filename);
 				DEH_LoadDehackedLumpPwad(wadnum, lump);
 			}
+			else if (memcmp(lump_p->name,"MODELS",6)==0) // Check for MODELS
+			{
+				CONS_Printf(M_GetText("Loading models config from %s\n"), wadfiles[wadnum]->filename);
+				DEH_LoadDehackedLumpPwad(wadnum, lump);
+			}
 	}
 
 #ifdef SCANTHINGS
@@ -1912,6 +1917,7 @@ int W_VerifyNMUSlumps(const char *filename)
 		{"MD2_", 4}, // MD2 model
 		{"TEX_", 4}, // Model texture
 		{"BLE_", 4}, // Model blend texture
+		{"MODELS",7}, // Model config
 
 		{NULL, 0},
 	};

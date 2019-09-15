@@ -1417,10 +1417,16 @@ boolean HWR_DrawMD2(gr_vissprite_t *spr)
 		if (spr->mobj->skin && spr->mobj->sprite == SPR_PLAY) // Use the player MD2 list if the mobj has a skin and is using the player sprites
 		{
 			md2 = &md2_playermodels[(skin_t*)spr->mobj->skin-skins];
-			md2->skin = (skin_t*)spr->mobj->skin-skins;
+			if (md2->notfound)/* Let PLAY (or lumps get fucked) */
+				md2 = &md2_models[spr->mobj->sprite];
+			else
+				md2->skin = (skin_t*)spr->mobj->skin-skins;
 		}
 		else
 			md2 = &md2_models[spr->mobj->sprite];
+
+		if (md2->notfound)
+			return false;
 
 		if (!md2->model)
 		{
