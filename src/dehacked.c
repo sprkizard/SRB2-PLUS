@@ -3802,7 +3802,7 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 	Z_Free(s);
 }
 
-static void DEH_LoadModelConfigFile(MYFILE *f, UINT16 wad)
+static void DEH_LoadModelConfigFile(MYFILE *f)
 {
 	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
 	char *word;
@@ -3899,7 +3899,7 @@ void DEH_LoadDehackedLumpPwad(UINT16 wad, UINT16 lump)
 	f.data[f.size] = 0;
 	/* Oh, a hack! Fuck dehacked. */
 	if (stricmp(wadfiles[wad]->lumpinfo[lump].name, "MODELS") == 0)
-		DEH_LoadModelConfigFile(&f, wad);
+		DEH_LoadModelConfigFile(&f);
 	else
 		DEH_LoadDehackedFile(&f, wad);
 	DEH_WriteUndoline(va("# uload for wad: %u, lump: %u", wad, lump), NULL, UNDO_DONE);
