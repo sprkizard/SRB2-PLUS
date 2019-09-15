@@ -594,7 +594,6 @@ model_t *MD3_LoadModelFile(const char *fileName, int ztag, boolean useFloat, boo
 	}
 
 	f = fopen(fileName, "rb");
-
 	if (!f)
 		return NULL;
 

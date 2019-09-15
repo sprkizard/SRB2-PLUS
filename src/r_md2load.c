@@ -249,6 +249,7 @@ model_t *MD2_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 	md2texcoord_t *texcoords;
 	md2frame_t *frames;
 	char *fname = NULL;
+	int foffset = 0;
 
 	float skw;
 	float skh;
@@ -296,9 +297,10 @@ model_t *MD2_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 	fname = retModel->framenames;
 	for (i = 0; i < header->numFrames; i++)
 	{
-		memcpy(fname, frames->name, 16);
+		md2frame_t *fr = (md2frame_t*)&buffer[header->offsetFrames + foffset];
+		memcpy(fname, fr->name, 16);
+		foffset += sizeof(md2frame_t) + (sizeof(md2vertex_t) * header->numXYZ);
 		fname += 16;
-		frames++;
 	}
 
 	// Read in textures
@@ -576,16 +578,13 @@ model_t *MD2_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 
 model_t *MD2_LoadModelFile(const char *fileName, int ztag, boolean useFloat, boolean RSPload)
 {
+	long fileLen;
+	long fileReadLen;
+	char *buffer;
 	FILE *f;
-
 	model_t *retModel = NULL;
 
-	size_t fileLen;
-
-	char *buffer;
-
 	f = fopen(fileName, "rb");
-
 	if (!f)
 		return NULL;
 
@@ -596,11 +595,13 @@ model_t *MD2_LoadModelFile(const char *fileName, int ztag, boolean useFloat, boo
 
 	// read in file
 	buffer = malloc(fileLen);
-	if (fread(buffer, fileLen, 1, f)) { } // squash ignored fread error
+	fileReadLen = fread(buffer, fileLen, 1, f);
 	fclose(f);
 
-	retModel = MD2_LoadModelData((UINT8 *)buffer, ztag, useFloat, RSPload);
+	(void)fileReadLen; // intentionally ignore return value, per buildbot
 
+	retModel = MD2_LoadModelData((UINT8 *)buffer, ztag, useFloat, RSPload);
 	free(buffer);
+
 	return retModel;
 }

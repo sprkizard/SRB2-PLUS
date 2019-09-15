@@ -93,7 +93,7 @@ static void PNG_warn(png_structp PNG, png_const_charp pngtext)
 	CONS_Debug(DBG_RENDER, "libpng warning at %p: %s", PNG, pngtext);
 }
 
-static int PNG_Load(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture_t *texture)
+static int PNG_LoadFromPath(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture_t *texture)
 {
 	png_structp png_ptr;
 	png_infop png_info_ptr;
@@ -120,7 +120,7 @@ static int PNG_Load(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture
 		PNG_error, PNG_warn);
 	if (!png_ptr)
 	{
-		CONS_Debug(DBG_RENDER, "PNG_Load: Error on initialize libpng\n");
+		CONS_Debug(DBG_RENDER, "PNG_LoadFromPath: Error on initialize libpng\n");
 		fclose(png_FILE);
 		return 0;
 	}
@@ -128,7 +128,7 @@ static int PNG_Load(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture
 	png_info_ptr = png_create_info_struct(png_ptr);
 	if (!png_info_ptr)
 	{
-		CONS_Debug(DBG_RENDER, "PNG_Load: Error on allocate for libpng\n");
+		CONS_Debug(DBG_RENDER, "PNG_LoadFromPath: Error on allocate for libpng\n");
 		png_destroy_read_struct(&png_ptr, NULL, NULL);
 		fclose(png_FILE);
 		return 0;
@@ -808,7 +808,7 @@ void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum)
 		if (lumpnum != UINT32_MAX)
 			texture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
 	}
-	else if (!(PNG_Load(filename, &w, &h, texture)))
+	else if (!(PNG_LoadFromPath(filename, &w, &h, texture)))
 		return;
 #else
 	return;
@@ -843,7 +843,7 @@ void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 		if (lumpnum != UINT32_MAX)
 			blendtexture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
 	}
-	else if (!(PNG_Load(filename, &w, &h, blendtexture)))
+	else if (!(PNG_LoadFromPath(filename, &w, &h, blendtexture)))
 	{
 		Z_Free(filename);
 		return;

@@ -1730,7 +1730,7 @@ static void PNG_warn(png_structp PNG, png_const_charp pngtext)
 	CONS_Debug(DBG_RENDER, "libpng warning at %p: %s", PNG, pngtext);
 }
 
-static png_bytep *PNG_Read(UINT8 *png, UINT16 *w, UINT16 *h, size_t size)
+static png_bytep *PNG_ReadData(UINT8 *png, UINT16 *w, UINT16 *h, size_t size)
 {
 	png_structp png_ptr;
 	png_infop png_info_ptr;
@@ -1749,14 +1749,14 @@ static png_bytep *PNG_Read(UINT8 *png, UINT16 *w, UINT16 *h, size_t size)
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, PNG_error, PNG_warn);
 	if (!png_ptr)
 	{
-		CONS_Debug(DBG_RENDER, "PNG_Load: Error on initialize libpng\n");
+		CONS_Debug(DBG_RENDER, "PNG_ReadData: Error on initialize libpng\n");
 		return NULL;
 	}
 
 	png_info_ptr = png_create_info_struct(png_ptr);
 	if (!png_info_ptr)
 	{
-		CONS_Debug(DBG_RENDER, "PNG_Load: Error on allocate for libpng\n");
+		CONS_Debug(DBG_RENDER, "PNG_ReadData: Error on allocate for libpng\n");
 		png_destroy_read_struct(&png_ptr, NULL, NULL);
 		return NULL;
 	}
@@ -1828,7 +1828,7 @@ UINT32 *PNG_RawConvert(UINT8 *png, UINT16 *w, UINT16 *h, size_t size, void *user
 {
 	RGBA_t *flat;
 	png_uint_32 x, y;
-	png_bytep *row_pointers = PNG_Read(png, w, h, size);
+	png_bytep *row_pointers = PNG_ReadData(png, w, h, size);
 	png_uint_32 width = *w, height = *h;
 
 	if (!row_pointers)
