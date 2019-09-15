@@ -3802,6 +3802,87 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 	Z_Free(s);
 }
 
+static void DEH_LoadModelConfigFile(MYFILE *f, UINT16 wad)
+{
+	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
+	char *word;
+	char *word2;
+	INT32 i;
+
+	// it doesn't test the version of SRB2 and version of dehacked file
+	dbg_line = -1; // start at -1 so the first line is 0.
+	while (!myfeof(f))
+	{
+		XBOXSTATIC char origpos[128];
+		INT32 size = 0;
+		char *traverse;
+
+		myfgets(s, MAXLINELEN, f);
+		if (s[0] == '\n' || s[0] == '#')
+			continue;
+
+		traverse = s;
+
+		while (traverse[0] != '\n')
+		{
+			traverse++;
+			size++;
+		}
+
+		strncpy(origpos, s, size);
+		origpos[size] = '\0';
+
+		if (NULL != (word = strtok(s, " "))) {
+			strupr(word);
+			if (word[strlen(word)-1] == '\n')
+				word[strlen(word)-1] = '\0';
+		}
+		if (word)
+		{
+			word2 = strtok(NULL, " ");
+			if (word2)
+			{
+				strupr(word2);
+				if (word2[strlen(word2)-1] == '\n')
+					word2[strlen(word2)-1] = '\0';
+				i = atoi(word2);
+				if (fastcmp(word, "MODEL"))
+				{
+					if (i == 0 && word2[0] != '0') // If word2 isn't a number
+						i = get_sprite(word2); // find a sprite by name
+					if (i < NUMSPRITES && i >= 0)
+						readmodel(f, i);
+					else
+					{
+						deh_warning("Sprite number %d out of range (0 - %d)", i, NUMSPRITES-1);
+						ignorelines(f);
+					}
+					DEH_WriteUndoline(word, word2, UNDO_HEADER);
+				}
+				else
+					deh_warning("Unknown word: %s", word);
+			}
+			else
+				deh_warning("missing argument for '%s'", word);
+		}
+		else
+			deh_warning("No word in this line: %s", s);
+	} // end while
+
+	dbg_line = -1;
+	if (deh_num_warning)
+	{
+		CONS_Printf(M_GetText("%d warning%s in the SOC lump\n"), deh_num_warning, deh_num_warning == 1 ? "" : "s");
+		if (devparm) {
+			I_Error("%s%s",va(M_GetText("%d warning%s in the SOC lump\n"), deh_num_warning, deh_num_warning == 1 ? "" : "s"), M_GetText("See log.txt for details.\n"));
+			//while (!I_GetKey())
+				//I_OsPolling();
+		}
+	}
+
+	Z_Free(s);
+}
+
 // read dehacked lump in a wad (there is special trick for for deh
 // file that are converted to wad in w_wad.c)
 void DEH_LoadDehackedLumpPwad(UINT16 wad, UINT16 lump)
@@ -3816,7 +3897,11 @@ void DEH_LoadDehackedLumpPwad(UINT16 wad, UINT16 lump)
 	W_ReadLumpPwad(wad, lump, f.data);
 	f.curpos = f.data;
 	f.data[f.size] = 0;
-	DEH_LoadDehackedFile(&f, wad);
+	/* Oh, a hack! Fuck dehacked. */
+	if (stricmp(wadfiles[wad]->lumpinfo[lump].name, "MODELS") == 0)
+		DEH_LoadModelConfigFile(&f, wad);
+	else
+		DEH_LoadDehackedFile(&f, wad);
 	DEH_WriteUndoline(va("# uload for wad: %u, lump: %u", wad, lump), NULL, UNDO_DONE);
 	Z_Free(f.data);
 }
