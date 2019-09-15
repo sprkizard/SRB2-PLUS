@@ -216,6 +216,7 @@ static int PNG_Load(const char *filename, UINT16 *w, UINT16 *h, rsp_modeltexture
 void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 {
 	rsp_modeltexture_t *texture = model->texture;
+	rsp_modeltexture_t *blendtexture = model->blendtexture;
 	size_t i, size = 0;
 
 	// vanilla port
@@ -253,6 +254,11 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 	// get texture size
 	if (texture)
 		size = (texture->width * texture->height);
+
+	// has skincolor but no blend texture?
+	// don't try to make translated textures
+	if (skincolor && ((!blendtexture) || (blendtexture && !blendtexture->data)))
+		skincolor = 0;
 
 	// base texture
 	if (!skincolor)
@@ -316,7 +322,6 @@ void RSP_CreateModelTexture(rsp_md2_t *model, INT32 skinnum, INT32 skincolor)
 	else
 	{
 		// create translations
-		rsp_modeltexture_t *blendtexture = model->blendtexture;
 		RGBA_t blendcolor;
 
 		model->rsp_transtex[skincolor].width = 1;

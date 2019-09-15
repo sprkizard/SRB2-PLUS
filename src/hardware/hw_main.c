@@ -5341,7 +5341,12 @@ static void HWR_DrawSprites(void)
 			else
 #endif
 			{
-				boolean modelavailable = ((cv_models.value || (((skin_t*)spr->mobj->skin)->flags & SF_RENDERMODEL)));
+				boolean modelavailable = cv_models.value;
+				skin_t *skin = (skin_t *)spr->mobj->skin;
+				if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
+					modelavailable = true;
+				else
+					modelavailable = R_GetModelDefReplaceSpritesFlag(spr->mobj->sprite);
 				if (modelavailable && HWR_DrawMD2(spr))
 					;
 				else
