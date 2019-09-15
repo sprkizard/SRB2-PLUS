@@ -920,6 +920,51 @@ static void readlight(MYFILE *f, INT32 num)
 	Z_Free(s);
 }
 
+static void readspritelight(MYFILE *f, INT32 num)
+{
+	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
+	char *word;
+	char *tmp;
+	INT32 value;
+
+	do
+	{
+		if (myfgets(s, MAXLINELEN, f))
+		{
+			if (s[0] == '\n')
+				break;
+
+			tmp = strchr(s, '#');
+			if (tmp)
+				*tmp = '\0';
+			if (s == tmp)
+				continue; // Skip comment lines, but don't break.
+
+			value = searchvalue(s);
+
+			word = strtok(s, " ");
+			if (word)
+				strupr(word);
+			else
+				break;
+
+			if (fastcmp(word, "LIGHTTYPE"))
+			{
+				INT32 oldvar;
+				for (oldvar = 0; t_lspr[num] != &lspr[oldvar]; oldvar++)
+					;
+				DEH_WriteUndoline(word, va("%d", oldvar), UNDO_NONE);
+				t_lspr[num] = &lspr[value];
+			}
+			else
+				deh_warning("Sprite %d: unknown word '%s'", num, word);
+		}
+	} while (!myfeof(f)); // finish when the line is empty
+
+	Z_Free(s);
+}
+#endif // HWRENDER
+
 static void readmodel(MYFILE *f, INT32 num)
 {
 	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
@@ -986,51 +1031,6 @@ static void readmodel(MYFILE *f, INT32 num)
 			}
 			else
 				deh_warning("Model %d: unknown word '%s'", num, word);
-		}
-	} while (!myfeof(f)); // finish when the line is empty
-
-	Z_Free(s);
-}
-#endif // HWRENDER
-
-static void readspritelight(MYFILE *f, INT32 num)
-{
-	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
-	char *word;
-	char *tmp;
-	INT32 value;
-
-	do
-	{
-		if (myfgets(s, MAXLINELEN, f))
-		{
-			if (s[0] == '\n')
-				break;
-
-			tmp = strchr(s, '#');
-			if (tmp)
-				*tmp = '\0';
-			if (s == tmp)
-				continue; // Skip comment lines, but don't break.
-
-			value = searchvalue(s);
-
-			word = strtok(s, " ");
-			if (word)
-				strupr(word);
-			else
-				break;
-
-			if (fastcmp(word, "LIGHTTYPE"))
-			{
-				INT32 oldvar;
-				for (oldvar = 0; t_lspr[num] != &lspr[oldvar]; oldvar++)
-					;
-				DEH_WriteUndoline(word, va("%d", oldvar), UNDO_NONE);
-				t_lspr[num] = &lspr[value];
-			}
-			else
-				deh_warning("Sprite %d: unknown word '%s'", num, word);
 		}
 	} while (!myfeof(f)); // finish when the line is empty
 
@@ -3534,8 +3534,8 @@ static void DEH_LoadDehackedFile(MYFILE *f, UINT16 wad)
 						ignorelines(f);
 					}
 					DEH_WriteUndoline(word, word2, UNDO_HEADER);
-				}
 #endif
+				}
 				else if (fastcmp(word, "MODEL"))
 				{
 					if (i == 0 && word2[0] != '0') // If word2 isn't a number

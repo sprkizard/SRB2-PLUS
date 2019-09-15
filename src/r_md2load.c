@@ -404,8 +404,8 @@ model_t *MD2_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 					y = vec.y;
 					z = vec.z;
 				}
-#endif // SOFTPOLY
 				else
+#endif // SOFTPOLY
 					z *= -1.0f;
 
 				*vertptr = x;

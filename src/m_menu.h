@@ -224,6 +224,9 @@ void M_ForceSaveSlotSelected(INT32 sslot);
 
 void M_CheatActivationResponder(INT32 ch);
 
+// Video options menu updating
+void Renderer_Onchange(void);
+
 // Screenshot menu updating
 void Moviemode_mode_Onchange(void);
 void Screenshot_option_Onchange(void);

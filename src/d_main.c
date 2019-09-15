@@ -1164,8 +1164,10 @@ void D_SRB2Main(void)
 	// Have to be done here before files are loaded
 	M_InitCharacterTables();
 
+#if defined (HWRENDER) || defined (HWRENDER)
 	// Needs to be done BEFORE loading files!!!!
 	R_InitLoadModels();
+#endif
 
 	// load wad, including the main wad file
 	CONS_Printf("W_InitMultipleFiles(): Adding IWAD and main PWADs.\n");

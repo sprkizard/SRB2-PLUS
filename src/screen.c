@@ -28,6 +28,7 @@
 #include "d_main.h"
 #include "d_clisrv.h"
 #include "f_finale.h"
+#include "m_menu.h"
 
 
 #if defined (USEASM) && !defined (NORUSEASM)//&& (!defined (_MSC_VER) || (_MSC_VER <= 1200))
@@ -73,8 +74,14 @@ consvar_t cv_scr_depth = {"scr_depth", "16 bits", CV_SAVE, scr_depth_cons_t, NUL
 consvar_t cv_renderview = {"renderview", "On", 0, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
 
 static void SCR_ActuallyChangeRenderer(void);
-static CV_PossibleValue_t cv_renderer_t[] = {{1, "Software"}, {2, "OpenGL"}, {0, NULL}};
-consvar_t cv_renderer = {"renderer", "Software", CV_SAVE|CV_CALL, cv_renderer_t, SCR_ChangeRenderer, 0, NULL, NULL, 0, 0, NULL};
+static CV_PossibleValue_t cv_renderer_t[] = {
+	{1, "Software"},
+#ifdef HWRENDER
+	{2, "OpenGL"},
+#endif
+	{0, NULL}
+};
+consvar_t cv_renderer = {"renderer", "Software", CV_SAVE|CV_CALL, cv_renderer_t, Renderer_Onchange, 0, NULL, NULL, 0, 0, NULL};
 
 static void SCR_ChangeFullscreen(void);
 
@@ -426,9 +433,11 @@ void SCR_ChangeRenderer(void)
 	if (con_startup)
 	{
 		target_renderer = cv_renderer.value;
+#ifdef HWRENDER
 		if (M_CheckParm("-opengl"))
 			target_renderer = rendermode = render_opengl;
 		else if (M_CheckParm("-software"))
+#endif
 			target_renderer = rendermode = render_soft;
 		// set cv_renderer back
 		SCR_ChangeRendererCVars(rendermode);
