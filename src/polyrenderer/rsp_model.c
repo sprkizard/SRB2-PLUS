@@ -1146,6 +1146,12 @@ rsp_md2_t *RSP_ModelAvailable(spritenum_t spritenum, skin_t *skin)
 	else
 		md2 = &rsp_md2_models[spritenum];
 
+	if (md2->notfound)/* Let PLAY (or lumps get fucked) */
+		md2 = &rsp_md2_models[spritenum];
+
+	if (md2->notfound)
+		return NULL;
+
 	if (!md2->model)
 	{
 		//CONS_Debug(DBG_RENDER, "Loading MD2... (%s)", sprnames[spritenum]);
