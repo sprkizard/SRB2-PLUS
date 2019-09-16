@@ -73,12 +73,12 @@ rsp_md2_t rsp_md2_playermodels[MAXSKINS];
 //
 model_t *RSP_LoadModel(const char *filename)
 {
-	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_STATIC);
+	return LoadModel(va("%s"PATHSEP"%s", srb2home, filename), PU_SOFTPOLY);
 }
 
 model_t *RSP_LoadInternalModel(UINT32 lumpnum)
 {
-	return LoadInternalModel(lumpnum, PU_STATIC);
+	return LoadInternalModel(lumpnum, PU_SOFTPOLY);
 }
 
 #ifdef HAVE_PNG
@@ -184,7 +184,7 @@ static int PNG_LoadFromPath(const char *filename, UINT16 *w, UINT16 *h, rsp_mode
 
 	{
 		png_uint_32 i, pitch = png_get_rowbytes(png_ptr, png_info_ptr);
-		png_bytep PNG_image = Z_Malloc(pitch*height, PU_STATIC, &texture->data);
+		png_bytep PNG_image = Z_Malloc(pitch*height, PU_SOFTPOLY, &texture->data);
 		png_bytepp row_pointers = png_malloc(png_ptr, height * sizeof (png_bytep));
 		for (i = 0; i < height; i++)
 			row_pointers[i] = PNG_image + i*pitch;
@@ -799,14 +799,14 @@ void RSP_LoadModelTexture(rsp_md2_t *model, INT32 skinnum)
 
 	// make new texture
 	RSP_FreeModelTexture(model);
-	texture = Z_Calloc(sizeof *texture, PU_STATIC, &(model->texture));
+	texture = Z_Calloc(sizeof *texture, PU_SOFTPOLY, &(model->texture));
 
 #ifdef HAVE_PNG
 	if (model->internal)
 	{
 		lumpnum_t lumpnum = model->texture_lumpnum;
 		if (lumpnum != UINT32_MAX)
-			texture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
+			texture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_LEVEL), &w, &h, W_LumpLength(lumpnum), NULL);
 	}
 	else if (!(PNG_LoadFromPath(filename, &w, &h, texture)))
 		return;
@@ -834,14 +834,14 @@ void RSP_LoadModelBlendTexture(rsp_md2_t *model)
 		return;
 
 	RSP_FreeModelBlendTexture(model);
-	blendtexture = Z_Calloc(sizeof *blendtexture, PU_STATIC, &(model->blendtexture));
+	blendtexture = Z_Calloc(sizeof *blendtexture, PU_SOFTPOLY, &(model->blendtexture));
 
 #ifdef HAVE_PNG
 	if (model->internal)
 	{
 		lumpnum_t lumpnum = model->blendtexture_lumpnum;
 		if (lumpnum != UINT32_MAX)
-			blendtexture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_STATIC), &w, &h, W_LumpLength(lumpnum), NULL);
+			blendtexture->data = PNG_RawConvert((UINT8 *)W_CacheLumpNum(lumpnum, PU_LEVEL), &w, &h, W_LumpLength(lumpnum), NULL);
 	}
 	else if (!(PNG_LoadFromPath(filename, &w, &h, blendtexture)))
 	{
