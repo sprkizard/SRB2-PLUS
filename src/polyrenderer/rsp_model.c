@@ -1308,6 +1308,36 @@ boolean RSP_RenderModel(vissprite_t *spr)
 
 			sprtex.width = sprtexp->width;
 			sprtex.height = sprtexp->height;
+
+			// make the patch
+			if (!sprtexp->data)
+			{
+				patch_t *source;
+
+				// uuhhh.....
+				if (!sprtexp->lumpnum)
+					return false;
+
+				// still not a patch yet
+				// (R_CheckIfPatch has most likely failed)
+				if ((sprtexp->width) < 1 || (sprtexp->height < 1))
+					return false;
+
+				// cache the source patch
+				source = (patch_t *)W_CacheLumpNum(sprtexp->lumpnum, PU_STATIC);
+
+				// make the buffer
+				sprtexp->data = Z_Malloc(sprtexp->width * sprtexp->height, PU_SOFTPOLY, NULL);
+				memset(sprtexp->data, TRANSPARENTPIXEL, sprtexp->width * sprtexp->height);
+
+				// generate the texture, then clear lumpnum
+				RSP_GenerateTexture(source, sprtexp->data, 0, 0, sprtexp->width, sprtexp->height, NULL, NULL);
+				sprtexp->lumpnum = 0;
+
+				// aight bro u have lost yuor cache privileges
+				Z_Free(source);
+			}
+
 			sprtex.data = sprtexp->data;
 			texture = &sprtex;
 		}

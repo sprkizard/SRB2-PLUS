@@ -115,27 +115,35 @@ static void R_InstallSpriteLump(UINT16 wad,            // graphics patch
 #ifdef SOFTPOLY
 	{
 		UINT8 rot = (rotation != 0) ? (rotation-1) : 0;
-		patch_t *patch = (patch_t *)W_CacheLumpNumPwad(wad, lump, PU_STATIC);
+		patch_t *patch;
 		rsp_spritetexture_t *tex = &sprtemp[frame].rsp_texture[rot];
 		INT32 blockwidth, blockheight;
 
-		// size up to nearest power of 2
-		blockwidth = 1;
-		blockheight = 1;
-		while (blockwidth < SHORT(patch->width))
-			blockwidth <<= 1;
-		while (blockheight < SHORT(patch->height))
-			blockheight <<= 1;
-
-		tex->width = blockwidth;
-		tex->height = blockheight;
-		tex->data = Z_Malloc(blockwidth * blockheight, PU_STATIC, NULL);
-		memset(tex->data, TRANSPARENTPIXEL, blockwidth * blockheight);
-
 		if (R_CheckIfPatch(lumppat))
-			RSP_GenerateTexture(patch, tex->data, 0, 0, blockwidth, blockheight, NULL, NULL);
+		{
+			patch = (patch_t *)W_CacheLumpNumPwad(wad, lump, PU_STATIC);
 
-		Z_Free(patch);
+			// size up to nearest power of 2
+			blockwidth = 1;
+			blockheight = 1;
+			while (blockwidth < SHORT(patch->width))
+				blockwidth <<= 1;
+			while (blockheight < SHORT(patch->height))
+				blockheight <<= 1;
+
+			tex->width = blockwidth;
+			tex->height = blockheight;
+			tex->lumpnum = lumppat;
+			tex->data = NULL;
+
+			Z_Free(patch);
+		}
+		else
+		{
+			// not even a patch
+			tex->width = -1;
+			tex->height = -1;
+		}
 	}
 #endif
 
