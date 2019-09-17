@@ -1007,7 +1007,9 @@ static void readmodel(MYFILE *f, INT32 num)
 
 			// Now get the part after
 			word2 = tmp += 2;
-			strncpy(word2upr, strupr(word2), MAXLINELEN);
+			memset(word2upr, 0x00, MAXLINELEN);
+			strncpy(word2upr, word2, MAXLINELEN);
+			strupr(word2upr);
 			fvalue = atof(word2); // used for numerical settings
 
 			// Intentionally no DEHACKED UNDO here.
