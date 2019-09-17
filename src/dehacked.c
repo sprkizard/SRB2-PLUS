@@ -971,7 +971,8 @@ static void readmodel(MYFILE *f, INT32 num)
 {
 	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
 	char *word;
-	char *word2, *word2upr;
+	char *word2;
+	char word2upr[MAXLINELEN];
 	char *tmp;
 	float fvalue;
 
@@ -1006,7 +1007,7 @@ static void readmodel(MYFILE *f, INT32 num)
 
 			// Now get the part after
 			word2 = tmp += 2;
-			word2upr = strupr(word2);
+			strncpy(word2upr, strupr(word2), MAXLINELEN);
 			fvalue = atof(word2); // used for numerical settings
 
 			// Intentionally no DEHACKED UNDO here.
