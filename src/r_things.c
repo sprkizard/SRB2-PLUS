@@ -811,7 +811,7 @@ static void R_DrawVisSprite(vissprite_t *vis)
 	if (!patch)
 		return;
 
-	if (R_GetModelDefReplaceSpritesFlag(vis->mobj->sprite))
+	if (R_GetModelDefFlag(vis->mobj->sprite, MDF_REPLACESPRITES))
 		return;
 
 	// Check for overflow
@@ -1149,8 +1149,8 @@ static void R_ProjectSprite(mobj_t *thing)
 	skin = (skin_t *)thing->skin;
 	md2 = RSP_ModelAvailable(thing->sprite, skin);
 
-	model = ((cv_models.value || R_GetModelDefReplaceSpritesFlag(thing->sprite)) && md2);
-	dontcullmodel = R_GetModelDefDoNotCullFlag(thing->sprite);
+	model = ((cv_models.value || R_GetModelDefFlag(thing->sprite, MDF_REPLACESPRITES)) && md2);
+	dontcullmodel = R_GetModelDefFlag(thing->sprite, MDF_DONOTCULL);
 
 	// skin model render flag
 	if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))

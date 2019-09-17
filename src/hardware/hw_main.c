@@ -5346,7 +5346,7 @@ static void HWR_DrawSprites(void)
 				if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
 					modelavailable = true;
 				else if (!modelavailable)
-					modelavailable = R_GetModelDefReplaceSpritesFlag(spr->mobj->sprite);
+					modelavailable = R_GetModelDefFlag(spr->mobj->sprite, MDF_REPLACESPRITES);
 				if (modelavailable && HWR_DrawMD2(spr))
 					;
 				else
@@ -5474,8 +5474,8 @@ static void HWR_ProjectSprite(mobj_t *thing)
 
 	{
 		skin_t *skin = (skin_t *)thing->skin;
-		model = ((cv_models.value || R_GetModelDefReplaceSpritesFlag(thing->sprite)) && md2_models[thing->sprite].notfound == false);
-		dontcullmodel = R_GetModelDefDoNotCullFlag(thing->sprite);
+		model = ((cv_models.value || R_GetModelDefFlag(thing->sprite, MDF_REPLACESPRITES)) && md2_models[thing->sprite].notfound == false);
+		dontcullmodel = R_GetModelDefFlag(thing->sprite, MDF_DONOTCULL);
 		if ((skin != NULL) && (skin->flags & SF_RENDERMODEL))
 			model = true;
 	}
@@ -6178,6 +6178,10 @@ void HWR_RenderPlayerView(INT32 viewnumber, player_t *player)
 	//                     It should replace all other gr_viewxxx when finished
 	atransform.anglex = (float)(aimingangle>>ANGLETOFINESHIFT)*(360.0f/(float)FINEANGLES);
 	atransform.angley = (float)(viewangle>>ANGLETOFINESHIFT)*(360.0f/(float)FINEANGLES);
+
+	atransform.axisx = 0.0f;
+	atransform.axisy = 0.0f;
+	atransform.axisz = 0.0f;
 
 	if (*type == postimg_flip)
 		atransform.flip = true;

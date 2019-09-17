@@ -336,6 +336,7 @@ static INT32 searchvalue(const char *s)
 	}
 }
 
+#ifdef HWRENDER
 static float searchfvalue(const char *s)
 {
 	while (s[0] != '=' && s[0])
@@ -348,6 +349,7 @@ static float searchfvalue(const char *s)
 		return 0;
 	}
 }
+#endif
 
 // These are for clearing all of various things
 static void clear_conditionsets(void)
@@ -969,9 +971,8 @@ static void readmodel(MYFILE *f, INT32 num)
 {
 	char *s = Z_Malloc(MAXLINELEN, PU_STATIC, NULL);
 	char *word;
-	char *word2;
+	char *word2, *word2upr;
 	char *tmp;
-	//INT32 value;
 	float fvalue;
 
 	do
@@ -981,29 +982,32 @@ static void readmodel(MYFILE *f, INT32 num)
 			if (s[0] == '\n')
 				break;
 
+			// First remove trailing newline, if there is one
+			tmp = strchr(s, '\n');
+			if (tmp)
+				*tmp = '\0';
+
 			tmp = strchr(s, '#');
 			if (tmp)
 				*tmp = '\0';
 			if (s == tmp)
 				continue; // Skip comment lines, but don't break.
 
-			//value = searchvalue(s);
-			fvalue = searchfvalue(s);
+			// Set / reset word
+			word = s;
 
-			word = strtok(s, " ");
-			if (word)
-				strupr(word);
+			// Get the part before the " = "
+			tmp = strchr(s, '=');
+			if (tmp)
+				*(tmp-1) = '\0';
 			else
 				break;
+			strupr(word);
 
-			word2 = strtok(NULL, " = ");
-			if (word2)
-				strupr(word2);
-			else
-				break;
-
-			if (word2[strlen(word2)-1] == '\n')
-				word2[strlen(word2)-1] = '\0';
+			// Now get the part after
+			word2 = tmp += 2;
+			word2upr = strupr(word2);
+			fvalue = atof(word2); // used for numerical settings
 
 			// Intentionally no DEHACKED UNDO here.
 			// I didn't forget about it.
@@ -1015,19 +1019,30 @@ static void readmodel(MYFILE *f, INT32 num)
 				R_SetModelDefYOffset(num, fvalue);
 			else if (fastcmp(word, "ANGLEOFFSET"))
 				R_SetModelDefAngleOffset(num, fvalue);
+			else if (fastcmp(word, "AXISROTATE"))
+			{
+				float qx, qy, qz;
+				if (sscanf(word2, "%f %f %f", &qx, &qy, &qz) == 3)
+				{
+					R_SetModelDefAxisRotation(num, qx, qy, qz);
+					R_SetModelDefFlag(num, MDF_AXISROTATE, true);
+				}
+				else
+					deh_warning("Model %d: bad %s", num, word);
+			}
 			else if (fastcmp(word, "REPLACESPRITES"))
 			{
-				if (word2[0] == 'T' || word2[0] == 'Y')
-					R_SetModelDefReplaceSpritesFlag(num, true);
+				if (word2upr[0] == 'T' || word2upr[0] == 'Y')
+					R_SetModelDefFlag(num, MDF_REPLACESPRITES, true);
 				else
-					R_SetModelDefReplaceSpritesFlag(num, false);
+					R_SetModelDefFlag(num, MDF_REPLACESPRITES, false);
 			}
 			else if (fastcmp(word, "DONOTCULL"))
 			{
-				if (word2[0] == 'T' || word2[0] == 'Y')
-					R_SetModelDefDoNotCullFlag(num, true);
+				if (word2upr[0] == 'T' || word2upr[0] == 'Y')
+					R_SetModelDefFlag(num, MDF_DONOTCULL, true);
 				else
-					R_SetModelDefDoNotCullFlag(num, false);
+					R_SetModelDefFlag(num, MDF_DONOTCULL, false);
 			}
 			else
 				deh_warning("Model %d: unknown word '%s'", num, word);

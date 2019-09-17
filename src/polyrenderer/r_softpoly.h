@@ -83,6 +83,7 @@ fpvector4_t RSP_IntersectPlane(fpvector4_t pp, fpvector4_t pn, fpvector4_t start
 
 fpquaternion_t RSP_QuaternionMultiply(fpquaternion_t *q1, fpquaternion_t *q2);
 fpquaternion_t RSP_QuaternionConjugate(fpquaternion_t *q);
+fpquaternion_t RSP_QuaternionFromEuler(float z, float y, float x);
 fpvector4_t RSP_QuaternionMultiplyVector(fpquaternion_t *q, fpvector4_t *v);
 void RSP_QuaternionNormalize(fpquaternion_t *q);
 void RSP_QuaternionRotateVector(fpvector4_t *v, fpquaternion_t *q);
@@ -213,6 +214,7 @@ typedef struct
 	float               xoffset;
 	float               yoffset;
 	float               angleoffset;
+	fpquaternion_t      quaternion;
 	model_t             *model;
 	void                *texture;
 	void                *blendtexture;

@@ -4,6 +4,7 @@
 // Copyright (C) 1998-2000 by DooM Legacy Team.
 // Copyright (C) 1999-2018 by Sonic Team Junior.
 // Copyright (C) 2019 by Jaime "Jimita" Passos.
+// Copyright (C) 2019 by Vinícius "Arkus-Kotan" Telésforo.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -878,6 +879,7 @@ void RSP_InitModels(void)
 			rsp_md2_playermodels[s].scale = -1.0f;
 			rsp_md2_playermodels[s].xoffset = 0.0f;
 			rsp_md2_playermodels[s].yoffset = 0.0f;
+			rsp_md2_playermodels[s].angleoffset = 0.0f;
 			rsp_md2_playermodels[s].modelflags = 0;
 			rsp_md2_playermodels[s].model = NULL;
 			rsp_md2_playermodels[s].texture = NULL;
@@ -896,6 +898,7 @@ void RSP_InitModels(void)
 			rsp_md2_models[i].scale = -1.0f;
 			rsp_md2_models[i].xoffset = 0.0f;
 			rsp_md2_models[i].yoffset = 0.0f;
+			rsp_md2_models[i].angleoffset = 0.0f;
 			rsp_md2_models[i].modelflags = 0;
 			rsp_md2_models[i].model = NULL;
 			rsp_md2_models[i].texture = NULL;
@@ -1505,16 +1508,23 @@ boolean RSP_RenderModel(vissprite_t *spr)
 							vz = frame->vertices[VERTEX_OFFSET+2] * scale;
 						}
 
+						// rotate by quaternion
+						if (R_GetModelDefFlag(spr->spritenum, MDF_AXISROTATE))
+						{
+							fpvector4_t vec;
+							RSP_MakeVector4(vec, vx, vz, vy);
+							RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+							vx = vec.x;
+							vz = vec.y;
+							vy = vec.z;
+						}
+
 						// QUICK MATHS
 						mx = (vx * cs) - (vy * sn);
 						my = (vx * sn) + (vy * cs);
 						mz = vz * (flip ? -1 : 1);
 
-						RSP_MakeVector4(triangle.vertices[j].position,
-							 x + mx,
-							-z + mz,
-							-y + my
-						);
+						RSP_MakeVector4(triangle.vertices[j].position, (x + mx), (-z + mz), (-y + my));
 					}
 					else
 					{
@@ -1522,6 +1532,7 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						float px2, py2, pz2;
 						float mx1, my1, mz1;
 						float mx2, my2, mz2;
+						float lx, ly, lz;
 
 						// Interpolate
 						if (useTinyFrames)
@@ -1545,6 +1556,24 @@ boolean RSP_RenderModel(vissprite_t *spr)
 							pz2 = nextframe->vertices[VERTEX_OFFSET+2] * scale;
 						}
 
+						// rotate by quaternion
+						if (R_GetModelDefFlag(spr->spritenum, MDF_AXISROTATE))
+						{
+							fpvector4_t vec;
+
+							RSP_MakeVector4(vec, px1, pz1, py1);
+							RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+							px1 = vec.x;
+							pz1 = vec.y;
+							py1 = vec.z;
+
+							RSP_MakeVector4(vec, px2, pz2, py2);
+							RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+							px2 = vec.x;
+							pz2 = vec.y;
+							py2 = vec.z;
+						}
+
 						// QUICK MATHS
 						mx1 = (px1 * cs) - (py1 * sn);
 						my1 = (px1 * sn) + (py1 * cs);
@@ -1554,11 +1583,12 @@ boolean RSP_RenderModel(vissprite_t *spr)
 						my2 = (px2 * sn) + (py2 * cs);
 						mz2 = pz2 * (flip ? -1 : 1);
 
-						RSP_MakeVector4(triangle.vertices[j].position,
-							 x + FloatLerp(mx1, mx2, pol),
-							-z + FloatLerp(mz1, mz2, pol),
-							-y + FloatLerp(my1, my2, pol)
-						);
+						// interpolate
+						lx = FloatLerp(mx1, mx2, pol);
+						ly = FloatLerp(my1, my2, pol);
+						lz = FloatLerp(mz1, mz2, pol);
+
+						RSP_MakeVector4(triangle.vertices[j].position, (x + lx), (-z + lz), (-y + ly));
 					}
 
 					triangle.vertices[j].uv.u = s;
@@ -1805,16 +1835,23 @@ boolean RSP_RenderModelSimple(spritenum_t spritenum, INT32 frameIndex, float x, 
 					vz = frame->vertices[VERTEX_OFFSET+2] * scale;
 				}
 
+				// rotate by quaternion
+				if (R_GetModelDefFlag(spritenum, MDF_AXISROTATE))
+				{
+					fpvector4_t vec;
+					RSP_MakeVector4(vec, vx, vz, vy);
+					RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+					vx = vec.x;
+					vz = vec.y;
+					vy = vec.z;
+				}
+
 				// QUICK MATHS
 				mx = (vx * cs) - (vy * sn);
 				my = (vx * sn) + (vy * cs);
 				mz = vz * (flip ? -1 : 1);
 
-				RSP_MakeVector4(triangle.vertices[j].position,
-					 x + mx,
-					-z + mz,
-					-y + my
-				);
+				RSP_MakeVector4(triangle.vertices[j].position, (x + mx), (-z + mz), (-y + my));
 
 				triangle.vertices[j].uv.u = s;
 				triangle.vertices[j].uv.v = t;
@@ -1985,6 +2022,7 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 				float px2, py2, pz2;
 				float mx1, my1, mz1;
 				float mx2, my2, mz2;
+				float lx, ly, lz;
 				float s, t;
 				float *uv = mesh->uvs;
 
@@ -2022,6 +2060,24 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 					pz2 = nextframe->vertices[VERTEX_OFFSET+2] * scale;
 				}
 
+				// rotate by quaternion
+				if (R_GetModelDefFlag(spritenum, MDF_AXISROTATE))
+				{
+					fpvector4_t vec;
+
+					RSP_MakeVector4(vec, px1, pz1, py1);
+					RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+					px1 = vec.x;
+					pz1 = vec.y;
+					py1 = vec.z;
+
+					RSP_MakeVector4(vec, px2, pz2, py2);
+					RSP_QuaternionRotateVector(&vec, &md2->quaternion);
+					px2 = vec.x;
+					pz2 = vec.y;
+					py2 = vec.z;
+				}
+
 				// QUICK MATHS
 				mx1 = (px1 * cs) - (py1 * sn);
 				my1 = (px1 * sn) + (py1 * cs);
@@ -2031,11 +2087,12 @@ boolean RSP_RenderInterpolatedModelSimple(spritenum_t spritenum, INT32 frameInde
 				my2 = (px2 * sn) + (py2 * cs);
 				mz2 = pz2 * (flip ? -1 : 1);
 
-				RSP_MakeVector4(triangle.vertices[j].position,
-					 x + FloatLerp(mx1, mx2, pol),
-					-z + FloatLerp(mz1, mz2, pol),
-					-y + FloatLerp(my1, my2, pol)
-				);
+				// interpolate
+				lx = FloatLerp(mx1, mx2, pol);
+				ly = FloatLerp(my1, my2, pol);
+				lz = FloatLerp(mz1, mz2, pol);
+
+				RSP_MakeVector4(triangle.vertices[j].position, (x + lx), (-z + lz), (-y + ly));
 
 				triangle.vertices[j].uv.u = s;
 				triangle.vertices[j].uv.v = t;

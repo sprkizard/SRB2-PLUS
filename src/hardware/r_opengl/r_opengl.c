@@ -1840,6 +1840,10 @@ static void DrawModelEx(model_t *model, INT32 frameIndex, INT32 duration, INT32 
 	pglRotatef(pos->anglex, -1.0f, 0.0f, 0.0f);
 	pglRotatef(pos->angley, 0.0f, -1.0f, 0.0f);
 
+	pglRotatef(pos->axisz, 0.0f, 0.0f, -1.0f);
+	pglRotatef(pos->axisx, -1.0f, 0.0f, 0.0f);
+	pglRotatef(pos->axisy, 0.0f, -1.0f, 0.0f);
+
 	pglScalef(scalex, scaley, scalez);
 
 	useTinyFrames = model->meshes[0].tinyframes != NULL;

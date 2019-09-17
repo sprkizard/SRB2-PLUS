@@ -505,6 +505,10 @@ void HWR_InitMD2(void)
 			md2_playermodels[s].scale = -1.0f;
 			md2_playermodels[s].xoffset = 0.0f;
 			md2_playermodels[s].yoffset = 0.0f;
+			md2_playermodels[s].angleoffset = 0.0f;
+			md2_playermodels[s].axisrotate[0] = 0.0f;
+			md2_playermodels[s].axisrotate[1] = 0.0f;
+			md2_playermodels[s].axisrotate[2] = 0.0f;
 			md2_playermodels[s].modelflags = 0;
 			md2_playermodels[s].model = NULL;
 			md2_playermodels[s].grpatch = NULL;
@@ -523,6 +527,10 @@ void HWR_InitMD2(void)
 			md2_models[i].scale = -1.0f;
 			md2_models[i].xoffset = 0.0f;
 			md2_models[i].yoffset = 0.0f;
+			md2_models[i].angleoffset = 0.0f;
+			md2_models[i].axisrotate[0] = 0.0f;
+			md2_models[i].axisrotate[1] = 0.0f;
+			md2_models[i].axisrotate[2] = 0.0f;
 			md2_models[i].modelflags = 0;
 			md2_models[i].model = NULL;
 			md2_models[i].grpatch = NULL;
@@ -1584,6 +1592,19 @@ boolean HWR_DrawMD2(gr_vissprite_t *spr)
 			p.anglex = FIXED_TO_FLOAT(tempangle);
 		}
 #endif
+
+		if (R_GetModelDefFlag(spr->mobj->sprite, MDF_AXISROTATE))
+		{
+			p.axisx += md2->axisrotate[0];
+			p.axisy += md2->axisrotate[1];
+			p.axisz += md2->axisrotate[2];
+		}
+		else
+		{
+			p.axisx = 0.0f;
+			p.axisy = 0.0f;
+			p.axisz = 0.0f;
+		}
 
 		color[0] = Surf.FlatColor.s.red;
 		color[1] = Surf.FlatColor.s.green;

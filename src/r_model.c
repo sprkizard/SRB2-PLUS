@@ -110,35 +110,31 @@ void R_SetModelDefAngleOffset(INT32 spritenum, float offset)
 #endif
 }
 
-void R_SetModelDefReplaceSpritesFlag(INT32 spritenum, boolean flag)
+void R_SetModelDefAxisRotation(INT32 spritenum, float qx, float qy, float qz)
 {
 #ifdef SOFTPOLY
-	if (flag)
-		rsp_md2_models[spritenum].modelflags |= MDF_REPLACESPRITES;
-	else
-		rsp_md2_models[spritenum].modelflags &= ~MDF_REPLACESPRITES;
+	rsp_md2_models[spritenum].quaternion = RSP_QuaternionFromEuler(qz, qy, qx);
 #endif
 #ifdef HWRENDER
-	if (flag)
-		md2_models[spritenum].modelflags |= MDF_REPLACESPRITES;
-	else
-		md2_models[spritenum].modelflags &= ~MDF_REPLACESPRITES;
+	md2_models[spritenum].axisrotate[0] = qx;
+	md2_models[spritenum].axisrotate[1] = qy;
+	md2_models[spritenum].axisrotate[2] = qz;
 #endif
 }
 
-void R_SetModelDefDoNotCullFlag(INT32 spritenum, boolean flag)
+void R_SetModelDefFlag(INT32 spritenum, boolean flag, boolean set)
 {
 #ifdef SOFTPOLY
-	if (flag)
-		rsp_md2_models[spritenum].modelflags |= MDF_DONOTCULL;
+	if (set)
+		rsp_md2_models[spritenum].modelflags |= flag;
 	else
-		rsp_md2_models[spritenum].modelflags &= ~MDF_DONOTCULL;
+		rsp_md2_models[spritenum].modelflags &= ~flag;
 #endif
 #ifdef HWRENDER
-	if (flag)
-		md2_models[spritenum].modelflags |= MDF_DONOTCULL;
+	if (set)
+		md2_models[spritenum].modelflags |= flag;
 	else
-		md2_models[spritenum].modelflags &= ~MDF_DONOTCULL;
+		md2_models[spritenum].modelflags &= ~flag;
 #endif
 }
 
@@ -197,28 +193,15 @@ float R_GetModelDefAngleOffset(INT32 spritenum)
 	return 0.0f;
 }
 
-INT32 R_GetModelDefReplaceSpritesFlag(INT32 spritenum)
+INT32 R_GetModelDefFlag(INT32 spritenum, INT32 flag)
 {
 #ifdef SOFTPOLY
 	if (rendermode == render_soft)
-		return (rsp_md2_models[spritenum].modelflags & MDF_REPLACESPRITES);
+		return (rsp_md2_models[spritenum].modelflags & flag);
 #endif
 #ifdef HWRENDER
 	if (rendermode == render_opengl)
-		return (md2_models[spritenum].modelflags & MDF_REPLACESPRITES);
-#endif
-	return 0;
-}
-
-INT32 R_GetModelDefDoNotCullFlag(INT32 spritenum)
-{
-#ifdef SOFTPOLY
-	if (rendermode == render_soft)
-		return (rsp_md2_models[spritenum].modelflags & MDF_DONOTCULL);
-#endif
-#ifdef HWRENDER
-	if (rendermode == render_opengl)
-		return (md2_models[spritenum].modelflags & MDF_DONOTCULL);
+		return (md2_models[spritenum].modelflags & flag);
 #endif
 	return 0;
 }

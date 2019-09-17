@@ -216,6 +216,41 @@ fpquaternion_t RSP_QuaternionConjugate(fpquaternion_t *q)
 	return r;
 }
 
+fpquaternion_t RSP_QuaternionFromEuler(float z, float y, float x)
+{
+	fpquaternion_t r;
+
+	float yaw[2];
+	float pitch[2];
+	float roll[2];
+
+#define deg2rad(d) ((d*M_PI)/180.0)
+	z = deg2rad(z);
+	y = deg2rad(y);
+	x = deg2rad(x);
+#undef deg2rad
+
+	z /= 2.0f;
+	y /= 2.0f;
+	x /= 2.0f;
+
+	yaw[0] = cos(z);
+	yaw[1] = sin(z);
+
+	pitch[0] = cos(y);
+	pitch[1] = sin(y);
+
+	roll[0] = cos(x);
+	roll[1] = sin(x);
+
+	r.w = yaw[0] * pitch[0] * roll[0] + yaw[1] * pitch[1] * roll[1];
+	r.x = yaw[0] * pitch[0] * roll[1] - yaw[1] * pitch[1] * roll[0];
+	r.y = yaw[1] * pitch[0] * roll[1] + yaw[0] * pitch[1] * roll[0];
+	r.z = yaw[1] * pitch[0] * roll[0] - yaw[0] * pitch[1] * roll[1];
+
+	return r;
+}
+
 fpvector4_t RSP_QuaternionMultiplyVector(fpquaternion_t *q, fpvector4_t *v)
 {
 	fpvector4_t vn, r;
@@ -276,7 +311,7 @@ void RSP_QuaternionRotateVector(fpvector4_t *v, fpquaternion_t *q)
 
 	qc = RSP_QuaternionConjugate(q);
 	qv = RSP_QuaternionMultiply(q, &quaternion);
-	r  = RSP_QuaternionMultiply(&qv, &qc);
+	r = RSP_QuaternionMultiply(&qv, &qc);
 
 	v->x = r.x;
 	v->y = r.y;

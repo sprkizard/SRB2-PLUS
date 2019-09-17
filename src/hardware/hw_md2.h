@@ -35,6 +35,7 @@ typedef struct
 	float        xoffset;
 	float        yoffset;
 	float        angleoffset;
+	float        axisrotate[3];
 	model_t      *model;
 	void         *grpatch;
 	void         *blendgrpatch;
