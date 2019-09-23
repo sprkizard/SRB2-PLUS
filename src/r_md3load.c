@@ -331,15 +331,9 @@ model_t *MD3_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 					if (RSPload)
 					{
 						fpvector4_t vec;
-						fpquaternion_t quaternion;
-						const float model_rotate = 0.707f;
+						fpquaternion_t quaternion = RSP_QuaternionFromEuler(0.0f, 0.0f, -90.0f);
 
 						RSP_MakeVector4(vec, x, y, z);
-
-						quaternion.x = model_rotate;
-						quaternion.y = 0;
-						quaternion.z = 0;
-						quaternion.w = -model_rotate;
 						RSP_QuaternionRotateVector(&vec, &quaternion);
 
 						x = vec.x;
@@ -439,15 +433,10 @@ model_t *MD3_LoadModelData(UINT8 *buffer, int ztag, boolean useFloat, boolean RS
 					if (RSPload)
 					{
 						fpvector4_t vec;
-						fpquaternion_t quaternion;
-						const float model_rotate = 0.707f;
+						fpquaternion_t quaternion = RSP_QuaternionFromEuler(0.0f, 0.0f, -90.0f);
 
 						#define ROTATE_TRIANGLE(tx, ty, tz) \
 							RSP_MakeVector4(vec, tx, ty, tz); \
-							quaternion.x = model_rotate; \
-							quaternion.y = 0; \
-							quaternion.z = 0; \
-							quaternion.w = -model_rotate; \
 							RSP_QuaternionRotateVector(&vec, &quaternion); \
 							tx = vec.x; \
 							ty = vec.y; \
