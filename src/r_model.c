@@ -211,6 +211,16 @@ void R_FreeModelTextures(void)
 	size_t i;
 	INT32 s;
 
+#ifdef HWRENDER
+#define FREEGRPATCH(model, pat) \
+	{ \
+		GLPatch_t *tex = (GLPatch_t *)(model.pat); \
+		Z_Free(tex->mipmap.grInfo.data); \
+		tex->mipmap.grInfo.data = NULL; \
+		tex->mipmap.downloaded = 0; \
+	}
+#endif
+
 	for (s = 0; s < MAXSKINS; s++)
 	{
 #ifdef SOFTPOLY
@@ -224,8 +234,10 @@ void R_FreeModelTextures(void)
 		if (initmodels_hwr)
 		{
 			if (md2_playermodels[s].grpatch != NULL)
-				Z_Free(md2_playermodels[s].grpatch);
-			md2_playermodels[s].grpatch = NULL;
+			{
+				FREEGRPATCH(md2_playermodels[s], grpatch);
+				FREEGRPATCH(md2_playermodels[s], blendgrpatch);
+			}
 		}
 #endif
 	}
@@ -242,11 +254,16 @@ void R_FreeModelTextures(void)
 		if (initmodels_hwr)
 		{
 			if (md2_models[i].grpatch != NULL)
-				Z_Free(md2_models[i].grpatch);
-			md2_models[i].grpatch = NULL;
+			{
+				FREEGRPATCH(md2_models[i], grpatch);
+				FREEGRPATCH(md2_models[i], blendgrpatch);
+			}
 		}
 #endif
 	}
+#ifdef HWRENDER
+#undef FREEGRPATCH
+#endif
 }
 
 static float PI = (3.1415926535897932384626433832795f);
