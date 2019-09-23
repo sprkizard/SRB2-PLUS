@@ -19,8 +19,6 @@ fpmatrix16_t *rsp_projectionmatrix = NULL;
 // init the polygon renderer
 void RSP_Init(void)
 {
-	CONS_Printf("Polygon renderer init\n");
-
 	// set pixel functions
 	rsp_basepixelfunc = RSP_DrawPixel;
 	rsp_transpixelfunc = RSP_DrawTranslucentPixel;
