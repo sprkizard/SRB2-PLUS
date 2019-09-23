@@ -215,9 +215,12 @@ void R_FreeModelTextures(void)
 #define FREEGRPATCH(model, pat) \
 	{ \
 		GLPatch_t *tex = (GLPatch_t *)(model.pat); \
-		Z_Free(tex->mipmap.grInfo.data); \
-		tex->mipmap.grInfo.data = NULL; \
-		tex->mipmap.downloaded = 0; \
+		if ((tex != NULL) && (tex->mipmap.downloaded) && (tex->mipmap.grInfo.data != NULL)) \
+		{ \
+			Z_Free(tex->mipmap.grInfo.data); \
+			tex->mipmap.grInfo.data = NULL; \
+			tex->mipmap.downloaded = 0; \
+		} \
 	}
 #endif
 
