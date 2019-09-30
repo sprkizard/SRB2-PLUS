@@ -269,7 +269,7 @@ menu_t OP_OpenGLOptionsDef, OP_OpenGLFogDef, OP_OpenGLColorDef;
 #endif
 #ifdef SOFTPOLY
 menu_t OP_SoftPolyOptionsDef;
-#endif // HWRENDER
+#endif
 menu_t OP_SoundOptionsDef;
 
 //Misc
@@ -1120,14 +1120,16 @@ static menuitem_t OP_VideoOptionsMenu[] =
 #endif
 
 	{IT_STRING | IT_CVAR | IT_CV_SLIDER,
-	                         NULL, "Brightness",          &cv_usegamma,      50},
-	{IT_STRING | IT_CVAR,    NULL, "Draw Distance",       &cv_drawdist, 60},
-	{IT_STRING | IT_CVAR,    NULL, "NiGHTS Draw Dist",    &cv_drawdist_nights, 70},
-	{IT_STRING | IT_CVAR,    NULL, "Precip Draw Dist",    &cv_drawdist_precip, 80},
-	{IT_STRING | IT_CVAR,    NULL, "Precip Density",      &cv_precipdensity, 90},
+	                         NULL, "Field of view",       &cv_fov,           50},
+	{IT_STRING | IT_CVAR | IT_CV_SLIDER,
+	                         NULL, "Brightness",          &cv_usegamma,      60},
+	{IT_STRING | IT_CVAR,    NULL, "Draw Distance",       &cv_drawdist, 70},
+	{IT_STRING | IT_CVAR,    NULL, "NiGHTS Draw Dist",    &cv_drawdist_nights, 80},
+	{IT_STRING | IT_CVAR,    NULL, "Precip Draw Dist",    &cv_drawdist_precip, 90},
+	{IT_STRING | IT_CVAR,    NULL, "Precip Density",      &cv_precipdensity, 100},
 
-	{IT_STRING | IT_CVAR,    NULL, "Show FPS",            &cv_ticrate,    110},
-	{IT_STRING | IT_CVAR,    NULL, "Clear Before Redraw", &cv_homremoval, 120},
+	{IT_STRING | IT_CVAR,    NULL, "Show FPS",            &cv_ticrate,    120},
+	//{IT_STRING | IT_CVAR,    NULL, "Clear Before Redraw", &cv_homremoval, 130},
 	{IT_STRING | IT_CVAR,    NULL, "Vertical Sync",       &cv_vidwait,    130},
 
 #if defined (HWRENDER) || defined (SOFTPOLY)
@@ -1164,9 +1166,9 @@ static menuitem_t OP_VideoModeMenu[] =
 static menuitem_t OP_OpenGLOptionsMenu[] =
 {
 	{IT_STRING|IT_CVAR,         NULL, "3D Models",       &cv_models,           10},
-	{IT_STRING|IT_CVAR,         NULL, "Model lighting",  &cv_grmodellighting,  20},
+	{IT_STRING|IT_CVAR,         NULL, "Model interpolation",&cv_modelinterpolation,20},
+	{IT_STRING|IT_CVAR,         NULL, "Model lighting",  &cv_grmodellighting,  30},
 
-	{IT_STRING|IT_CVAR,         NULL, "Field of view",   &cv_grfov,            40},
 	{IT_STRING|IT_CVAR,         NULL, "Quality",         &cv_scr_depth,        50},
 	{IT_STRING|IT_CVAR,         NULL, "Texture Filter",  &cv_grfiltermode,     60},
 	{IT_STRING|IT_CVAR,         NULL, "Anisotropic",     &cv_granisotropicmode,70},
@@ -2087,21 +2089,31 @@ menu_t *currentMenu = &MainDef;
 static void M_ChangeCvar(INT32 choice)
 {
 	consvar_t *cv = (consvar_t *)currentMenu->menuitems[itemOn].itemaction;
+	char s[20];
+
+	// yea
+	choice = (choice*2-1);
 
 	if (((currentMenu->menuitems[itemOn].status & IT_CVARTYPE) == IT_CV_SLIDER)
 	    ||((currentMenu->menuitems[itemOn].status & IT_CVARTYPE) == IT_CV_INVISSLIDER)
 	    ||((currentMenu->menuitems[itemOn].status & IT_CVARTYPE) == IT_CV_NOMOD))
 	{
-		CV_SetValue(cv,cv->value+(choice*2-1));
+		if ((cv->flags & CV_FLOAT) && (currentMenu->menuitems[itemOn].status & IT_CVARTYPE) == IT_CV_SLIDER)
+		{
+			float adjust = choice * ((cv == &cv_fov) ? 0.5f : (1.0f/16.0f)); // :)
+			sprintf(s,"%f",FIXED_TO_FLOAT(cv->value)+adjust);
+			CV_Set(cv,s);
+		}
+		else
+			CV_SetValue(cv,cv->value+choice);
 	}
 	else if (cv->flags & CV_FLOAT)
 	{
-		char s[20];
-		sprintf(s,"%f",FIXED_TO_FLOAT(cv->value)+(choice*2-1)*(1.0f/16.0f));
+		sprintf(s,"%f",FIXED_TO_FLOAT(cv->value)+choice*(1.0f/16.0f));
 		CV_Set(cv,s);
 	}
 	else
-		CV_AddValue(cv,choice*2-1);
+		CV_AddValue(cv,choice);
 }
 
 static boolean M_ChangeStringCvar(INT32 choice)
@@ -2557,6 +2569,12 @@ boolean M_Responder(event_t *ev)
 				// detach any keys associated with the game control
 				G_ClearControlKeys(setupcontrols, currentMenu->menuitems[itemOn].alphaKey);
 				return true;
+			}
+			else if ((currentMenu->menuitems[itemOn].status & IT_TYPE) == IT_CVAR)
+			{
+				consvar_t *cv = (consvar_t *)currentMenu->menuitems[itemOn].itemaction;
+				if ((currentMenu->menuitems[itemOn].status & IT_CVARTYPE) == IT_CV_SLIDER)
+					CV_Set(cv, cv->defaultvalue);
 			}
 			// Why _does_ backspace go back anyway?
 			//currentMenu->lastOn = itemOn;

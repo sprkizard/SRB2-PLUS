@@ -64,6 +64,7 @@ INT32 centerx, centery;
 fixed_t centerxfrac, centeryfrac;
 fixed_t projection;
 fixed_t projectiony; // aspect ratio
+fixed_t fovtan; // field of view
 
 // just for profiling purposes
 size_t framecount;
@@ -77,6 +78,7 @@ float focallengthf;
 fixed_t viewx, viewy, viewz;
 angle_t viewangle, aimingangle;
 fixed_t viewcos, viewsin;
+fixed_t viewfov;
 boolean viewsky, skyVisible;
 boolean skyVisible1, skyVisible2; // saved values of skyVisible for P1 and P2, for splitscreen
 sector_t *viewsector;
@@ -137,6 +139,8 @@ lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ];
 size_t num_extra_colormaps;
 extracolormap_t extra_colormaps[MAXCOLORMAPS];
 
+static CV_PossibleValue_t fov_cons_t[] = {{0, "MIN"}, {179*FRACUNIT, "MAX"}, {0, NULL}};
+
 static CV_PossibleValue_t drawdist_cons_t[] = {
 	{256, "256"},	{512, "512"},	{768, "768"},
 	{1024, "1024"},	{1536, "1536"},	{2048, "2048"},
@@ -147,6 +151,7 @@ static CV_PossibleValue_t translucenthud_cons_t[] = {{0, "MIN"}, {10, "MAX"}, {0
 static CV_PossibleValue_t maxportals_cons_t[] = {{0, "MIN"}, {12, "MAX"}, {0, NULL}}; // lmao rendering 32 portals, you're a card
 static CV_PossibleValue_t homremoval_cons_t[] = {{0, "No"}, {1, "Yes"}, {2, "Flash"}, {0, NULL}};
 
+static void Fov_OnChange(void);
 static void ChaseCam_OnChange(void);
 static void ChaseCam2_OnChange(void);
 static void FlipCam_OnChange(void);
@@ -168,6 +173,8 @@ consvar_t cv_allowmlook = {"allowmlook", "Yes", CV_NETVAR, CV_YesNo, NULL, 0, NU
 consvar_t cv_showhud = {"showhud", "Yes", CV_CALL,  CV_YesNo, R_SetViewSize, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_translucenthud = {"translucenthud", "10", CV_SAVE, translucenthud_cons_t, NULL, 0, NULL, NULL, 0, 0, NULL};
 
+consvar_t cv_fov = {"fov", "90", CV_FLOAT|CV_CALL, fov_cons_t, Fov_OnChange, 0, NULL, NULL, 0, 0, NULL};
+consvar_t cv_fovchange = {"fovchange", "Off", CV_SAVE, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_translucency = {"translucency", "On", CV_SAVE, CV_OnOff, NULL, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_drawdist = {"drawdist", "Infinite", CV_SAVE, drawdist_cons_t, NULL, 0, NULL, NULL, 0, 0, NULL};
 consvar_t cv_drawdist_nights = {"drawdist_nights", "2048", CV_SAVE, drawdist_cons_t, NULL, 0, NULL, NULL, 0, 0, NULL};
@@ -178,6 +185,12 @@ consvar_t cv_precipdensity = {"precipdensity", "Moderate", CV_SAVE, precipdensit
 consvar_t cv_homremoval = {"homremoval", "No", CV_SAVE, homremoval_cons_t, NULL, 0, NULL, NULL, 0, 0, NULL};
 
 consvar_t cv_maxportals = {"maxportals", "2", CV_SAVE, maxportals_cons_t, NULL, 0, NULL, NULL, 0, 0, NULL};
+
+static void Fov_OnChange(void)
+{
+	R_SetFieldOfView(cv_fov.value);
+	R_SetViewSize();
+}
 
 void SplitScreen_OnChange(void)
 {
@@ -192,6 +205,7 @@ void SplitScreen_OnChange(void)
 	}
 
 	// recompute screen size
+	R_SetFieldOfView(cv_fov.value);
 	R_ExecuteSetViewSize();
 
 	if (!demoplayback && !botingame)
@@ -472,7 +486,7 @@ static void R_InitTextureMapping(void)
 	INT32 i;
 	INT32 x;
 	INT32 t;
-	fixed_t focallength, fovtan;
+	fixed_t focallength;
 
 	// Use tangent table to generate viewangletox:
 	//  viewangletox will give the next greatest x
@@ -480,8 +494,7 @@ static void R_InitTextureMapping(void)
 	//
 	// Calc focallength
 	//  so FIELDOFVIEW angles covers SCREENWIDTH.
-	fovtan = FINETANGENT(FINEANGLES/4+FIELDOFVIEW/2);
-	focallength = FixedDiv(centerxfrac, fovtan);
+	focallength = FixedDiv(projection, FINETANGENT(FINEANGLES/4+FIELDOFVIEW/2));
 #ifdef ESLOPE
 	focallengthf = FIXED_TO_FLOAT(focallength);
 #endif // ESLOPE
@@ -584,6 +597,13 @@ void R_SetViewSize(void)
 	setsizeneeded = true;
 }
 
+void R_SetFieldOfView(fixed_t fov)
+{
+	viewfov = fov;
+	if (splitscreen) // Splitscreen FOV should be adjusted to maintain expected vertical view
+		viewfov += 20*FRACUNIT;
+}
+
 //
 // R_ExecuteSetViewSize
 //
@@ -594,6 +614,7 @@ void R_ExecuteSetViewSize(void)
 	INT32 j;
 	INT32 level;
 	INT32 startmapl;
+	angle_t fov;
 
 	setsizeneeded = false;
 
@@ -616,9 +637,12 @@ void R_ExecuteSetViewSize(void)
 	centerxfrac = centerx<<FRACBITS;
 	centeryfrac = centery<<FRACBITS;
 
+	fov = FixedAngle(viewfov/2) + ANGLE_90;
+	fovtan = FINETANGENT(fov >> ANGLETOFINESHIFT);
+
 	// aspect ratio
-	projectiony = centerxfrac;
-	projection = centerxfrac;
+	projection = FixedDiv(centerxfrac, fovtan);
+	projectiony = projection;
 
 	R_InitViewBuffer(scaledviewwidth, viewheight);
 
@@ -644,8 +668,8 @@ void R_ExecuteSetViewSize(void)
 		for (i = 0; i < j; i++)
 		{
 			dy = ((i - viewheight*8)<<FRACBITS) + FRACUNIT/2;
-			dy = abs(dy);
-			yslopetab[i] = FixedDiv(projectiony, dy);
+			dy = FixedMul(abs(dy), fovtan);
+			yslopetab[i] = FixedDiv(centerxfrac, dy);
 		}
 	}
 
@@ -766,7 +790,7 @@ subsector_t *R_IsPointInSubsector(fixed_t x, fixed_t y)
 static mobj_t *viewmobj;
 
 // WARNING: a should be unsigned but to add with 2048, it isn't!
-#define AIMINGTODY(a) ((FINETANGENT((2048+(((INT32)a)>>ANGLETOFINESHIFT)) & FINEMASK)*160)>>FRACBITS)
+#define AIMINGTODY(a) FixedDiv((FINETANGENT((2048+(((INT32)a)>>ANGLETOFINESHIFT)) & FINEMASK)*160)>>FRACBITS, fovtan)
 
 // recalc necessary stuff for mouseaiming
 // slopes are already calculated for the full possible view (which is 4*viewheight).
@@ -892,6 +916,7 @@ void R_SetupFrame(player_t *player, boolean skybox)
 
 	viewsin = FINESINE(viewangle>>ANGLETOFINESHIFT);
 	viewcos = FINECOSINE(viewangle>>ANGLETOFINESHIFT);
+	R_SetFieldOfView(cv_fov.value + player->fovadd);
 
 	R_SetupFreelook();
 #ifdef SOFTPOLY
@@ -1113,6 +1138,7 @@ void R_SkyboxFrame(player_t *player)
 
 	viewsin = FINESINE(viewangle>>ANGLETOFINESHIFT);
 	viewcos = FINECOSINE(viewangle>>ANGLETOFINESHIFT);
+	R_SetFieldOfView(cv_fov.value + player->fovadd);
 
 	R_SetupFreelook();
 #ifdef SOFTPOLY
@@ -1423,11 +1449,13 @@ void R_RegisterEngineStuff(void)
 	if (dedicated)
 		return;
 
-	CV_RegisterVar(&cv_precipdensity);
+	CV_RegisterVar(&cv_fovchange);
+	CV_RegisterVar(&cv_fov);
 	CV_RegisterVar(&cv_translucency);
 	CV_RegisterVar(&cv_drawdist);
 	CV_RegisterVar(&cv_drawdist_nights);
 	CV_RegisterVar(&cv_drawdist_precip);
+	CV_RegisterVar(&cv_precipdensity);
 
 	CV_RegisterVar(&cv_chasecam);
 	CV_RegisterVar(&cv_chasecam2);
@@ -1463,7 +1491,6 @@ void R_RegisterEngineStuff(void)
 	CV_RegisterVar(&cv_grgammablue);
 	CV_RegisterVar(&cv_grgammagreen);
 	CV_RegisterVar(&cv_grgammared);
-	CV_RegisterVar(&cv_grfovchange);
 	CV_RegisterVar(&cv_grfog);
 	CV_RegisterVar(&cv_grfogcolor);
 	CV_RegisterVar(&cv_grsoftwarefog);

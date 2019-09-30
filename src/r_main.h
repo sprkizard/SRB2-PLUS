@@ -21,6 +21,7 @@
 // POV related.
 //
 extern fixed_t viewcos, viewsin;
+extern fixed_t viewfov;
 extern INT32 viewheight;
 extern INT32 centerx, centery;
 
@@ -84,6 +85,7 @@ extern consvar_t cv_homremoval;
 extern consvar_t cv_chasecam, cv_chasecam2;
 extern consvar_t cv_flipcam, cv_flipcam2;
 extern consvar_t cv_shadow, cv_shadowoffs;
+extern consvar_t cv_fov, cv_fovchange;
 extern consvar_t cv_translucency;
 extern consvar_t cv_precipdensity, cv_drawdist, cv_drawdist_nights, cv_drawdist_precip;
 extern consvar_t cv_skybox;
@@ -108,9 +110,10 @@ void R_SetViewSize(void);
 // do it (sometimes explicitly called)
 void R_ExecuteSetViewSize(void);
 
-void R_SkyboxFrame(player_t *player);
-
 void R_SetupFrame(player_t *player, boolean skybox);
+void R_SkyboxFrame(player_t *player);
+void R_SetFieldOfView(fixed_t fov);
+
 // Called by G_Drawer.
 void R_RenderPlayerView(player_t *player);
 
