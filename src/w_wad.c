@@ -379,12 +379,17 @@ static void W_LoadModelLumps(UINT16 wadnum)
 			}
 
 			// find skin name with model name
-			for (i = 0; i < MAXSKINS; i++)
+			if (!strcmp("PLAY", lumpname+4))
+				skinnum = 0;
+			else
 			{
-				if (!strcmp(skins[i].sprite, lumpname+4))
+				for (i = 0; i < MAXSKINS; i++)
 				{
-					skinnum = i;
-					break;
+					if (!strcmp(skins[i].sprite, lumpname+4))
+					{
+						skinnum = i;
+						break;
+					}
 				}
 			}
 
