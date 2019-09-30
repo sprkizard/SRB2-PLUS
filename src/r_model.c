@@ -56,7 +56,7 @@ void R_CheckLoadModels(void)
 				HWR_AddInternalPlayerMD2(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
 				strncpy(skins[skinnum].model, needloadplayermodels[i], sizeof skins[skinnum].model);
-				skins[skinnum].flags |= SF_RENDERMODEL;
+				//skins[skinnum].flags |= SF_RENDERMODEL;
 				break;
 			}
 		}
