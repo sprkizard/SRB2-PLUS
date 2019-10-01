@@ -3073,7 +3073,7 @@ boolean P_SetupLevel(boolean skipprecip)
 		if (!cv_analog2.changed)
 			CV_SetValue(&cv_analog2, 0);
 
-		CV_Set(&cv_fov, cv_fov.defaultvalue);
+		//CV_Set(&cv_fov, cv_fov.defaultvalue);
 
 		displayplayer = consoleplayer; // Start with your OWN view, please!
 	}
