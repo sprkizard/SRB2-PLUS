@@ -2922,18 +2922,17 @@ next_token:
 		}
 		free(buf2);
 
-		lump++; // if no sprite defined use spirte just after this one
+		lump++; // if no sprite defined use sprite just after this one
 		if (skin->sprite[0] == '\0')
 		{
 			const char *csprname = W_CheckNameForNumPwad(wadnum, lump);
-
 			// skip to end of this skin's frames
 			lastlump = lump;
 			while (W_CheckNameForNumPwad(wadnum,lastlump) && memcmp(W_CheckNameForNumPwad(wadnum, lastlump),csprname,4)==0)
 				lastlump++;
 			// allocate (or replace) sprite frames, and set spritedef
 			R_AddSingleSpriteDef(csprname, &skin->spritedef, wadnum, lump, lastlump);
-			strncpy(skin->sprite, csprname, 4);
+			M_Memcpy(skin->sprite, csprname, 4); // make sure to copy exactly four chars
 		}
 		else
 		{

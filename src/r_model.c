@@ -46,7 +46,7 @@ void R_CheckLoadModels(void)
 		// find skin name with model name
 		for (skinnum = 0; skinnum < MAXSKINS; skinnum++)
 		{
-			if (!strcmp(skins[skinnum].sprite, needloadplayermodels[i]+4))
+			if (!memcmp(skins[skinnum].sprite, needloadplayermodels[i]+4, 4)) // make sure to compare exactly four chars
 			{
 				size_t lumpnum = W_GetNumForName(needloadplayermodels[i]);
 #ifdef SOFTPOLY
@@ -56,7 +56,6 @@ void R_CheckLoadModels(void)
 				HWR_AddInternalPlayerMD2(lumpnum, skinnum, DEFAULTMODELSCALE, 0.0f, 0.0f);
 #endif
 				strncpy(skins[skinnum].model, needloadplayermodels[i], sizeof skins[skinnum].model);
-				//skins[skinnum].flags |= SF_RENDERMODEL;
 				break;
 			}
 		}
