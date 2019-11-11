@@ -98,8 +98,8 @@ static INT32 current_track;
 
 static void var_cleanup(void)
 {
-	song_length = loop_point = 0.0f;
-	music_bytes = fading_source = fading_target =\
+	loop_point = song_length =\
+	 music_bytes = fading_source = fading_target =\
 	 fading_timer = fading_duration = 0;
 
 	songpaused = is_looping =\
@@ -146,7 +146,7 @@ void I_StartupSound(void)
 	Mix_Init(MIX_INIT_FLAC|MIX_INIT_MOD|MIX_INIT_MP3|MIX_INIT_OGG);
 #endif
 
-	if (Mix_OpenAudio(SAMPLE_RATE, AUDIO_S16SYS, 2, 2048) < 0)
+	if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) < 0)
 	{
 		CONS_Alert(CONS_ERROR, "Error starting SDL_Mixer: %s\n", Mix_GetError());
 		// call to start audio failed -- we do not have it
@@ -362,7 +362,7 @@ void *I_GetSfx(sfxinfo_t *sfx)
 					gme_track_info(emu, &info, 0);
 
 					len = (info->play_length * 441 / 10) << 2;
-					mem = Z_Malloc(len, PU_SOUND, 0);
+					mem = malloc(len);
 					gme_play(emu, len >> 1, mem);
 					gme_free_info(info);
 					gme_delete(emu);
@@ -435,7 +435,7 @@ void *I_GetSfx(sfxinfo_t *sfx)
 		gme_track_info(emu, &info, 0);
 
 		len = (info->play_length * 441 / 10) << 2;
-		mem = Z_Malloc(len, PU_SOUND, 0);
+		mem = malloc(len);
 		gme_play(emu, len >> 1, mem);
 		gme_free_info(info);
 		gme_delete(emu);
@@ -569,7 +569,7 @@ static void music_loop(void)
 	{
 		Mix_PlayMusic(music, 0);
 		Mix_SetMusicPosition(loop_point);
-		music_bytes = (UINT32)(loop_point*44100.0L*4); //assume 44.1khz, 4-byte length (see I_GetSongPosition)
+		music_bytes = loop_point*44100.0L*4; //assume 44.1khz, 4-byte length (see I_GetSongPosition)
 	}
 	else
 		I_StopSong();
@@ -609,20 +609,6 @@ static UINT32 music_fade(UINT32 interval, void *param)
 		return interval;
 	}
 }
-
-
-static void mixmusic_callback(void *udata, Uint8 *stream, int len)
-{
-	if(!Mix_PausedMusic()) {
-		music_pos += len/4;
-		music_pos_time = SDL_GetTicks();
-	}
-	(void)udata;
-	(void)stream;
-	//I_OutputMsg("MusicPos: %.3f", music_pos);
-	//HU_DoCEcho(va("MusicPos: %.3f\\Stream: %d\\Length: %i", music_pos,stream,len));
-}
-
 
 #ifdef HAVE_LIBGME
 static void mix_gme(void *udata, Uint8 *stream, int len)
@@ -857,7 +843,7 @@ boolean I_SetSongPosition(UINT32 position)
 
 		Mix_RewindMusic(); // needed for mp3
 		if(Mix_SetMusicPosition((float)(position/1000.0L)) == 0)
-			music_bytes = (UINT32)(position/1000.0L*44100.0L*4); //assume 44.1khz, 4-byte length (see I_GetSongPosition)
+			music_bytes = position/1000.0L*44100.0L*4; //assume 44.1khz, 4-byte length (see I_GetSongPosition)
 		else
 			// NOTE: This block fires on incorrect song format,
 			// NOT if position input is greater than song length.
@@ -901,7 +887,7 @@ UINT32 I_GetSongPosition(void)
 	if (!music || I_SongType() == MU_MID)
 		return 0;
 	else
-		return (UINT32)(music_bytes/44100.0L*1000.0L/4); //assume 44.1khz
+		return music_bytes/44100.0L*1000.0L/4; //assume 44.1khz
 		// 4 = byte length for 16-bit samples (AUDIO_S16SYS), stereo (2-channel)
 		// This is hardcoded in I_StartupSound. Other formats for factor:
 		// 8M: 1 | 8S: 2 | 16M: 2 | 16S: 4
@@ -1092,7 +1078,7 @@ void I_UnloadSong(void)
 	}
 }
 
-boolean I_FadeInSong(boolean looping, UINT32 fadein_ms)
+boolean I_PlaySong(boolean looping)
 {
 #ifdef HAVE_LIBGME
 	if (gme)
@@ -1165,34 +1151,6 @@ void I_PauseSong(void)
 
 	Mix_PauseMusic();
 	songpaused = true;
-}
-
-void I_SetMusicPosition(float position)
-{
-	Mix_SetMusicPosition(position);
-	music_pos = (int)(position * SAMPLE_RATE);
-}
-
-float I_GetMusicPosition(void)
-{
-	float const pos = SAMPLE_RATE;
-	return (
-		(music_pos-2048) / pos
-	) + (
-		(SDL_GetTicks() - music_pos_time) * 0.001f
-	);
-}
-
-void I_VolumeMusic(int volume)
-{
-	Mix_VolumeMusic(volume);
-}
-
-void I_FadeOutMusic(int ms)
-{
-	fadeout_start_ticks = SDL_GetTicks();
-	fadeout_ms = ms;
-	Mix_FadeOutMusic(ms);
 }
 
 void I_ResumeSong(void)

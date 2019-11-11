@@ -1531,29 +1531,6 @@ void S_ChangeMusicEx(const char *mmusic, UINT16 mflags, boolean looping, UINT32 
 	}
 }
 
-void S_SetMusicPosition(float position)
-{
-	I_SetMusicPosition(position);
-}
-
-float S_GetMusicPosition(void)
-{
-	return I_GetMusicPosition();
-}
-
-void S_MusicVolume(int volume)
-{
-	if (volume == -1)
-		return I_VolumeMusic(volume);
-	else
-		I_VolumeMusic(volume);
-}
-
-void S_FadeOutMusic(int ms)
-{
-	I_FadeOutMusic(ms);
-}
-
 void S_StopMusic(void)
 {
 	if (!I_SongPlaying())

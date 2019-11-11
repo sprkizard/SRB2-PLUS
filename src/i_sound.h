@@ -191,8 +191,7 @@ void I_UnloadSong(void);
 
 	\todo pass music name, not handle
 */
-#define I_PlaySong(looping) I_FadeInSong(looping, 0)
-boolean I_FadeInSong(boolean looping, UINT32 fadein_ms);
+boolean I_PlaySong(boolean looping);
 
 /**	\brief	Stops a song over 3 seconds
 
@@ -213,12 +212,10 @@ void I_PauseSong(void);
 
 /**	\brief	RESUME game handling
 
-	\return	if true, song playing
+	\param	handle	song handle
+
+	\return	void
 */
-#define I_StartDigSong(musicname, looping) I_FadeInDigSong(musicname, looping, 0)
-boolean I_FadeInDigSong(const char *musicname, boolean looping, UINT32 fadein_ms);
-
-
 void I_ResumeSong(void);
 
 /**	\brief	The I_SetMusicVolume function
@@ -229,40 +226,6 @@ void I_ResumeSong(void);
 */
 void I_SetMusicVolume(UINT8 volume);
 
-//miru: Let's open up and add some music functions to SDL
-/** \brief Sets the position in the current song.
-
-    \param position How many seconds into the song to seek to
-
-    \return void
-*/
-void I_SetMusicPosition(float position);
-
-/** \brief Gets the position in the current song.
-
-    \return position value
-*/
-float I_GetMusicPosition(void);
-
-/** \brief Set music Volume
-
-    \param volume Volume to set the music to
-
-    \return void
-*/
-void I_VolumeMusic(int volume);
-
-/** \brief Fade out Music
-
-    \param ms How long the effect should last
-
-    \return void
-*/
-void I_FadeOutMusic(int ms);
-
-//
-// CD MUSIC I/O
-//
 boolean I_SetSongTrack(INT32 track);
 
 /// ------------------------
