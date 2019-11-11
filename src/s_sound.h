@@ -112,56 +112,49 @@ boolean S_MusicDisabled(void);
 boolean S_MusicPlaying(void);
 boolean S_MusicPaused(void);
 musictype_t S_MusicType(void);
+const char *S_MusicName(void);
 boolean S_MusicInfo(char *mname, UINT16 *mflags, boolean *looping);
 boolean S_MusicExists(const char *mname, boolean checkMIDI, boolean checkDigi);
 #define S_DigExists(a) S_MusicExists(a, false, true)
 #define S_MIDIExists(a) S_MusicExists(a, true, false)
 
-
 //
-// Music Properties
+// Music Effects
 //
 
 // Set Speed of Music
 boolean S_SpeedMusic(float speed);
 
 //
-// Music Routines
+// Music Seeking
+//
+
+// Get Length of Music
+UINT32 S_GetMusicLength(void);
+
+// Set LoopPoint of Music
+boolean S_SetMusicLoopPoint(UINT32 looppoint);
+
+// Get LoopPoint of Music
+UINT32 S_GetMusicLoopPoint(void);
+
+// Set Position of Music
+boolean S_SetMusicPosition(UINT32 position);
+
+// Get Position of Music
+UINT32 S_GetMusicPosition(void);
+
+//
+// Music Playback
 //
 
 // Start music track, arbitrary, given its name, and set whether looping
 // note: music flags 12 bits for tracknum (gme, other formats with more than one track)
 //       13-15 aren't used yet
 //       and the last bit we ignore (internal game flag for resetting music on reload)
-#define S_ChangeMusicInternal(a,b) S_ChangeMusicFadeIn(a,0,b,0)
-#define S_ChangeMusic(mmusic,mflags,looping) S_ChangeMusicFadeIn(mmusic,mflags,looping,0)
-void S_ChangeMusicFadeIn(const char *mmusic, UINT16 mflags, boolean looping, UINT32 fadein_ms);
-
-
-
-//miru: Let's open and add some music functions in SDL,
-//PositionMusic and GetMusicPosition aka SetMusicPosition
-//(because I'm not allowed to name it to not be as sloppily named the way it is)
-
-// Seek to a point in the current song
-void S_SetMusicPosition(float position);
-
-// Get the current music position
-float S_GetMusicPosition(void);
-
-// Fade in over milliseconds of time
-//boolean S_FadeInSong(boolean looping, UINT32 fadein_ms);
-
-// Fade in over ms milliseconds of time, at position
-void S_FadeInMusicPos(int ms, float position);
-
-// Set the volume, to volume
-void S_MusicVolume(int volume);
-
-// Gradually fade out the music over time starting from now
-void S_FadeOutMusic(int ms);
-
-
+void S_ChangeMusicEx(const char *mmusic, UINT16 mflags, boolean looping, UINT32 position, UINT32 prefadems, UINT32 fadeinms);
+#define S_ChangeMusicInternal(a,b) S_ChangeMusicEx(a,0,b,0,0,0)
+#define S_ChangeMusic(a,b,c) S_ChangeMusicEx(a,b,c,0,0,0)
 
 // Stops the music.
 void S_StopMusic(void);
@@ -169,6 +162,17 @@ void S_StopMusic(void);
 // Stop and resume music, during game PAUSE.
 void S_PauseAudio(void);
 void S_ResumeAudio(void);
+
+//
+// Music Fading
+//
+
+void S_SetInternalMusicVolume(INT32 volume);
+void S_StopFadingMusic(void);
+boolean S_FadeMusicFromVolume(UINT8 target_volume, INT16 source_volume, UINT32 ms);
+#define S_FadeMusic(a, b) S_FadeMusicFromVolume(a, -1, b)
+#define S_FadeInChangeMusic(a,b,c,d) S_ChangeMusicEx(a,b,c,0,0,d)
+boolean S_FadeOutStopMusic(UINT32 ms);
 
 //
 // Updates music & sounds

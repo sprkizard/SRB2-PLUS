@@ -404,16 +404,7 @@ void R_LoadTextures(void)
 	// but the alternative is to spend a ton of time checking and re-checking all previous entries just to skip any potentially patched textures.
 	for (w = 0, numtextures = 0; w < numwadfiles; w++)
 	{
-		if (wadfiles[w]->type == RET_PK3)
-		{
-			texstart = W_CheckNumForFolderStartPK3("textures/", (UINT16)w, 0);
-			texend = W_CheckNumForFolderEndPK3("textures/", (UINT16)w, texstart);
-		}
-		else
-		{
-			texstart = W_CheckNumForNamePwad(TX_START, (UINT16)w, 0) + 1;
-			texend = W_CheckNumForNamePwad(TX_END, (UINT16)w, 0);
-		}
+		// Count the textures from TEXTURES lumps
 
 		texturesLumpPos = W_CheckNumForNamePwad("TEXTURES", (UINT16)w, 0);
 		while (texturesLumpPos != INT16_MAX)
@@ -422,18 +413,42 @@ void R_LoadTextures(void)
 			texturesLumpPos = W_CheckNumForNamePwad("TEXTURES", (UINT16)w, texturesLumpPos + 1);
 		}
 
-		// Add all the textures between TX_START and TX_END
-		if (texstart != INT16_MAX && texend != INT16_MAX)
+		// Count single-patch textures
+
+		if (wadfiles[w]->type == RET_PK3)
+		{
+			texstart = W_CheckNumForFolderStartPK3("textures/", (UINT16)w, 0);
+			texend = W_CheckNumForFolderEndPK3("textures/", (UINT16)w, texstart);
+		}
+		else
+		{
+			texstart = W_CheckNumForNamePwad(TX_START, (UINT16)w, 0);
+			texend = W_CheckNumForNamePwad(TX_END, (UINT16)w, 0);
+		}
+
+		if (texstart == INT16_MAX || texend == INT16_MAX)
+			continue;
+
+		texstart++; // Do not count the first marker
+
+		// PK3s have subfolders, so we can't just make a simple sum
+		if (wadfiles[w]->type == RET_PK3)
+		{
+			for (j = texstart; j < texend; j++)
+			{
+				if (!W_IsLumpFolder((UINT16)w, j)) // Check if lump is a folder; if not, then count it
+					numtextures++;
+			}
+		}
+		else // Add all the textures between TX_START and TX_END
 		{
 			numtextures += (UINT32)(texend - texstart);
 		}
-
-		// If no textures found by this point, bomb out
-		if (!numtextures && w == (numwadfiles - 1))
-		{
-			I_Error("No textures detected in any WADs!\n");
-		}
 	}
+
+	// If no textures found by this point, bomb out
+	if (!numtextures)
+		I_Error("No textures detected in any WADs!\n");
 
 	// Allocate memory and initialize to 0 for all the textures we are initialising.
 	// There are actually 5 buffers allocated in one for convenience.
@@ -469,7 +484,7 @@ void R_LoadTextures(void)
 		}
 		else
 		{
-			texstart = W_CheckNumForNamePwad(TX_START, (UINT16)w, 0) + 1;
+			texstart = W_CheckNumForNamePwad(TX_START, (UINT16)w, 0);
 			texend = W_CheckNumForNamePwad(TX_END, (UINT16)w, 0);
 			texturesLumpPos = W_CheckNumForNamePwad("TEXTURES", (UINT16)w, 0);
 			if (texturesLumpPos != INT16_MAX)
@@ -479,47 +494,43 @@ void R_LoadTextures(void)
 		if (texstart == INT16_MAX || texend == INT16_MAX)
 			continue;
 
+		texstart++; // Do not count the first marker
+
 		// Work through each lump between the markers in the WAD.
-		for (j = 0; j < (texend - texstart); i++, j++)
+		for (j = 0; j < (texend - texstart); j++)
 		{
+			if (wadfiles[w]->type == RET_PK3)
+			{
+				if (W_IsLumpFolder((UINT16)w, texstart + j)) // Check if lump is a folder
+					continue; // If it is then SKIP IT
+			}
 			patchlump = W_CacheLumpNumPwad((UINT16)w, texstart + j, PU_CACHE);
 
-			// Then, check the lump directly to see if it's a texture SOC,
-			// and if it is, load it using dehacked instead.
-			if (strstr((const char *)patchlump, "TEXTURE"))
-			{
-				CONS_Alert(CONS_WARNING, "%s is a Texture SOC.\n", W_CheckNameForNumPwad((UINT16)w,texstart+j));
-				Z_Unlock(patchlump);
-				DEH_LoadDehackedLumpPwad((UINT16)w, texstart + j);
-			}
-			else
-			{
-				//CONS_Printf("\n\"%s\" is a single patch, dimensions %d x %d",W_CheckNameForNumPwad((UINT16)w,texstart+j),patchlump->width, patchlump->height);
-				texture = textures[i] = Z_Calloc(sizeof(texture_t) + sizeof(texpatch_t), PU_STATIC, NULL);
+			//CONS_Printf("\n\"%s\" is a single patch, dimensions %d x %d",W_CheckNameForNumPwad((UINT16)w,texstart+j),patchlump->width, patchlump->height);
+			texture = textures[i] = Z_Calloc(sizeof(texture_t) + sizeof(texpatch_t), PU_STATIC, NULL);
 
-				// Set texture properties.
-				M_Memcpy(texture->name, W_CheckNameForNumPwad((UINT16)w, texstart + j), sizeof(texture->name));
-				texture->width = SHORT(patchlump->width);
-				texture->height = SHORT(patchlump->height);
-				texture->patchcount = 1;
-				texture->holes = false;
+			// Set texture properties.
+			M_Memcpy(texture->name, W_CheckNameForNumPwad((UINT16)w, texstart + j), sizeof(texture->name));
+			texture->width = SHORT(patchlump->width);
+			texture->height = SHORT(patchlump->height);
+			texture->patchcount = 1;
+			texture->holes = false;
 
-				// Allocate information for the texture's patches.
-				patch = &texture->patches[0];
+			// Allocate information for the texture's patches.
+			patch = &texture->patches[0];
 
-				patch->originx = patch->originy = 0;
-				patch->wad = (UINT16)w;
-				patch->lump = texstart + j;
+			patch->originx = patch->originy = 0;
+			patch->wad = (UINT16)w;
+			patch->lump = texstart + j;
 
-				Z_Unlock(patchlump);
+			Z_Unlock(patchlump);
 
-				k = 1;
-				while (k << 1 <= texture->width)
-					k <<= 1;
-
-				texturewidthmask[i] = k - 1;
-				textureheight[i] = texture->height << FRACBITS;
-			}
+			k = 1;
+			while (k << 1 <= texture->width)
+				k <<= 1;
+			texturewidthmask[i] = k - 1;
+			textureheight[i] = texture->height << FRACBITS;
+			i++;
 		}
 	}
 }
@@ -1065,6 +1076,7 @@ void R_ReInitColormaps(UINT16 num)
 {
 	char colormap[9] = "COLORMAP";
 	lumpnum_t lump;
+	const lumpnum_t basecolormaplump = W_GetNumForName(colormap);
 
 	if (num > 0 && num <= 10000)
 		snprintf(colormap, 8, "CLM%04u", num-1);
@@ -1072,8 +1084,16 @@ void R_ReInitColormaps(UINT16 num)
 	// Load in the light tables, now 64k aligned for smokie...
 	lump = W_GetNumForName(colormap);
 	if (lump == LUMPERROR)
-		lump = W_GetNumForName("COLORMAP");
-	W_ReadLump(lump, colormaps);
+		lump = basecolormaplump;
+	else
+	{
+		if (W_LumpLength(lump) != W_LumpLength(basecolormaplump))
+		{
+			CONS_Alert(CONS_WARNING, "%s lump size does not match COLORMAP, results may be unexpected.\n", colormap);
+		}
+	}
+
+	W_ReadLumpHeader(lump, colormaps, W_LumpLength(basecolormaplump), 0U);
 
 	// Init Boom colormaps.
 	R_ClearColormaps();

@@ -612,7 +612,7 @@ static boolean SOCK_Get(void)
 		if (c != ERRSOCKET)
 		{
 			// find remote node number
-			for (j = 0; j <= MAXNETNODES; j++) //include LAN
+			for (j = 1; j <= MAXNETNODES; j++) //include LAN
 			{
 				if (SOCK_cmpaddr(&fromaddress, &clientaddress[j], 0))
 				{
@@ -1310,7 +1310,7 @@ void I_ShutdownTcpDriver(void)
 static SINT8 SOCK_NetMakeNodewPort(const char *address, const char *port)
 {
 	SINT8 newnode = -1;
-	struct my_addrinfo *ai, *runp, hints;
+	struct my_addrinfo *ai = NULL, *runp, hints;
 	int gaie;
 
 	 if (!port || !port[0])
@@ -1340,8 +1340,12 @@ static SINT8 SOCK_NetMakeNodewPort(const char *address, const char *port)
 	while (runp != NULL)
 	{
 		// find ip of the server
-		memcpy(&clientaddress[newnode], runp->ai_addr, runp->ai_addrlen);
-		runp = NULL;
+		if (sendto(mysockets[0], NULL, 0, 0, runp->ai_addr, runp->ai_addrlen) == 0)
+		{
+			memcpy(&clientaddress[newnode], runp->ai_addr, runp->ai_addrlen);
+			break;
+		}
+		runp = runp->ai_next;
 	}
 	I_freeaddrinfo(ai);
 	return newnode;
