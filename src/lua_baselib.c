@@ -1916,6 +1916,77 @@ static int lib_gSetDisplayPlayer(lua_State *L)
 	return 0;
 }
 
+/*
+static int lib_sSetMusicPosition(lua_State *L)
+{
+	INT32 position = luaL_checkinteger(L, 1);
+
+	//CONS_Printf("set music pos %f\n", position);
+
+	player_t *player = NULL;
+
+	//NOHUD
+	if (!lua_isnone(L, 2) && lua_isuserdata(L, 2))
+	{
+		player = *((player_t **)luaL_checkudata(L, 2, META_PLAYER));
+		if (!player)
+			return LUA_ErrInvalid(L, "player_t");
+	}
+	if (!player || P_IsLocalPlayer(player))
+		S_SetMusicPosition(position);
+	return 0;
+}
+*/
+
+/*
+static int lib_sMusicPlaying(lua_State *L)
+{
+}
+
+static int lib_sMusicPaused(lua_State *L)
+{
+}
+*/
+
+static int lib_sMusicName(lua_State *L)
+{
+	// Is this dependant on player?
+	lua_pushstring(L, S_MusicName());
+
+	return 1;
+}
+
+/*
+static int lib_sMusicInfo(lua_State *L)
+{
+}
+
+static int lib_sMusicExists(lua_State *L)
+{
+}
+
+static int lib_sGetMusicLength(lua_State *L)
+{
+}
+
+static int lib_sSetMusicLoopPoint(lua_State *L)
+{
+}
+
+static int lib_sGetMusicLoopPoint(lua_State *L)
+{
+}
+*/
+
+static int lib_sGetMusicPosition(lua_State *L)
+{
+	UINT32 position = S_GetMusicPosition();
+	lua_pushinteger(L, position);
+	//CONS_Printf("GetMusicPosition: %05f\n\n\n",fpos);
+
+	return 1;
+}
+
 //=====================================================================
 
 
@@ -2438,6 +2509,10 @@ static luaL_Reg lib[] = {
 	//miru: Put everything added here, categorizing right now isn't something I want to wander through
 	{"P_SetActiveMotionBlur",lib_pSetActiveMotionBlur},
 	{"G_SetDisplayPlayer",lib_gSetDisplayPlayer},
+	
+	//{"S_SetMusicPosition",lib_sSetMusicPosition},
+	{"S_MusicName",lib_sMusicName},
+	{"S_GetMusicPosition",lib_sGetMusicPosition},
 
 	{NULL, NULL}
 };
